@@ -1,6 +1,6 @@
 
 # Valid entries
-node_modules
+**/node_modules/
 ignore
 outdated
 backup
@@ -21,10 +21,10 @@ backup
 
 
 # dist
-dist/
-dist-gui/
-release/
-coverage/
+**/dist/
+**/dist-gui/
+**/release/
+**/coverage/
 
 # agent
 .agent
