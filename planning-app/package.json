@@ -1,0 +1,28 @@
+{
+    "name": "@aotui/system-planning",
+    "version": "0.1.0",
+    "description": "AOTUI Planning Application - Plan/Phase/Todo management for LLM workflows",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest",
+        "test:run": "vitest run"
+    },
+    "dependencies": {
+        "@aotui/sdk": "file:../sdk",
+        "preact": "^10.25.4",
+        "sql.js": "^1.13.0"
+    },
+    "devDependencies": {
+        "@aotui/runtime": "file:../runtime",
+        "@types/node": "^22.15.21",
+        "@types/sql.js": "^1.4.9",
+        "typescript": "^5.9.3",
+        "vitest": "^3.2.4"
+    },
+    "peerDependencies": {
+        "@aotui/runtime": "file:../runtime"
+    }
+}

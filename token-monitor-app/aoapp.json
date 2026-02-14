@@ -1,0 +1,25 @@
+{
+    "name": "system-token-monitor",
+    "displayName": "Token Monitor App",
+    "version": "0.1.0",
+    "description": "Token usage monitor using LLM output metadata",
+    "author": "AOTUI Team",
+    "license": "MIT",
+    "runtime": {
+        "minVersion": "0.1.0"
+    },
+    "entry": {
+        "main": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+    },
+    "views": [
+        {
+            "name": "Root",
+            "description": "App instructions and token limit configuration"
+        },
+        {
+            "name": "TokenMonitor",
+            "description": "Latest usage stats and warning status"
+        }
+    ]
+}

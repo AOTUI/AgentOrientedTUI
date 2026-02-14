@@ -1,0 +1,17 @@
+{
+    "lsp": {
+        "typescript": {
+            "comment": "使用项目本地的 typescript-language-server,减少全局依赖",
+            "command": [
+                "./node_modules/.bin/typescript-language-server",
+                "--stdio"
+            ],
+            "extensions": [
+                ".ts",
+                ".tsx",
+                ".js",
+                ".jsx"
+            ]
+        }
+    }
+}

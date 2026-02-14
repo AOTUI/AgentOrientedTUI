@@ -1,0 +1,29 @@
+{
+    "name": "system-terminal",
+    "displayName": "Terminal App",
+    "version": "0.1.0",
+    "description": "Multi-terminal command execution with project path constraints",
+    "author": "AOTUI Team",
+    "license": "MIT",
+    "runtime": {
+        "minVersion": "0.1.0"
+    },
+    "entry": {
+        "main": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+    },
+    "views": [
+        {
+            "name": "TerminalConsole",
+            "description": "App instructions and terminal tool registry"
+        },
+        {
+            "name": "TerminalConsole",
+            "description": "Project path and terminal session summary"
+        },
+        {
+            "name": "Terminal",
+            "description": "Command history, working directory, and output tail"
+        }
+    ]
+}

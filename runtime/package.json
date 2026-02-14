@@ -1,0 +1,62 @@
+{
+  "name": "@aotui/runtime",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "tui": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./spi": {
+      "import": "./dist/spi/index.js",
+      "types": "./dist/spi/index.d.ts"
+    },
+    "./adapters": {
+      "import": "./dist/adapters/index.js",
+      "types": "./dist/adapters/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "build:browser": "esbuild src/browser.ts --bundle --format=esm --outfile=../dev-tools/lib/aotui-runtime.browser.js --external:happy-dom",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^24.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jsdom": "^27.0.1",
+    "madge": "^8.0.0",
+    "prettier": "^3.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@aotui/agent-driver-v2": "file:../agent-driver-v2",
+    "@aotui/preact": "file:../packages/aotui-preact",
+    "ai": "^6.0.77",
+    "happy-dom": "^20.1.0",
+    "linkedom": "^0.18.12",
+    "preact": "^10.28.0",
+    "preact-render-to-string": "^6.6.4",
+    "zod": "^4.3.6"
+  }
+}

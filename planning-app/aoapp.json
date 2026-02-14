@@ -1,0 +1,25 @@
+{
+    "name": "system-planning",
+    "displayName": "Planning App",
+    "version": "0.1.0",
+    "description": "Planning application for LLMs to create plans, phases, and todos",
+    "author": "AOTUI Team",
+    "license": "MIT",
+    "runtime": {
+        "minVersion": "0.1.0"
+    },
+    "entry": {
+        "main": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+    },
+    "views": [
+        {
+            "name": "PlanList",
+            "description": "List of unfinished plans and entry to open a plan"
+        },
+        {
+            "name": "PlanDetail",
+            "description": "Plan progress with phases and todos"
+        }
+    ]
+}

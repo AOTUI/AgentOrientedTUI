@@ -1,0 +1,55 @@
+{
+    "name": "@aotui/sdk",
+    "version": "0.1.0",
+    "description": "AOTUI Developer SDK - Build Agent-Oriented TUI Apps with Preact",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest",
+        "test:run": "vitest --run",
+        "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src"
+    },
+    "peerDependencies": {
+        "preact": "^10.0.0"
+    },
+    "dependencies": {
+        "@aotui/runtime": "file:../runtime",
+        "@preact/signals": "^2.5.1",
+        "linkedom": "^0.18.9"
+    },
+    "devDependencies": {
+        "@testing-library/preact": "^3.2.4",
+        "@types/node": "^20.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.49.0",
+        "@typescript-eslint/parser": "^8.49.0",
+        "@vitest/coverage-v8": "^3.2.4",
+        "eslint": "^9.39.1",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-prettier": "^5.5.4",
+        "jsdom": "^27.0.1",
+        "preact": "^10.25.4",
+        "preact-render-to-string": "^6.6.4",
+        "prettier": "^3.7.4",
+        "typescript": "^5.3.0",
+        "vitest": "^3.0.0"
+    },
+    "files": [
+        "dist"
+    ],
+    "keywords": [
+        "aotui",
+        "tui",
+        "preact",
+        "agent",
+        "llm"
+    ],
+    "license": "MIT"
+}

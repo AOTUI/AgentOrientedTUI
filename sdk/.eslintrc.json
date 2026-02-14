@@ -1,0 +1,51 @@
+{
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint",
+        "prettier"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "prettier"
+    ],
+    "rules": {
+        "prettier/prettier": "error",
+        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "no-restricted-imports": [
+            "error",
+            {
+                "paths": [
+                    {
+                        "name": "preact/hooks",
+                        "message": "Please import hooks from './preact-hooks.js' (or relative path) to ensure single Preact instance."
+                    }
+                ]
+            }
+        ]
+    },
+    "overrides": [
+        {
+            "files": [
+                "src/hooks/preact-hooks.ts",
+                "src/hooks/index.ts",
+                "src/index.ts"
+            ],
+            "rules": {
+                "no-restricted-imports": "off"
+            }
+        }
+    ],
+    "env": {
+        "node": true,
+        "es2022": true,
+        "browser": true
+    }
+}

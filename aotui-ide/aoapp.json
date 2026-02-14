@@ -1,0 +1,19 @@
+{
+    "name": "system-ide",
+    "displayName": "AOTUI IDE",
+    "version": "0.1.0",
+    "description": "Integrated Development Environment for LLM Agents. Provides file browsing, searching, reading, and editing capabilities.",
+    "runtime": {
+        "minVersion": "0.1.0"
+    },
+    "entry": {
+        "main": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+    },
+    "views": [
+        {
+            "name": "Workspace",
+            "description": "Main workspace for file operations, search, and editing"
+        }
+    ]
+}

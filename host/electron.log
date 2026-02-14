@@ -1,0 +1,26 @@
+[Electron] DB Path: /Users/zhangwei/Library/Application Support/@aotui/system-chat/chat.db
+[Main] Initializing ModelRegistry...
+[ModelRegistry] Fetching data from models.dev... 
+[Main] ModelRegistry initialized
+[AppRegistry] Loaded app: AOTUI IDE
+[AppRegistry] Loaded app: system-todo
+[DesktopManager] Initialized with 2 third-party apps
+[HostV2] DesktopManager initialized
+[DB] WASM Database loaded from disk: /Users/zhangwei/JSWorkSpace/learning_code/aotui_v6/host/data/chat.sqlite
+[DB] Ensuring llm_configs table exists...
+[DB] Ensuring message_parts table exists...
+[DB] Ensuring messages_v2 table exists...
+[HostV2] LLM Config Service initialized
+[HostV2] HostManager V2 initialized
+[HostV2] Kernel ready for Session-based Desktop creation
+[SessionManagerV3] SessionManagerV3 initialized { maxSessions: 10, idleTimeoutMs: 1800000 }
+[HostManagerV2] AgentDriver initialized via SessionManagerV3 (lazy session creation) 
+[HostV2] SessionManagerV3 initialized via HostManager with config: deepseek:deepseek-reasoner
+[HostV2] GUIBridge initialized
+[HostV2] WebSocketHandler V2 initialized
+(node:76843) electron: Failed to load URL: http://localhost:5173/ with error: ERR_CONNECTION_REFUSED
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+[ModelRegistry] models.dev data fetched { providerCount: 87, modelCount: 2521 }
+[ModelRegistry] Cache saved { path: '/Users/zhangwei/.aotui/cache/models-dev.json' }
+2026-02-11 12:38:16.389 Electron[76843:4539648] TSM AdjustCapsLockLEDForKeyTransitionHandling - _ISSetPhysicalKeyboardCapsLockLED Inhibit
+[76843:0211/123937.181115:ERROR:content/browser/network_service_instance_impl.cc:610] Network service crashed or was terminated, restarting service.
