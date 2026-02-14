@@ -1,0 +1,330 @@
+/**
+ * @aotui/agent-driver-v2 - LLM Client
+ *
+ * 基于 Vercel AI SDK 的 LLM 客户端
+ *
+ * 设计原则:
+ * - 使用 @ai-sdk/openai，支持自定义 baseURL (兼容 models.dev, OpenRouter 等)
+ * - 支持用户自定义 LLM Provider 和 Model
+ * - 类型安全的 ToolCall 处理
+ */
+import { streamText } from 'ai';
+import { Logger } from '../utils/logger.js';
+import { createLanguageModel } from './provider-factory.js';
+/**
+ * LLMClient - LLM 客户端
+ *
+ * 设计原则:
+ * - 直接使用 LLMConfig 中的完整配置
+ * - 不依赖 ModelRegistry
+ * - 支持主流 Provider (OpenAI, Anthropic, Google, xAI)
+ * - 支持自定义 baseURL (兼容 OpenRouter 等)
+ */
+export class LLMClient {
+    logger;
+    config;
+    modelId;
+    constructor(config) {
+        this.config = config;
+        this.logger = new Logger('LLMClient');
+        // 解析 model 字符串并标准化为 providerId:modelId
+        this.modelId = this.resolveModelTarget(config.model).registryModelId;
+        this.logger.info('LLMClient initialized', {
+            model: this.modelId,
+            hasCustomConfig: !!config.provider,
+            providerId: config.provider?.id,
+            baseURL: config.provider?.baseURL,
+            hasApiKey: !!config.apiKey,
+        });
+    }
+    /**
+     * 解析 Model ID
+     *
+     * 支持 Vercel AI SDK ProviderRegistry 格式: 'providerId:modelId' (冒号)
+     * - 'openai:gpt-4'
+     * - 'anthropic:claude-3.5-sonnet'
+     *
+     * 如果只提供 model 名称 (如 'gpt-4')，将自动补全为 'openai:gpt-4'
+     *
+     * 注意: 也支持旧格式 'provider/model'，会自动转换为冒号格式
+     */
+    resolveModelTarget(model) {
+        const configuredProviderId = this.config.provider?.id;
+        const normalizedModel = model.trim();
+        if (configuredProviderId) {
+            const colonPrefix = `${configuredProviderId}:`;
+            const slashPrefix = `${configuredProviderId}/`;
+            const modelName = normalizedModel.startsWith(colonPrefix)
+                ? normalizedModel.slice(colonPrefix.length)
+                : normalizedModel.startsWith(slashPrefix)
+                    ? normalizedModel.slice(slashPrefix.length)
+                    : normalizedModel;
+            return {
+                providerId: configuredProviderId,
+                modelName,
+                registryModelId: `${configuredProviderId}:${modelName}`,
+            };
+        }
+        // 1. 标准格式: providerId:modelId（只按第一个冒号分割，保留 model 中的其他冒号）
+        const separatorIndex = normalizedModel.indexOf(':');
+        if (separatorIndex > 0) {
+            const providerId = normalizedModel.slice(0, separatorIndex);
+            const modelName = normalizedModel.slice(separatorIndex + 1);
+            return {
+                providerId,
+                modelName,
+                registryModelId: `${providerId}:${modelName}`,
+            };
+        }
+        // 2. 兼容格式: providerId/modelId
+        if (normalizedModel.includes('/')) {
+            const slashIndex = normalizedModel.indexOf('/');
+            if (slashIndex > 0) {
+                const providerId = normalizedModel.slice(0, slashIndex);
+                const modelName = normalizedModel.slice(slashIndex + 1);
+                return {
+                    providerId,
+                    modelName,
+                    registryModelId: `${providerId}:${modelName}`,
+                };
+            }
+        }
+        // 3. 否则，推断 provider 并使用冒号格式
+        const providerId = this.inferProviderFromModel(normalizedModel);
+        return {
+            providerId,
+            modelName: normalizedModel,
+            registryModelId: `${providerId}:${normalizedModel}`,
+        };
+    }
+    /**
+     * 从 Model 名称推断 Provider
+     *
+     * 这是向后兼容的 fallback 逻辑
+     */
+    inferProviderFromModel(model) {
+        if (model.startsWith('gpt-') || model.startsWith('o1-') || model.startsWith('o3-')) {
+            return 'openai';
+        }
+        if (model.startsWith('claude-')) {
+            return 'anthropic';
+        }
+        if (model.startsWith('gemini-')) {
+            return 'google';
+        }
+        if (model.startsWith('grok-')) {
+            return 'xai';
+        }
+        // 默认 openai
+        this.logger.warn(`Cannot infer provider for model: ${model}, defaulting to openai`);
+        return 'openai';
+    }
+    /**
+     * 创建 Provider 实例
+     *
+     * 根据 LLMConfig 创建对应的 Provider
+     */
+    createProvider() {
+        const target = this.resolveModelTarget(this.config.model);
+        return createLanguageModel({
+            config: this.config,
+            target,
+            warn: (message) => this.logger.warn(message),
+        });
+    }
+    /**
+     * 调用 LLM
+     */
+    async call(messages, tools) {
+        try {
+            const shouldDisableTools = this.config.modelCapabilities?.toolCall === false &&
+                Object.keys(tools).length > 0;
+            const effectiveTools = shouldDisableTools ? {} : tools;
+            if (shouldDisableTools) {
+                this.logger.warn('Tool calls disabled by model capability metadata', {
+                    model: this.modelId,
+                    reason: 'models.dev.tool_call=false',
+                });
+            }
+            this.logger.info('Calling LLM', {
+                model: this.modelId,
+                messageCount: messages.length,
+                toolCount: Object.keys(effectiveTools).length,
+            });
+            console.log('\n=== LLM Messages ===');
+            console.log(JSON.stringify(messages, null, 2));
+            // 打印所有工具的名称
+            console.log('Tools:', Object.keys(effectiveTools));
+            console.log('====================\n');
+            // 创建 Provider 实例
+            const model = this.createProvider();
+            const result = await this.streamWithOpenRouterFallback(model, messages, effectiveTools);
+            // 🔍 尝试读取 reasoning（不同 Provider/SDK 可能字段不同）
+            let reasoningText;
+            let reasoningParts = [];
+            try {
+                const reasoningValue = result.reasoning;
+                if (reasoningValue) {
+                    const resolvedReasoning = typeof reasoningValue === 'string'
+                        ? reasoningValue
+                        : await reasoningValue;
+                    if (Array.isArray(resolvedReasoning)) {
+                        reasoningParts = resolvedReasoning
+                            .filter((part) => part && typeof part === 'object' && part.type === 'reasoning')
+                            .map((part) => ({ type: 'reasoning', text: String(part.text ?? '') }));
+                    }
+                    else {
+                        reasoningText = String(resolvedReasoning);
+                    }
+                }
+            }
+            catch (error) {
+                this.logger.debug('Failed to read reasoning from LLM result', { error });
+            }
+            if (reasoningParts.length === 0 && reasoningText && reasoningText.trim().length > 0) {
+                reasoningParts = [{ type: 'reasoning', text: reasoningText }];
+            }
+            const reasoningString = reasoningParts.length > 0
+                ? reasoningParts.map((part) => part.text).join('\n')
+                : '';
+            if (reasoningString.trim().length > 0) {
+                console.log('\n=== LLM REASONING ===');
+                console.log(reasoningString.slice(0, 400) + (reasoningString.length > 400 ? '...' : ''));
+                console.log('=====================\n');
+            }
+            // 等待完整响应 (await 所有 Promise)
+            const text = await result.text;
+            const toolCalls = (await result.toolCalls).map((tc) => ({
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                // AI SDK v6 使用 args 字段
+                args: tc.args ?? tc.input,
+            }));
+            const finishReason = await result.finishReason;
+            const usage = await result.usage;
+            const hasText = typeof text === 'string' && text.trim().length > 0;
+            const hasToolCalls = toolCalls.length > 0;
+            let assistantMessage;
+            if (hasToolCalls || hasText) {
+                const reasoningPart = reasoningParts;
+                if (hasToolCalls) {
+                    const contentParts = [
+                        ...reasoningPart,
+                        ...(hasText ? [{ type: 'text', text }] : []),
+                        ...toolCalls.map((tc) => ({
+                            type: 'tool-call',
+                            toolCallId: tc.toolCallId,
+                            toolName: tc.toolName,
+                            input: tc.args,
+                        })),
+                    ];
+                    assistantMessage = {
+                        role: 'assistant',
+                        content: contentParts,
+                    };
+                }
+                else if (reasoningPart.length > 0) {
+                    assistantMessage = {
+                        role: 'assistant',
+                        content: [
+                            ...reasoningPart,
+                            ...(hasText ? [{ type: 'text', text }] : []),
+                        ],
+                    };
+                }
+                else {
+                    assistantMessage = {
+                        role: 'assistant',
+                        content: text,
+                    };
+                }
+            }
+            const response = {
+                text,
+                toolCalls,
+                finishReason: finishReason || 'unknown',
+                usage: usage
+                    ? {
+                        // AI SDK v6 usage 字段
+                        promptTokens: usage.promptTokens ?? 0,
+                        completionTokens: usage.completionTokens ?? 0,
+                        totalTokens: usage.totalTokens ?? 0,
+                    }
+                    : undefined,
+                assistantMessage,
+            };
+            this.logger.info('LLM call completed', {
+                textLength: text.length,
+                toolCallCount: toolCalls.length,
+                finishReason: response.finishReason,
+                usage: response.usage,
+            });
+            // 🔍 打印 LLM 响应
+            console.log('\n=== LLM RESPONSE ===');
+            console.log('Text:', text.slice(0, 200) + (text.length > 200 ? '...' : ''));
+            console.log('Tool Calls:', toolCalls.map(tc => ({ name: tc.toolName, args: tc.args })));
+            console.log('Finish Reason:', response.finishReason);
+            console.log('====================\n');
+            return response;
+        }
+        catch (error) {
+            this.logger.error('LLM call failed', { error });
+            // 🔍 打印 API 请求中的 tools (从错误对象获取)
+            if (error.requestBodyValues?.tools) {
+                console.log('\n=== Request Tools (from API error) ===');
+                const requestTools = error.requestBodyValues.tools;
+                console.log('Total tools in request:', requestTools.length);
+                // 打印前3个工具的完整结构
+                for (let i = 0; i < Math.min(3, requestTools.length); i++) {
+                    console.log(`\n[Tool ${i + 1}] ${requestTools[i].type || 'function'}:`, requestTools[i].function?.name);
+                    console.log('  Parameters schema:');
+                    console.log(JSON.stringify(requestTools[i].function?.parameters, null, 2));
+                }
+                console.log('=====================================\n');
+            }
+            throw error;
+        }
+    }
+    async streamWithOpenRouterFallback(model, messages, tools) {
+        try {
+            return await streamText({
+                model,
+                messages,
+                tools,
+                temperature: this.config.temperature ?? 0.7,
+            });
+        }
+        catch (error) {
+            const shouldRetryWithoutTools = this.modelId.startsWith('openrouter:') &&
+                Object.keys(tools).length > 0 &&
+                this.isLikelyToolCompatibilityError(error);
+            if (!shouldRetryWithoutTools) {
+                throw error;
+            }
+            this.logger.warn('OpenRouter tool-call compatibility issue detected, retrying without tools', {
+                model: this.modelId,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return await streamText({
+                model,
+                messages,
+                tools: {},
+                temperature: this.config.temperature ?? 0.7,
+            });
+        }
+    }
+    isLikelyToolCompatibilityError(error) {
+        const errorText = [
+            error?.message,
+            error?.responseBody,
+            error?.data?.error?.message,
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+        return (errorText.includes('tool') ||
+            errorText.includes('function') ||
+            errorText.includes('no output generated') ||
+            errorText.includes('invalid'));
+    }
+}
