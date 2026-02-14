@@ -1,0 +1,36 @@
+
+# Valid entries
+node_modules
+ignore
+outdated
+backup
+
+# Python
+**/__pycache__/
+*.py[cod]
+
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+
+# Data directories
+**/data/
+
+
+# dist
+dist/
+dist-gui/
+release/
+coverage/
+
+# agent
+.agent
+.claude
+.gemini
+# .trae
+.shared
+.kiro
+.vscode
