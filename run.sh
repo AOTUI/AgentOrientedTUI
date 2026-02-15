@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# AOTUI Development Server Runner
-# This script builds all packages and starts the host server
+# AOTUI Development Runner
+# This script builds all packages and starts the host Electron app
 
 set -e  # Exit on error
 
@@ -48,12 +48,12 @@ echo ""
 echo "✅ All packages built successfully!"
 echo ""
 
-# Start the host server
-echo "🌟 Starting host development server..."
+# Start the host Electron app
+echo "🌟 Starting host Electron development app..."
 echo "----------------------------------------------"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
 
 cd host
-pnpm dev
+pnpm electron:dev

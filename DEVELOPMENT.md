@@ -23,7 +23,7 @@ chmod +x setup.sh run.sh
 # Run setup (installs dependencies, builds packages, links apps)
 ./setup.sh
 
-# Start development server
+# Start Electron development app
 ./run.sh
 ```
 
@@ -98,11 +98,11 @@ npm link token-monitor-app
 cd ..
 ```
 
-#### 6. Start Development Server
+#### 6. Start Electron Development App
 
 ```bash
 cd host
-pnpm dev
+pnpm electron:dev
 ```
 
 ## Project Structure
@@ -118,7 +118,7 @@ aotui_v6/
 ├── terminal-app/         # Terminal TUI app
 ├── token-monitor-app/    # Token monitoring TUI app
 ├── setup.sh              # Automated setup script
-├── run.sh                # Development server runner
+├── run.sh                # Electron development app runner
 └── package.json          # Workspace configuration
 ```
 
@@ -156,8 +156,8 @@ pnpm --filter ./runtime dev
 # Watch SDK changes
 pnpm --filter ./sdk dev
 
-# Watch host with hot-reload
-cd host && pnpm dev
+# Run host Electron app with hot-reload
+cd host && pnpm electron:dev
 ```
 
 ### Adding a New TUI App
@@ -296,8 +296,8 @@ pnpm --filter ./sdk dev
 # Terminal 2: Watch your app
 pnpm --filter ./my-app dev
 
-# Terminal 3: Run host
-cd host && pnpm dev
+# Terminal 3: Run host Electron app
+cd host && pnpm electron:dev
 ```
 
 ### Debugging
@@ -317,6 +317,14 @@ node --inspect node_modules/.bin/vite
 pnpm --filter ./runtime typecheck
 pnpm --filter ./sdk typecheck
 ```
+
+## Next Steps
+
+- Read the [AOTUI Spec](./AOTUI%20Spec.md) to understand the system architecture
+- Review [Building TUI Applications for AI Agents](./Building%20TUI%20Application%20for%20AI%20Agent.md)
+- Check [Runtime Developer Guide](./runtime/RUNTIME_DEVELOPER_GUIDE.md)
+- Explore [SDK Developer Guide](./sdk/SDK_DEVELOPER_GUIDE.md)
+- Study example apps: `aotui-ide`, `planning-app`, `terminal-app`
 
 ## Contributing
 
