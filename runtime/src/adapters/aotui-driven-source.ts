@@ -45,34 +45,31 @@ interface IndexMapOperationEntry {
 }
 
 // ============================================================================
-// AOTUI System Instruction (读取自 system-instruction.txt)
+// AOTUI System Instruction（Runtime 默认内置，可通过 options/env/path 覆盖）
 // ============================================================================
 
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { DEFAULT_AOTUI_SYSTEM_INSTRUCTION } from './system-instruction.js';
 
-// 获取项目根目录的 system-instruction.txt
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '../../..');
-const AOTUI_SYSTEM_INSTRUCTION_PATH = join(projectRoot, 'system-instruction.txt');
-
-let _aotuiSystemInstruction: string | null = null;
+const AOTUI_SYSTEM_INSTRUCTION_PATH_ENV = 'AOTUI_SYSTEM_INSTRUCTION_PATH';
 
 /**
  * 懒加载 AOTUI System Instruction
  */
-function getAOTUISystemInstruction(): string {
-    if (_aotuiSystemInstruction === null) {
-        try {
-            _aotuiSystemInstruction = readFileSync(AOTUI_SYSTEM_INSTRUCTION_PATH, 'utf-8');
-        } catch (error) {
-            console.error('[AOTUIDrivenSource] Failed to load system-instruction.txt:', error);
-            _aotuiSystemInstruction = '# AOTUI System Instruction\n\n(Failed to load)';
-        }
+function loadSystemInstruction(instructionPath?: string): string {
+    if (!instructionPath) {
+        return DEFAULT_AOTUI_SYSTEM_INSTRUCTION;
     }
-    return _aotuiSystemInstruction;
+
+    try {
+        return readFileSync(instructionPath, 'utf-8');
+    } catch (error) {
+        console.error(
+            `[AOTUIDrivenSource] Failed to load system instruction from path: ${instructionPath}`,
+            error
+        );
+        return DEFAULT_AOTUI_SYSTEM_INSTRUCTION;
+    }
 }
 
 // ============================================================================
@@ -88,6 +85,18 @@ export interface AOTUIDrivenSourceOptions {
      * 默认: true
      */
     includeInstruction?: boolean;
+
+    /**
+     * 直接覆盖 system instruction 内容
+     * 优先级最高
+     */
+    instruction?: string;
+
+    /**
+     * 从指定路径加载 system instruction
+     * 优先级低于 instruction，高于环境变量
+     */
+    instructionPath?: string;
 }
 
 /**
@@ -104,6 +113,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
     readonly name = 'AOTUI';
     
     private includeInstruction: boolean;
+    private systemInstruction: string;
 
     constructor(
         private desktop: IDesktop,
@@ -111,6 +121,14 @@ export class AOTUIDrivenSource implements IDrivenSource {
         options?: AOTUIDrivenSourceOptions
     ) {
         this.includeInstruction = options?.includeInstruction ?? true;
+
+        const instructionFromOptions = options?.instruction?.trim();
+        const instructionFromPath = options?.instructionPath;
+        const instructionFromEnv = process.env[AOTUI_SYSTEM_INSTRUCTION_PATH_ENV];
+
+        this.systemInstruction = instructionFromOptions && instructionFromOptions.length > 0
+            ? instructionFromOptions
+            : loadSystemInstruction(instructionFromPath ?? instructionFromEnv);
     }
 
     /**
@@ -129,7 +147,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
         if (this.includeInstruction) {
             messages.push({
                 role: 'system',
-                content: getAOTUISystemInstruction(),
+                content: this.systemInstruction,
                 timestamp: 1, // ✅ 在 SystemPrompt (0) 之后，在用户消息之前
             });
         }

@@ -5,3 +5,4 @@
  */
 
 export { AOTUIDrivenSource, type AOTUIDrivenSourceOptions } from './aotui-driven-source.js';
+export { DEFAULT_AOTUI_SYSTEM_INSTRUCTION } from './system-instruction.js';
