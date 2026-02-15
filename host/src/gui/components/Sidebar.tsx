@@ -1,0 +1,179 @@
+import React from 'react';
+import { Button } from "@heroui/button";
+import { Tooltip } from "@heroui/tooltip";
+import { ScrollShadow } from "@heroui/scroll-shadow";
+import { IconNewChat, IconSun, IconMoon, IconFolder, IconSettings } from './Icons.js';
+import type { Topic } from '../../types.js';
+
+interface SidebarProps {
+    sidebarOpen: boolean;
+    topics: Topic[];
+    activeTopicId: string | null;
+    theme: 'dark' | 'light';
+    onNewChat: () => void;
+    onSelectTopic: (topicId: string) => void;
+    toggleTheme: () => void;
+    onSwitchProject: () => void;
+    onOpenSettings?: () => void;
+    getTopicState: (topicId: string) => string;
+    getTopicPaused?: (topicId: string) => boolean;
+}
+
+function formatTimeAgo(timestamp: number) {
+    if (!timestamp) return '';
+    const diff = Date.now() - timestamp;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
+}
+
+export function Sidebar({
+    sidebarOpen,
+    topics,
+    activeTopicId,
+    theme,
+    onNewChat,
+    onSelectTopic,
+    toggleTheme,
+    onSwitchProject,
+    onOpenSettings,
+    getTopicState,
+    getTopicPaused
+}: SidebarProps) {
+    const getStateClass = (state: string, paused: boolean) => {
+        if (paused) return 'text-warning';
+        if (state === 'THINKING') return 'text-secondary';
+        if (state === 'EXECUTING') return 'text-success';
+        if (state === 'STOPPED') return 'text-danger';
+        return 'text-[var(--color-text-muted)]';
+    };
+
+    const getDotClass = (state: string, paused: boolean) => {
+        if (paused) return 'bg-warning';
+        if (state === 'THINKING') return 'bg-secondary';
+        if (state === 'EXECUTING') return 'bg-success';
+        if (state === 'STOPPED') return 'bg-danger';
+        return 'bg-[var(--color-text-muted)]';
+    };
+
+    return (
+        <aside className={`
+            glass-card relative flex flex-col overflow-hidden min-h-0 h-full
+            transition-all duration-400 ease-[var(--ease-out-expo)]
+            rounded-[var(--radius-xl)]
+            ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10 border-0 p-0 pointer-events-none'}
+        `}>
+            {/* Sidebar Header */}
+            <div className="px-6 pb-6 pt-10 flex flex-col gap-6 shrink-0 relative">
+                {/* Header Background Glow */}
+                <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+                
+                <Button
+                    className="w-full h-10 font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all shadow-[0_0_15px_rgba(59,130,246,0.15)] flex items-center justify-center gap-2 group"
+                    onClick={onNewChat}
+                >
+                    <IconNewChat />
+                    <span>New Session</span>
+                </Button>
+            </div>
+
+            <div className="px-6 pb-2 flex items-center justify-between text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-[0.2em] shrink-0">
+                <span>Sessions</span>
+                <span className="opacity-50">{topics.length} ACTIVE</span>
+            </div>
+
+            {/* Topic List */}
+            <ScrollShadow className="flex-1 w-full px-4 pb-6 overflow-y-auto scrollbar-hide">
+                <div className="space-y-2">
+                    {topics.map(topic => {
+                        const isActive = topic.id === activeTopicId;
+                        const paused = getTopicPaused?.(topic.id) ?? false;
+                        const state = getTopicState(topic.id);
+                        const stateLabel = (paused ? 'PAUSED' : state || 'IDLE').toUpperCase();
+                        return (
+                            <div
+                                key={topic.id}
+                                onClick={() => onSelectTopic(topic.id)}
+                                className={`
+                                    group flex items-center gap-3 w-full p-3 rounded-xl cursor-pointer 
+                                    transition-all duration-300 border backdrop-blur-md
+                                    ${isActive
+                                        ? 'bg-primary/10 border-primary/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] translate-x-1'
+                                        : 'bg-[var(--color-bg-highlight)]/30 border-transparent hover:bg-[var(--color-bg-highlight)] hover:border-[var(--color-border)] hover:translate-x-1'}
+                                `}
+                            >
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                    <span className={`
+                                        truncate text-sm font-medium transition-colors
+                                        ${isActive ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]'}
+                                    `}>
+                                        {topic.title}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-mono text-[var(--color-text-muted)] tracking-wider">
+                                            {formatTimeAgo(topic.updatedAt)}
+                                        </span>
+                                        <span className={`text-[9px] font-mono tracking-wider ${getStateClass(state, paused)}`}>
+                                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${getDotClass(state, paused)}`} />
+                                            {stateLabel}
+                                        </span>
+                                        {isActive && <span className="text-[9px] text-primary animate-pulse">●</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </ScrollShadow>
+
+            {/* Sidebar Footer - Navigation & Settings */}
+            <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg-surface)]/50 flex items-center justify-between">
+                 <Tooltip content="Switch Project">
+                     <Button
+                         variant="light"
+                         size="sm"
+                         onClick={onSwitchProject}
+                         className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors data-[hover=true]:bg-white/5 flex items-center gap-2 px-2"
+                     >
+                         <IconFolder className="w-4 h-4" />
+                         <span className="text-xs font-medium">Projects</span>
+                     </Button>
+                 </Tooltip>
+
+                 <div className="flex items-center gap-1">
+                     {onOpenSettings && (
+                         <Tooltip content="Settings">
+                             <Button
+                                 isIconOnly
+                                 variant="light"
+                                 size="sm"
+                                 onClick={onOpenSettings}
+                                 className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors data-[hover=true]:bg-transparent flex items-center justify-center"
+                             >
+                                 <IconSettings />
+                             </Button>
+                         </Tooltip>
+                     )}
+
+                     <Tooltip content={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}>
+                        <Button
+                            isIconOnly
+                            variant="light"
+                            size="sm"
+                            onClick={toggleTheme}
+                            className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors data-[hover=true]:bg-transparent flex items-center justify-center"
+                        >
+                            {theme === 'dark' ? <IconSun /> : <IconMoon />}
+                        </Button>
+                    </Tooltip>
+                 </div>
+            </div>
+        </aside>
+    );
+}

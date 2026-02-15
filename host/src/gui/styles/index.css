@@ -1,0 +1,234 @@
+@import "tailwindcss";
+@import "./theme.css";
+@import "./tui.css";
+
+@theme {
+  /* Fonts */
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  /* Colors - Base */
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-highlight: var(--color-bg-highlight);
+
+  /* Colors - Text */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  /* Colors - Accents */
+  --color-primary: var(--color-primary);
+  --color-primary-glow: var(--color-primary-glow);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-glow: var(--color-secondary-glow);
+  --color-accent: var(--color-accent);
+  --color-accent-glow: var(--color-accent-glow);
+  
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  
+  /* Glass */
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
+  
+  /* Borders */
+  --color-border-base: var(--color-border);
+}
+
+/* Base Layout Reset */
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: var(--font-body);
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-bg-highlight);
+    border-radius: 3px;
+    transition: background var(--duration-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    transition: all var(--duration-fast) var(--ease-out-expo);
+}
+
+.glass-card:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-highlight);
+    box-shadow: 0 0 15px var(--color-primary-glow);
+}
+
+/* FUI Elements */
+.fui-grid-bg {
+    background-image: 
+        linear-gradient(var(--glass-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--glass-border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+}
+
+.aurora-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 0% 0%, var(--gradient-start) 0%, transparent 50%),
+        radial-gradient(circle at 100% 0%, var(--gradient-mid) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, var(--gradient-end) 0%, transparent 50%);
+    filter: blur(60px);
+    opacity: 0.6;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Window Controls */
+.title-drag-region {
+    -webkit-app-region: drag;
+}
+
+.no-drag {
+    -webkit-app-region: no-drag;
+}
+
+/* Spotlight Animation */
+@keyframes spotlight {
+  0% {
+    opacity: 0;
+    transform: translate(-72%, -62%) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%,-40%) scale(1);
+  }
+}
+
+.animate-spotlight {
+  animation: spotlight 2s ease .75s 1 forwards;
+}
+
+.chat-markdown {
+    color: inherit;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.chat-markdown > *:first-child {
+    margin-top: 0;
+}
+
+.chat-markdown > *:last-child {
+    margin-bottom: 0;
+}
+
+.chat-markdown p {
+    margin: 0 0 0.5rem;
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+    margin: 0 0 0.6rem;
+    padding-left: 1.25rem;
+}
+
+.chat-markdown ul {
+    list-style: disc;
+}
+
+.chat-markdown ol {
+    list-style: decimal;
+}
+
+.chat-markdown li {
+    margin: 0.125rem 0;
+}
+
+.chat-markdown blockquote {
+    margin: 0.5rem 0;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.chat-markdown pre {
+    margin: 0.5rem 0;
+    padding: 0.75rem;
+    background: color-mix(in srgb, var(--color-bg-highlight) 65%, transparent);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+}
+
+.chat-markdown code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+.chat-markdown :not(pre) > code {
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.375rem;
+    background: color-mix(in srgb, var(--color-bg-highlight) 65%, transparent);
+}
+
+.chat-markdown table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5rem 0;
+    min-width: 320px;
+}
+
+.chat-markdown th,
+.chat-markdown td {
+    border: 1px solid var(--color-border);
+    padding: 0.35rem 0.45rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.chat-markdown th {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-bg-highlight) 45%, transparent);
+}
+
+.chat-markdown a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}

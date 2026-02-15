@@ -1,0 +1,108 @@
+{
+    "name": "@aotui/system-chat",
+    "version": "0.1.0",
+    "description": "AOTUI System Chat Application - Agent-Human conversation interface",
+    "type": "module",
+    "main": "dist/electron/main.mjs",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc && ELECTRON_BUILD_TARGET=main vite build -c vite.electron.config.ts && ELECTRON_BUILD_TARGET=preload vite build -c vite.electron.config.ts",
+        "dev": "vite",
+        "build:all": "npm run build && npm run build:gui",
+        "build:gui": "vite build",
+        "preview": "vite preview",
+        "test": "vitest",
+        "test:run": "vitest run",
+        "postinstall": "bash scripts/patch-electron-trpc.sh",
+        "electron:dev": "concurrently \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+        "electron:build": "npm run build && npm run build:gui && electron-builder",
+        "rebuild": "electron-builder install-app-deps"
+    },
+    "build": {
+        "appId": "com.aotui.system-chat",
+        "productName": "AOTUI System Chat",
+        "files": [
+            "dist/**/*",
+            "dist-gui/**/*",
+            "data/**/*"
+        ],
+        "directories": {
+            "output": "release"
+        },
+        "extraResources": [
+            {
+                "from": "data",
+                "to": "data"
+            }
+        ],
+        "asarUnpack": [
+            "**/worker-runtime/**/*"
+        ]
+    },
+    "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.39",
+        "@ai-sdk/google": "^3.0.22",
+        "@ai-sdk/openai": "^3.0.14",
+        "@ai-sdk/react": "^3.0.47",
+        "@ai-sdk/xai": "^3.0.48",
+        "@aotui/agent-driver-v2": "file:../agent-driver-v2",
+        "@aotui/sdk": "file:../sdk",
+        "@google/generative-ai": "^0.24.1",
+        "@heroui/react": "^2.7.5",
+        "@heroui/styles": "3.0.0-beta.5",
+        "@trpc/client": "^10.45.4",
+        "@trpc/server": "^10.45.4",
+        "@types/sql.js": "^1.4.9",
+        "ai": "^6.0.77",
+        "better-sqlite3": "^12.5.0",
+        "clsx": "^2.1.1",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.3",
+        "electron-trpc": "0.4.5",
+        "express": "^4.21.0",
+        "framer-motion": "^12.29.0",
+        "marked": "^17.0.1",
+        "mermaid": "^11.12.2",
+        "openai": "^6.15.0",
+        "react": "^19.0.0",
+        "react-aria-components": "^1.14.0",
+        "react-dom": "^19.0.0",
+        "sql.js": "^1.13.0",
+        "superjson": "^2.2.6",
+        "tailwind-merge": "^3.4.0",
+        "tailwindcss": "^4.0.0",
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@aotui/runtime": "file:../runtime",
+        "@tailwindcss/vite": "^4.0.0",
+        "@testing-library/dom": "^10.4.1",
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.2",
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/marked": "^5.0.2",
+        "@types/node": "^22.15.21",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@types/ws": "^8.18.1",
+        "@vitejs/plugin-react": "^5.1.2",
+        "concurrently": "^9.2.1",
+        "cross-env": "^10.1.0",
+        "electron": "^40.0.0",
+        "electron-builder": "^26.4.0",
+        "fast-check": "^4.5.3",
+        "happy-dom": "^20.3.7",
+        "ts-node": "^10.9.2",
+        "tsx": "^4.21.0",
+        "typescript": "^5.8.3",
+        "vite": "^6.0.5",
+        "vitest": "^3.2.4",
+        "wait-on": "^9.0.3",
+        "ws": "^8.18.3"
+    },
+    "peerDependencies": {
+        "@aotui/runtime": "file:../runtime"
+    }
+}

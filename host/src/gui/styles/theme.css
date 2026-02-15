@@ -1,0 +1,119 @@
+/* Theme: Immersive Dark Tech (Glassmorphism + Futuristic Minimalism) */
+
+:root {
+    /* --- Typography --- */
+    --font-heading: "Inter", "Orbitron", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    --font-body: "Inter", "Exo 2", -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+
+    /* --- Spacing --- */
+    --space-2xs: 2px;
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 20px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+
+    /* --- Radius (Superellipse-like smoothness) --- */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-2xl: 32px;
+    --radius-full: 9999px;
+
+    /* --- Transitions --- */
+    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+    --duration-fast: 200ms;
+    --duration-normal: 400ms;
+
+    /* --- Dark Mode (Immersive Dark Tech) --- */
+    /* Deepest Black / Dark Grey as requested */
+    --color-bg-base: #0a0a0a;          /* Main Background - Darker than surface */
+    --color-bg-surface: #121212;       /* Card Background - The "Dark Grey" */
+    --color-bg-elevated: #1E1E1E;      /* Elevated Surface */
+    --color-bg-highlight: #27272A;     /* Highlight */
+
+    /* Text - High Contrast but not pure white */
+    --color-text-primary: #EDEDED;     /* Zinc 100 */
+    --color-text-secondary: #A1A1AA;   /* Zinc 400 */
+    --color-text-muted: #52525B;       /* Zinc 600 */
+
+    /* Accents - Neon / Cyberpunk (High Saturation) */
+    --color-primary: #3B82F6;          /* Electric Blue */
+    --color-primary-glow: rgba(59, 130, 246, 0.6);
+    --color-primary-light: #60A5FA;
+    --color-primary-dark: #2563EB;
+    
+    --color-secondary: #D946EF;        /* Cyberpunk Pink (Fuchsia) */
+    --color-secondary-glow: rgba(217, 70, 239, 0.6);
+
+    --color-accent: #00FF9D;           /* Neon Green/Mint */
+    --color-accent-muted: #059669;
+    --color-accent-glow: rgba(0, 255, 157, 0.6);
+    
+    /* Glassmorphism Variables - Enhanced */
+    /* Background Blur + Translucency */
+    --glass-bg: rgba(18, 18, 18, 0.65);
+    --glass-bg-hover: rgba(30, 30, 30, 0.75);
+    /* Micro-border (1px white translucent) */
+    --glass-border: rgba(255, 255, 255, 0.08); 
+    --glass-border-highlight: rgba(255, 255, 255, 0.15);
+    --glass-blur: 40px; /* Increased blur for depth */
+    
+    /* Semantic Colors */
+    --color-danger: #FF3366;           /* Neon Red */
+    --color-danger-muted: #991B1B;
+    --color-success: #00FF9D;          /* Neon Green */
+    --color-success-muted: #065F46;
+    --color-warning: #FBBF24;          /* Amber 400 */
+    --color-warning-muted: #92400E;
+
+    /* Mesh Gradient Stops - Aurora */
+    /* Cyan, Purple, Electric Blue mix */
+    --gradient-start: rgba(59, 130, 246, 0.15);
+    --gradient-mid: rgba(217, 70, 239, 0.10);
+    --gradient-end: rgba(0, 255, 157, 0.08);
+
+    /* Border Colors */
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-hover: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Light Mode (Clean & Minimal - Preserved) --- */
+[data-theme='light'] {
+    --color-bg-base: #FAFAFA;
+    --color-bg-surface: #FFFFFF;
+    --color-bg-elevated: #FFFFFF;
+    --color-bg-highlight: #F4F4F5;
+
+    --color-text-primary: #18181B;
+    --color-text-secondary: #52525B;
+    --color-text-muted: #A1A1AA;
+
+    --color-primary: #8B5CF6;          /* Violet 500 - More Purple */
+    --color-primary-glow: rgba(139, 92, 246, 0.5); /* Higher opacity for visibility */
+    --color-primary-light: #A78BFA;
+    --color-primary-dark: #7C3AED;
+    
+    --color-secondary: #EC4899;        /* Pink 500 */
+    --color-secondary-glow: rgba(236, 72, 153, 0.5);
+
+    --color-accent: #10B981;           /* Emerald 500 */
+    --color-accent-muted: #059669;
+    --color-accent-glow: rgba(16, 185, 129, 0.15);
+    
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-bg-hover: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --glass-border-highlight: rgba(0, 0, 0, 0.1);
+    
+    --gradient-start: rgba(79, 70, 229, 0.05);
+    --gradient-mid: rgba(236, 72, 153, 0.05);
+    --gradient-end: rgba(16, 185, 129, 0.05);
+
+    --color-border: rgba(0, 0, 0, 0.05);
+    --color-border-hover: rgba(0, 0, 0, 0.1);
+}

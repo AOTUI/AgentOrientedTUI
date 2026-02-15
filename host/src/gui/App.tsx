@@ -1,0 +1,329 @@
+/**
+ * system-chat GUI - Main App Component
+ * Immersive Dark Tech Style: Glassmorphism + FUI + Subdued Colors
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { useChatBridge } from './ChatBridge.js';
+import { TuiDesktopViewer } from './components/TuiDesktopViewer.js';
+import type { Topic, Message } from '../types.js';
+
+// Components
+import { ProjectSelector } from './components/ProjectSelector.js';
+import { ConnectionScreen } from './components/ConnectionScreen.js';
+import { FUIOverlay } from './components/FUIOverlay.js';
+import { Sidebar } from './components/Sidebar.js';
+import { WorkspaceHeader } from './components/WorkspaceHeader.js';
+import { ChatArea } from './components/ChatArea.js';
+import { DeleteConfirmModal } from './components/DeleteConfirmModal.js';
+import { Toast } from './components/Toast.js';
+import { SettingsPanel } from './components/settings/SettingsPanel.js';
+
+type ViewMode = 'chat' | 'tui';
+
+export function App() {
+    const bridge = useChatBridge();
+
+    // UI State
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [viewMode, setViewMode] = useState<ViewMode>('chat');
+    const [isNewChat, setIsNewChat] = useState(false);
+    const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+
+    // Theme
+    const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+        const savedTheme = localStorage.getItem('aotui-theme');
+        return savedTheme === 'light' ? 'light' : 'dark';
+    });
+
+    // Data State
+    const [connected, setConnected] = useState(false);
+    const [connecting, setConnecting] = useState(true);
+    const [currentProjectId, setCurrentProjectId] = useState<string | null>(null); // [RFC-025]
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [activeTopicId, setActiveTopicId] = useState<string | null>(null);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [tuiSnapshot, setTuiSnapshot] = useState('');
+    const [agentThinking, setAgentThinking] = useState('');
+    const [agentReasoning, setAgentReasoning] = useState('');
+    const [agentState, setAgentState] = useState('IDLE');
+    const [agentPaused, setAgentPaused] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    // Init Theme
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.className = theme;
+        localStorage.setItem('aotui-theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    };
+
+    const openSettings = () => {
+        setSettingsPanelOpen(true);
+    };
+
+    const closeSettings = () => {
+        setSettingsPanelOpen(false);
+    };
+
+    // Helper: Time Ago
+    const formatTimeAgo = (timestamp: number) => {
+        if (!timestamp) return '';
+        const diff = Date.now() - timestamp;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) return `${days}d ago`;
+        if (hours > 0) return `${hours}h ago`;
+        if (minutes > 0) return `${minutes}m ago`;
+        return 'Just now';
+    };
+
+    // Connect
+    useEffect(() => {
+        const connectToServer = async () => {
+            try {
+                setConnecting(true);
+                await bridge.connect();
+                setConnected(true);
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                setConnected(false);
+            } finally {
+                setConnecting(false);
+            }
+        };
+        connectToServer();
+    }, [bridge]);
+
+    // Subscribe
+    useEffect(() => {
+        const updateTopics = () => {
+            const allTopics = bridge.getTopics();
+            if (currentProjectId) {
+                setTopics(allTopics.filter(t => t.projectId === currentProjectId));
+            } else {
+                setTopics([]);
+            }
+        };
+
+        const unsubscribe = bridge.subscribe((event: unknown) => {
+            updateTopics();
+
+            const active = bridge.getActiveTopicId();
+            setActiveTopicId(active);
+            if (active) {
+                setMessages([...bridge.getMessages(active)]);
+                setTuiSnapshot(bridge.getSnapshot(active));
+                setAgentThinking(bridge.getAgentThinking(active));
+                setAgentReasoning(bridge.getAgentReasoning(active));
+                setAgentState(bridge.getAgentState(active));
+                setAgentPaused(bridge.isAgentPaused(active));
+            }
+        });
+
+        // Initial update when dependency changes
+        updateTopics();
+
+        return unsubscribe;
+    }, [bridge, currentProjectId]);
+
+    useEffect(() => {
+        if (viewMode !== 'tui' || !activeTopicId) return;
+        void bridge.requestSnapshot(activeTopicId);
+    }, [bridge, viewMode, activeTopicId]);
+
+    useEffect(() => {
+        if (viewMode !== 'tui') return;
+        const preview = tuiSnapshot.length > 800 ? `${tuiSnapshot.slice(0, 800)}...` : tuiSnapshot;
+        console.log('[TUI VIEW] snapshot length', tuiSnapshot.length);
+        console.log('[TUI VIEW] snapshot preview', preview);
+    }, [viewMode, tuiSnapshot]);
+
+    // Actions
+    const handleNewChat = useCallback(() => {
+        if (!currentProjectId) return;
+        setActiveTopicId(null);
+        setIsNewChat(true);
+        setMessages([]);
+        setTuiSnapshot('');
+        setAgentThinking('');
+        setAgentReasoning('');
+        setViewMode('chat');
+    }, [currentProjectId]);
+
+    const handleSelectTopic = useCallback((topicId: string) => {
+        setIsNewChat(false);
+        bridge.setActiveTopic(topicId);
+        setActiveTopicId(topicId);
+        setMessages([...bridge.getMessages(topicId)]);
+        setTuiSnapshot(bridge.getSnapshot(topicId));
+        setAgentThinking(bridge.getAgentThinking(topicId));
+        setAgentReasoning(bridge.getAgentReasoning(topicId));
+        setViewMode('chat');
+    }, [bridge]);
+
+    const handleSendMessage = useCallback(async (content: string) => {
+        let currentTopicId = activeTopicId;
+
+        // [UX Improvement] Implicitly create session if none exists
+        if (!currentTopicId) {
+            const title = content.length > 50 ? content.slice(0, 50) + '...' : content;
+            const newTopic = await bridge.createTopic(title, currentProjectId || undefined);
+            if (newTopic) {
+                currentTopicId = newTopic.id;
+                setActiveTopicId(currentTopicId);
+                bridge.setActiveTopic(currentTopicId);
+                setIsNewChat(false);
+            } else {
+                return;
+            }
+        }
+
+        if (!currentTopicId) return;
+        setAgentThinking('');
+        setAgentReasoning('');
+        await bridge.sendMessage(currentTopicId, content);
+    }, [bridge, activeTopicId, currentProjectId]);
+
+    const handlePauseAgent = useCallback(() => {
+        if (activeTopicId) bridge.pauseAgent(activeTopicId);
+    }, [bridge, activeTopicId]);
+
+    const handleResumeAgent = useCallback(() => {
+        if (activeTopicId) bridge.resumeAgent(activeTopicId);
+    }, [bridge, activeTopicId]);
+
+    const handleDeleteTopic = useCallback(async () => {
+        if (!activeTopicId) return;
+        await bridge.destroyDesktop(activeTopicId);
+        await bridge.deleteTopic(activeTopicId);
+        setActiveTopicId(null);
+        setMessages([]);
+        setTuiSnapshot('');
+        setShowDeleteConfirm(false);
+    }, [bridge, activeTopicId]);
+
+    const activeTopic = (activeTopicId && bridge.getTopic(activeTopicId)) || null;
+
+    if (connecting) return <ConnectionScreen status="connecting" />;
+    if (!connected) return <ConnectionScreen status="error" onRetry={() => window.location.reload()} />;
+
+    if (!currentProjectId) {
+        return (
+            <>
+                <div className="aurora-bg" />
+                <div className="fui-grid-bg absolute inset-0 opacity-20 pointer-events-none" />
+                <FUIOverlay />
+                <ProjectSelector
+                    onSelectProject={(projectId) => {
+                        setSettingsPanelOpen(false);
+                        setCurrentProjectId(projectId);
+                    }}
+                    theme={theme}
+                    toggleTheme={toggleTheme}
+                    onOpenSettings={openSettings}
+                />
+                <SettingsPanel
+                    isOpen={settingsPanelOpen}
+                    onClose={closeSettings}
+                    theme={theme}
+                    onThemeChange={setTheme}
+                />
+            </>
+        );
+    }
+
+    return (
+        <div className="w-screen h-screen bg-[var(--color-bg-base)] text-[var(--color-text-primary)] overflow-hidden font-sans selection:bg-primary/30 relative">
+            {/* Background Layers */}
+            <div className="aurora-bg" />
+            <div className="fui-grid-bg absolute inset-0 opacity-20 pointer-events-none" />
+
+            {/* FUI Overlay */}
+            <FUIOverlay />
+
+            {/* Window Drag Region */}
+            <div className="fixed top-0 left-0 right-0 h-8 title-drag-region z-50" />
+
+            {/* Main Bento Layout */}
+            <div className={`relative z-10 grid h-full w-full gap-6 p-6 max-w-[1920px] mx-auto transition-all duration-400 ease-[var(--ease-out-expo)] ${sidebarOpen ? 'grid-cols-[260px_1fr]' : 'grid-cols-[0px_1fr]'}`}>
+
+                {/* ======== Area 1: Sidebar ======== */}
+                <Sidebar
+                    sidebarOpen={sidebarOpen}
+                    topics={topics}
+                    activeTopicId={activeTopicId}
+                    theme={theme}
+                    onNewChat={handleNewChat}
+                    onSelectTopic={handleSelectTopic}
+                    toggleTheme={toggleTheme}
+                    onSwitchProject={() => setCurrentProjectId(null)}
+                    onOpenSettings={openSettings}
+                    getTopicState={(topicId) => bridge.getAgentState(topicId)}
+                    getTopicPaused={(topicId) => bridge.isAgentPaused(topicId)}
+                />
+
+                {/* ======== Area 2: Main Workspace ======== */}
+                <div className="flex flex-col gap-6 min-w-0 h-full overflow-visible">
+                    {/* Area 2.1: Header */}
+                    <WorkspaceHeader
+                        activeTopic={activeTopic}
+                        activeTopicId={activeTopicId}
+                        connected={connected}
+                        sidebarOpen={sidebarOpen}
+                        setSidebarOpen={setSidebarOpen}
+                        viewMode={viewMode}
+                        setViewMode={setViewMode}
+                        agentState={agentState}
+                        agentPaused={agentPaused}
+                        onResumeAgent={handleResumeAgent}
+                        onPauseAgent={handlePauseAgent}
+                        onShowDeleteConfirm={() => setShowDeleteConfirm(true)}
+                    />
+
+                    {/* Area 2.2: Content (Chat / TUI) */}
+                    <main className="flex-1 glass-card rounded-[var(--radius-lg)] overflow-hidden relative flex flex-col">
+                        <div className="flex-1 overflow-hidden relative">
+                            {viewMode === 'chat' ? (
+                                <ChatArea
+                                    messages={messages}
+                                    agentThinking={agentThinking}
+                                    agentReasoning={agentReasoning}
+                                    onSendMessage={handleSendMessage}
+                                />
+                            ) : (
+                                <div className="absolute inset-0 bg-[var(--color-bg-base)]">
+                                    <TuiDesktopViewer
+                                        snapshot={tuiSnapshot}
+                                        agentThinking={agentThinking}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            </div>
+
+            <Toast message={toastMessage} />
+
+            <DeleteConfirmModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleDeleteTopic}
+            />
+
+            <SettingsPanel
+                isOpen={settingsPanelOpen}
+                onClose={closeSettings}
+                theme={theme}
+                onThemeChange={setTheme}
+            />
+        </div>
+    );
+}
