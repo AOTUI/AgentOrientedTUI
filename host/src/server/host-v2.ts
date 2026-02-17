@@ -193,16 +193,17 @@ export async function createHostV2Core(modelRegistry: ModelRegistry): Promise<{
     const kernel = desktopManager.getKernel();
     console.log('[HostV2] Kernel ready for Session-based Desktop creation');
 
-    // 6. 获取 LLM 配置并初始化 SessionManagerV3 via HostManager
-    const llmConfig = await llmConfigService.getActiveLLMConfig();
-    if (llmConfig) {
-        // ⚠️ 不再需要提前创建 Desktop，SessionManagerV3 会按需创建
-        // initAgentDriver 内部会创建 SessionManagerV3 并在 ensureSession 时创建 Desktop
-        const desktop = {} as any; // Placeholder - no longer needed
-        await hostManager.initAgentDriver(desktop, kernel, desktopManager, llmConfig);
-        console.log('[HostV2] SessionManagerV3 initialized via HostManager with config:', llmConfig.model);
+    // 6. 初始化 SessionManagerV3（与是否已有 active LLM 配置解耦）
+    // ⚠️ 不再需要提前创建 Desktop，SessionManagerV3 会按需创建
+    // initAgentDriver 内部会创建 SessionManagerV3，并在 ensureSession/createSession 时读取当前 active config
+    const desktop = {} as any; // Placeholder - no longer needed
+    await hostManager.initAgentDriver(desktop, kernel, desktopManager);
+
+    const activeConfig = await llmConfigService.getActiveLLMConfig();
+    if (activeConfig) {
+        console.log('[HostV2] SessionManagerV3 initialized via HostManager with config:', activeConfig.model);
     } else {
-        console.warn('[HostV2] No active LLM config found, SessionManager not initialized');
+        console.warn('[HostV2] SessionManagerV3 initialized without active LLM config; awaiting user configuration');
     }
 
     // 7. Create GUIBridge
