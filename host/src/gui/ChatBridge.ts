@@ -312,7 +312,7 @@ export class ChatBridge {
             return optimisticMessage;
         } catch (error) {
             console.error('[ChatBridge] Error sending message:', error);
-            return null;
+            throw error;
         }
     }
 

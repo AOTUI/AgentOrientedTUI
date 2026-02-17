@@ -13,6 +13,9 @@ interface ChatAreaProps {
     agentThinking: string;
     agentReasoning: string;
     onSendMessage: (content: string) => void;
+    canSendMessage?: boolean;
+    sendBlockedReason?: string | null;
+    onOpenSettings?: () => void;
 }
 
 type ToolTraceStep = {
@@ -44,7 +47,15 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage }: ChatAreaProps) {
+export function ChatArea({
+    messages,
+    agentThinking,
+    agentReasoning,
+    onSendMessage,
+    canSendMessage = true,
+    sendBlockedReason,
+    onOpenSettings,
+}: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -99,6 +110,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
     }, [messages, agentThinking, agentReasoning]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!canSendMessage) {
+            return;
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             if (inputValue.trim()) {
@@ -109,6 +123,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
     };
 
     const handleSendClick = () => {
+        if (!canSendMessage) {
+            return;
+        }
         if (inputValue.trim()) {
             onSendMessage(inputValue.trim());
             setInputValue('');
@@ -450,15 +467,29 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
             {/* Input Area */}
             <div className="p-4 bg-gradient-to-t from-[var(--color-bg-base)] via-[var(--color-bg-base)] to-transparent z-10">
+                {!canSendMessage && (
+                    <div className="mb-3 px-4 py-3 rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 text-[12px] text-[var(--color-text-secondary)] flex items-center justify-between gap-3">
+                        <span>{sendBlockedReason || 'Please configure an LLM provider and model in Settings before sending messages.'}</span>
+                        {onOpenSettings && (
+                            <button
+                                onClick={onOpenSettings}
+                                className="shrink-0 px-3 py-1.5 rounded-lg border border-[var(--color-primary)]/35 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
+                            >
+                                Open Settings
+                            </button>
+                        )}
+                    </div>
+                )}
                 <div className="relative w-full rounded-[24px] bg-[var(--color-bg-highlight)]/30 border border-[var(--color-border)] backdrop-blur-xl flex items-end gap-2 p-2 transition-all duration-300 focus-within:bg-[var(--color-bg-surface)] focus-within:border-primary/30 focus-within:shadow-[0_0_15px_rgba(59,130,246,0.1)]">
                     <textarea
                         ref={textareaRef}
                         className="w-full bg-transparent border-none outline-none focus:ring-0 focus:outline-none text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] px-4 py-3 min-h-[44px] max-h-48 resize-none overflow-y-auto scrollbar-hide"
-                        placeholder="Enter command..."
+                        placeholder={canSendMessage ? 'Enter command...' : 'Please configure a provider and model first.'}
                         rows={1}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleKeyDown}
+                        disabled={!canSendMessage}
                     />
                     <div className="pb-1 pr-1">
                         <Button
@@ -466,6 +497,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                             size="sm"
                             className="bg-[var(--color-bg-highlight)] text-[var(--color-text-secondary)] hover:text-primary hover:bg-[var(--color-bg-elevated)] min-w-10 w-10 h-10 rounded-xl flex items-center justify-center transition-all"
                             onClick={handleSendClick}
+                            isDisabled={!canSendMessage || !inputValue.trim()}
                         >
                             <IconSend />
                         </Button>

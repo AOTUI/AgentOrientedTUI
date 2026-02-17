@@ -49,6 +49,8 @@ export function App() {
     const [agentPaused, setAgentPaused] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [canSendMessage, setCanSendMessage] = useState(false);
+    const [sendBlockedReason, setSendBlockedReason] = useState<string | null>(null);
 
     // Init Theme
     useEffect(() => {
@@ -68,6 +70,50 @@ export function App() {
     const closeSettings = () => {
         setSettingsPanelOpen(false);
     };
+
+    const showToast = useCallback((message: string) => {
+        setToastMessage(message);
+    }, []);
+
+    useEffect(() => {
+        if (!toastMessage) return;
+        const timer = setTimeout(() => setToastMessage(null), 3500);
+        return () => clearTimeout(timer);
+    }, [toastMessage]);
+
+    const refreshLLMReadiness = useCallback(async () => {
+        try {
+            const [allConfigs, activeConfig] = await Promise.all([
+                bridge.getAllLLMConfigs(),
+                bridge.getActiveLLMConfig()
+            ]);
+
+            if (!Array.isArray(allConfigs) || allConfigs.length === 0) {
+                setCanSendMessage(false);
+                setSendBlockedReason('No LLM provider or model configured. Please go to Settings to add a provider and select a model.');
+                return;
+            }
+
+            if (!activeConfig) {
+                setCanSendMessage(false);
+                setSendBlockedReason('尚未激活任何 LLM 配置。请在 Settings 里选择一个 Provider 与模型并设为 Active。');
+                return;
+            }
+
+            if (!activeConfig.providerId || !activeConfig.model) {
+                setCanSendMessage(false);
+                setSendBlockedReason('当前 LLM 配置不完整（缺少 Provider 或模型）。请前往 Settings 修复。');
+                return;
+            }
+
+            setCanSendMessage(true);
+            setSendBlockedReason(null);
+        } catch (error) {
+            console.error('[App] Failed to check LLM readiness:', error);
+            setCanSendMessage(false);
+            setSendBlockedReason('无法读取 LLM 配置。请前往 Settings 检查 Provider 与模型设置。');
+        }
+    }, [bridge]);
 
     // Helper: Time Ago
     const formatTimeAgo = (timestamp: number) => {
@@ -91,6 +137,7 @@ export function App() {
                 setConnecting(true);
                 await bridge.connect();
                 setConnected(true);
+                await refreshLLMReadiness();
             } catch (error) {
                 console.error('Failed to connect:', error);
                 setConnected(false);
@@ -99,7 +146,13 @@ export function App() {
             }
         };
         connectToServer();
-    }, [bridge]);
+    }, [bridge, refreshLLMReadiness]);
+
+    useEffect(() => {
+        if (!settingsPanelOpen && connected) {
+            void refreshLLMReadiness();
+        }
+    }, [settingsPanelOpen, connected, refreshLLMReadiness]);
 
     // Subscribe
     useEffect(() => {
@@ -169,6 +222,12 @@ export function App() {
     }, [bridge]);
 
     const handleSendMessage = useCallback(async (content: string) => {
+        if (!canSendMessage) {
+            showToast(sendBlockedReason || 'Please complete the LLM provider and model setup first.');
+            setSettingsPanelOpen(true);
+            return;
+        }
+
         let currentTopicId = activeTopicId;
 
         // [UX Improvement] Implicitly create session if none exists
@@ -188,8 +247,18 @@ export function App() {
         if (!currentTopicId) return;
         setAgentThinking('');
         setAgentReasoning('');
-        await bridge.sendMessage(currentTopicId, content);
-    }, [bridge, activeTopicId, currentProjectId]);
+        try {
+            await bridge.sendMessage(currentTopicId, content);
+        } catch (error) {
+            const raw = error instanceof Error ? error.message : String(error);
+            const message = raw.includes('API key') || raw.includes('provider') || raw.includes('model')
+                ? `LLM Provider 配置异常：${raw}。请前往 Settings 修复后重试。`
+                : `发送失败：${raw}`;
+            showToast(message);
+            setSettingsPanelOpen(true);
+            await refreshLLMReadiness();
+        }
+    }, [bridge, activeTopicId, currentProjectId, canSendMessage, sendBlockedReason, showToast, refreshLLMReadiness]);
 
     const handlePauseAgent = useCallback(() => {
         if (activeTopicId) bridge.pauseAgent(activeTopicId);
@@ -296,6 +365,9 @@ export function App() {
                                     agentThinking={agentThinking}
                                     agentReasoning={agentReasoning}
                                     onSendMessage={handleSendMessage}
+                                    canSendMessage={canSendMessage}
+                                    sendBlockedReason={sendBlockedReason}
+                                    onOpenSettings={openSettings}
                                 />
                             ) : (
                                 <div className="absolute inset-0 bg-[var(--color-bg-base)]">

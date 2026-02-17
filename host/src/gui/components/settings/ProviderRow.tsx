@@ -91,12 +91,28 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
     // Handle empty state
     if (sortedProviders.length === 0) {
         return (
-            <div 
-                className="flex items-center justify-center py-8 text-[var(--color-text-muted)]"
-                role="status"
-                aria-live="polite"
-            >
-                No providers configured. Click "Add Provider" to get started.
+            <div className="provider-row-container" role="status" aria-live="polite">
+                <div
+                    className="provider-row-scroll"
+                    style={{
+                        display: 'flex',
+                        gap: 'clamp(12px, 2vw, 16px)',
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        paddingBottom: '8px',
+                        scrollBehavior: 'smooth',
+                        WebkitOverflowScrolling: 'touch',
+                    }}
+                >
+                    {onAddProvider && (
+                        <div className="shrink-0" role="listitem" aria-label="Add provider">
+                            <AddProviderButton onClick={onAddProvider} />
+                        </div>
+                    )}
+                </div>
+                <div className="mt-2 text-[var(--color-text-muted)] text-left">
+                    No providers configured. Click "Add Provider" to get started.
+                </div>
             </div>
         );
     }
