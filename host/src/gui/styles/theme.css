@@ -1,5 +1,136 @@
-/* Theme: Immersive Dark Tech (Glassmorphism + Futuristic Minimalism) */
+/* Theme: AOTUI — Liquid Glass Design System
+ * Inspired by macOS 26 (Tahoe) — Liquid Glass + Concentric Radius
+ * Supports: dark (default) / light
+ */
 
+/* ═══════════════════════════════════════════════════
+ *  Liquid Glass Token Layer (新增，与旧tokens共存)
+ * ═══════════════════════════════════════════════════ */
+:root {
+    /* ── System Font Stack ── */
+    --font-system: "SF Pro Display", "SF Pro Text", -apple-system,
+                   BlinkMacSystemFont, "Inter", sans-serif;
+
+    /* ── Spacing (8pt grid) ── */
+    --sp-1: 4px;  --sp-2: 8px;   --sp-3: 12px;
+    --sp-4: 16px; --sp-5: 20px;  --sp-6: 24px;
+    --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+
+    /* ── Concentric Radius (macOS 26 同心圆角体系) ── */
+    --r-window:  20px;   /* 主窗口/大容器 */
+    --r-panel:   16px;   /* 面板/卡片 */
+    --r-control: 12px;   /* 按钮/输入框 */
+    --r-item:     8px;   /* 列表项/小徽章 */
+    --r-pill:  9999px;   /* 胶囊形 */
+
+    /* ── Easing (流体动画曲线) ── */
+    --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-sm:  cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-inout:   cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-snap:    80ms;
+    --dur-fast:   160ms;
+    --dur-normal: 280ms;
+    --dur-slow:   480ms;
+
+    /* ── Dark Mode: Liquid Glass 材质 ── */
+    /* Regular 变体: 用于导航/侧边栏/工具栏 */
+    --lg-bg:        rgba(255, 255, 255, 0.09);
+    --lg-bg-hover:  rgba(255, 255, 255, 0.14);
+    --lg-bg-active: rgba(255, 255, 255, 0.18);
+    --lg-border:    rgba(255, 255, 255, 0.13);
+    --lg-blur:      saturate(180%) blur(28px);
+    /* 玻璃内发光(顶边高光线 — 折射感) */
+    --lg-inner-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+    --lg-outer-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.30),
+        0 2px 8px rgba(0, 0, 0, 0.20);
+
+    /* Clear 变体: 用于嵌套在玻璃上的子控件 */
+    --lg-clear-bg:     rgba(255, 255, 255, 0.05);
+    --lg-clear-border: rgba(255, 255, 255, 0.09);
+
+    /* ── Dark Mode: 背景层 ── */
+    --bg-app:      #0E0E12;    /* Electron window / 最底层 */
+    --bg-base:     #111115;    /* 主内容区背景 */
+    --bg-surface:  #18181E;    /* 卡片/面板 */
+    --bg-elevated: #22222A;    /* 弹出/悬浮 */
+    --bg-overlay:  #2A2A34;    /* Toast/Tooltip */
+
+    /* ── Dark Mode: 文字层级 ── */
+    --tx-primary:   rgba(255, 255, 255, 0.90);
+    --tx-secondary: rgba(255, 255, 255, 0.54);
+    --tx-tertiary:  rgba(255, 255, 255, 0.28);
+    --tx-quart:     rgba(255, 255, 255, 0.13);
+
+    /* ── Dark Mode: 强调色 (自然系，非霓虹) ── */
+    --ac-blue:          #4C9EFF;
+    --ac-blue-subtle:   rgba(76, 158, 255, 0.16);
+    --ac-blue-muted:    rgba(76, 158, 255, 0.08);
+    --ac-purple:        #BF7FFF;
+    --ac-purple-subtle: rgba(191, 127, 255, 0.16);
+    --ac-green:         #3DD68C;
+    --ac-green-subtle:  rgba(61, 214, 140, 0.16);
+    --ac-amber:         #FFB340;
+    --ac-amber-subtle:  rgba(255, 179, 64, 0.16);
+    --ac-red:           #FF6B6B;
+    --ac-red-subtle:    rgba(255, 107, 107, 0.16);
+
+    /* ── Dark Mode: 描边 ── */
+    --bd-subtle:  rgba(255, 255, 255, 0.06);
+    --bd-default: rgba(255, 255, 255, 0.10);
+    --bd-strong:  rgba(255, 255, 255, 0.18);
+}
+
+/* Light Mode 覆盖 */
+[data-theme='light'] {
+    --lg-bg:        rgba(255, 255, 255, 0.70);
+    --lg-bg-hover:  rgba(255, 255, 255, 0.84);
+    --lg-bg-active: rgba(255, 255, 255, 0.92);
+    --lg-border:    rgba(0, 0, 0, 0.08);
+    --lg-blur:      saturate(200%) blur(28px);
+    --lg-inner-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.90),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    --lg-outer-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.10),
+        0 2px 8px rgba(0, 0, 0, 0.06);
+
+    --lg-clear-bg:     rgba(0, 0, 0, 0.03);
+    --lg-clear-border: rgba(0, 0, 0, 0.06);
+
+    --bg-app:      #E4E4EC;
+    --bg-base:     #EDEDF3;
+    --bg-surface:  #FFFFFF;
+    --bg-elevated: #FFFFFF;
+    --bg-overlay:  #F8F8FC;
+
+    --tx-primary:   rgba(0, 0, 0, 0.86);
+    --tx-secondary: rgba(0, 0, 0, 0.50);
+    --tx-tertiary:  rgba(0, 0, 0, 0.28);
+    --tx-quart:     rgba(0, 0, 0, 0.12);
+
+    --ac-blue:          #0A7AFF;
+    --ac-blue-subtle:   rgba(10, 122, 255, 0.10);
+    --ac-blue-muted:    rgba(10, 122, 255, 0.05);
+    --ac-purple:        #9B59FF;
+    --ac-purple-subtle: rgba(155, 89, 255, 0.10);
+    --ac-green:         #30B870;
+    --ac-green-subtle:  rgba(48, 184, 112, 0.10);
+    --ac-amber:         #F59E0B;
+    --ac-amber-subtle:  rgba(245, 158, 11, 0.10);
+    --ac-red:           #EF4444;
+    --ac-red-subtle:    rgba(239, 68, 68, 0.10);
+
+    --bd-subtle:  rgba(0, 0, 0, 0.05);
+    --bd-default: rgba(0, 0, 0, 0.10);
+    --bd-strong:  rgba(0, 0, 0, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
+ *  Legacy Tokens (保留兼容性)
+ * ══════════════════════════════════════════════════ */
 :root {
     /* --- Typography --- */
     --font-heading: "Inter", "Orbitron", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
