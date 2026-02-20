@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ProviderRow } from './ProviderRow.js';
 import type { ProviderConfig } from './types.js';
@@ -69,7 +69,7 @@ describe('ProviderRow', () => {
                 />
             );
 
-            const cards = screen.getAllByRole('listitem');
+            const cards = screen.getAllByRole('radio');
             expect(cards).toHaveLength(3);
         });
 
@@ -133,7 +133,7 @@ describe('ProviderRow', () => {
                 />
             );
 
-            const cards = screen.getAllByRole('listitem');
+            const cards = screen.getAllByRole('radio');
             // First card should be the active one (My Anthropic)
             expect(cards[0]).toHaveAttribute('aria-label', expect.stringContaining('My Anthropic'));
             expect(cards[0]).toHaveAttribute('aria-label', expect.stringContaining('(active)'));
@@ -151,7 +151,7 @@ describe('ProviderRow', () => {
                 />
             );
 
-            const cards = screen.getAllByRole('listitem');
+            const cards = screen.getAllByRole('radio');
             expect(cards).toHaveLength(3);
             // Order should be preserved from input
         });
@@ -172,7 +172,7 @@ describe('ProviderRow', () => {
                 />
             );
 
-            const cards = screen.getAllByRole('listitem');
+            const cards = screen.getAllByRole('radio');
             // First card should be Google (active)
             expect(cards[0]).toHaveAttribute('aria-label', expect.stringContaining('My Google'));
             expect(cards[0]).toHaveAttribute('aria-label', expect.stringContaining('(active)'));
@@ -224,7 +224,7 @@ describe('ProviderRow', () => {
             );
 
             const scrollContainer = container.querySelector('.provider-row-scroll') as HTMLElement;
-            expect(scrollContainer).toHaveStyle({ gap: '16px' });
+            expect(scrollContainer).toHaveStyle({ gap: 'clamp(12px, 2vw, 16px)' });
         });
 
         it('should have padding at bottom for scrollbar', () => {
@@ -256,11 +256,11 @@ describe('ProviderRow', () => {
             const openaiCard = screen.getByLabelText('My OpenAI provider');
             openaiCard.click();
 
-            expect(mockHandlers.onSelectProvider).toHaveBeenCalledWith('openai');
+            expect(mockHandlers.onSelectProvider).toHaveBeenCalledWith(1);
             expect(mockHandlers.onSelectProvider).toHaveBeenCalledTimes(1);
         });
 
-        it('should call onEditProvider with correct id when edit button is clicked', () => {
+        it('should call onEditProvider with correct provider when edit button is clicked', () => {
             const { container } = render(
                 <ProviderRow
                     providers={mockProviders}
@@ -271,19 +271,21 @@ describe('ProviderRow', () => {
             );
 
             // Hover over first card to show edit button
-            const firstCard = screen.getAllByRole('listitem')[0];
+            const firstCard = screen.getAllByRole('radio')[0].closest('.group');
+            if (!firstCard) throw new Error('Card container not found');
+            
             firstCard.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
 
             // Click edit button
-            const editButton = screen.getByLabelText(/Edit.*provider/);
+            const editButton = within(firstCard as HTMLElement).getByLabelText(/Edit.*provider/);
             editButton.click();
 
             expect(mockHandlers.onEditProvider).toHaveBeenCalledTimes(1);
-            // Should be called with the id of the first provider (after sorting, it's the active one with id 2)
-            expect(mockHandlers.onEditProvider).toHaveBeenCalledWith(2);
+            // Should be called with the provider object (active one with id 2)
+            expect(mockHandlers.onEditProvider).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
         });
 
-        it('should call onDeleteProvider with correct id when delete button is clicked', () => {
+        it('should call onDeleteProvider with correct provider when delete button is clicked', () => {
             const { container } = render(
                 <ProviderRow
                     providers={mockProviders}
@@ -294,16 +296,18 @@ describe('ProviderRow', () => {
             );
 
             // Hover over first card to show delete button
-            const firstCard = screen.getAllByRole('listitem')[0];
+            const firstCard = screen.getAllByRole('radio')[0].closest('.group');
+            if (!firstCard) throw new Error('Card container not found');
+            
             firstCard.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
 
             // Click delete button
-            const deleteButton = screen.getByLabelText(/Delete.*provider/);
+            const deleteButton = within(firstCard as HTMLElement).getByLabelText(/Delete.*provider/);
             deleteButton.click();
 
             expect(mockHandlers.onDeleteProvider).toHaveBeenCalledTimes(1);
-            // Should be called with the id of the first provider (after sorting, it's the active one with id 2)
-            expect(mockHandlers.onDeleteProvider).toHaveBeenCalledWith(2);
+            // Should be called with the provider object (active one with id 2)
+            expect(mockHandlers.onDeleteProvider).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
         });
 
         it('should handle multiple provider selections', () => {
@@ -323,8 +327,8 @@ describe('ProviderRow', () => {
             googleCard.click();
 
             expect(mockHandlers.onSelectProvider).toHaveBeenCalledTimes(2);
-            expect(mockHandlers.onSelectProvider).toHaveBeenNthCalledWith(1, 'openai');
-            expect(mockHandlers.onSelectProvider).toHaveBeenNthCalledWith(2, 'google');
+            expect(mockHandlers.onSelectProvider).toHaveBeenNthCalledWith(1, 1); // ID is 1
+            expect(mockHandlers.onSelectProvider).toHaveBeenNthCalledWith(2, 3); // ID is 3
         });
     });
 
@@ -368,7 +372,7 @@ describe('ProviderRow', () => {
             );
 
             const list = screen.getByRole('list');
-            const items = screen.getAllByRole('listitem');
+            const items = screen.getAllByRole('radio');
 
             expect(list).toBeInTheDocument();
             expect(items).toHaveLength(3);
@@ -386,7 +390,7 @@ describe('ProviderRow', () => {
                 />
             );
 
-            const cards = screen.getAllByRole('listitem');
+            const cards = screen.getAllByRole('radio');
             expect(cards).toHaveLength(1);
             expect(screen.getByText('My OpenAI')).toBeInTheDocument();
         });
@@ -402,24 +406,27 @@ describe('ProviderRow', () => {
             );
 
             // No card should have "selected" in aria-label
-            const cards = screen.getAllByRole('listitem');
+            const cards = screen.getAllByRole('radio');
             cards.forEach(card => {
                 expect(card).not.toHaveAttribute('aria-label', expect.stringContaining('(selected)'));
             });
         });
 
         it('should handle null activeProviderId', () => {
+            const providersNoActive = mockProviders.map(p => ({ ...p, isActive: false }));
             render(
                 <ProviderRow
-                    providers={mockProviders}
+                    providers={providersNoActive}
                     selectedProviderId={null}
                     activeProviderId={null}
                     {...mockHandlers}
                 />
             );
 
-            // No "Active" badge should be visible
-            expect(screen.queryByText('Active')).not.toBeInTheDocument();
+            const cards = screen.getAllByRole('radio');
+            cards.forEach(card => {
+                expect(card).not.toHaveAttribute('aria-label', expect.stringContaining('(active)'));
+            });
         });
 
         it('should handle same provider being both selected and active', () => {
@@ -435,6 +442,59 @@ describe('ProviderRow', () => {
             const card = screen.getByLabelText(/My Anthropic.*\(active\).*\(selected\)/);
             expect(card).toBeInTheDocument();
             expect(screen.getByText('Active')).toBeInTheDocument();
+        });
+    });
+
+    describe('Add Provider Button', () => {
+        it('should render add provider button when onAddProvider is provided', () => {
+            const onAddProvider = vi.fn();
+            render(
+                <ProviderRow
+                    providers={mockProviders}
+                    selectedProviderId={null}
+                    activeProviderId={null}
+                    {...mockHandlers}
+                    onAddProvider={onAddProvider}
+                />
+            );
+
+            const addButton = screen.getByLabelText('Add new provider');
+            expect(addButton).toBeInTheDocument();
+            expect(screen.getByText('Add Provider')).toBeInTheDocument();
+        });
+
+        it('should have correct dimensions (120px)', () => {
+            const onAddProvider = vi.fn();
+            render(
+                <ProviderRow
+                    providers={mockProviders}
+                    selectedProviderId={null}
+                    activeProviderId={null}
+                    {...mockHandlers}
+                    onAddProvider={onAddProvider}
+                />
+            );
+
+            const addButton = screen.getByLabelText('Add new provider');
+            expect(addButton).toHaveClass('w-[120px]');
+            expect(addButton).toHaveClass('h-[120px]');
+        });
+
+        it('should call onAddProvider when clicked', () => {
+            const onAddProvider = vi.fn();
+            render(
+                <ProviderRow
+                    providers={mockProviders}
+                    selectedProviderId={null}
+                    activeProviderId={null}
+                    {...mockHandlers}
+                    onAddProvider={onAddProvider}
+                />
+            );
+
+            const addButton = screen.getByLabelText('Add new provider');
+            addButton.click();
+            expect(onAddProvider).toHaveBeenCalledTimes(1);
         });
     });
 });

@@ -160,7 +160,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div
             className={`
                 fixed inset-0 z-50 flex items-center justify-center
-                bg-black/60 backdrop-blur-[12px]
+                bg-black/40 backdrop-blur-md
                 transition-opacity duration-300
                 ${isOpen ? 'opacity-100' : 'opacity-0'}
             `}
@@ -174,20 +174,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 ref={panelRef}
                 className={`
                     relative w-full 
-                    max-w-[1200px] min-w-[320px]
-                    max-h-[800px] h-[90vh]
-                    mx-4 sm:mx-6 md:mx-8
-                    bg-[var(--color-bg-surface)] backdrop-blur-[20px]
-                    border border-[var(--color-border)]
-                    rounded-[var(--radius-lg)] shadow-2xl
+                    max-w-[1000px] min-w-[320px]
+                    max-h-[720px] h-[85vh]
+                    mx-4 sm:mx-6
+                    bg-[var(--lg-bg)] backdrop-blur-[var(--lg-blur)]
+                    border border-[var(--lg-border)]
+                    rounded-[var(--r-window)]
                     flex flex-col md:flex-row overflow-hidden
-                    transition-all duration-300 ease-out
+                    transition-all duration-300 ease-[var(--ease-spring)]
                     ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
                 `}
+                style={{
+                    boxShadow: 'var(--lg-shadow-2xl), 0 0 0 1px var(--lg-border-subtle)'
+                }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Sidebar - horizontal on mobile, vertical on desktop */}
-                <div className="flex-shrink-0 p-4 md:p-4 border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col gap-3 md:h-full">
+                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--lg-border)] flex flex-col gap-3 md:h-full bg-[var(--lg-bg-alt)]/10">
                     <SettingsSidebar
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
@@ -195,16 +198,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <button
                         ref={exitButtonRef}
                         onClick={onClose}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--color-danger)]/30 text-[var(--color-danger)]/75 bg-[var(--color-danger)]/8 hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/12 transition-colors md:mt-auto"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--r-control)] border text-[13px] font-medium transition-all duration-200 md:mt-auto"
+                        style={{
+                            backgroundColor: 'var(--ac-red-subtle)',
+                            borderColor: 'color-mix(in srgb, var(--ac-red) 20%, transparent)',
+                            color: 'var(--ac-red)'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--ac-red-subtle) 80%, var(--ac-red))'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--ac-red-subtle)'}
                         aria-label="Exit settings panel"
                     >
                         <IconExit className="w-4 h-4" />
-                        <span className="text-sm font-medium">Exit</span>
+                        <span>Exit</span>
                     </button>
                 </div>
 
                 {/* Content Area - scrollable */}
-                <div className="flex-1 p-4 sm:p-6 md:p-7 overflow-hidden flex flex-col min-h-0">
+                <div className="flex-1 p-5 sm:p-6 overflow-hidden flex flex-col min-h-0 relative">
                     {/* Hidden title for accessibility */}
                     <h1 id="settings-panel-title" className="sr-only">
                         Settings Panel
@@ -213,7 +223,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     {/* Tab Content with fade transition - wrapped in error boundary */}
                     <SettingsErrorBoundary>
                         <div
-                            className="transition-opacity duration-200 ease-in-out min-h-0 flex-1"
+                            className="transition-opacity duration-200 ease-in-out min-h-0 flex-1 overflow-y-auto"
                             key={activeTab}
                         >
                             {activeTab === 'model' && <ModelTab />}

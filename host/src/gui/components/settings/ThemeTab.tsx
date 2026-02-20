@@ -20,20 +20,20 @@ export const ThemeTab: React.FC<ThemeTabProps> = ({ currentTheme, onThemeChange 
     };
 
     return (
-        <div className="flex flex-col h-full p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col h-full p-2 max-w-[800px] mx-auto">
             {/* Header */}
-            <div className="mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-medium tracking-tight text-[var(--color-text-primary)]">
-                    Theme Selection
+            <div className="mb-6 text-center sm:text-left">
+                <h2 className="text-xl font-semibold tracking-tight text-[var(--tx-primary)]">
+                    Appearance
                 </h2>
-                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                    Choose your preferred color scheme
+                <p className="mt-1 text-[13px] text-[var(--tx-secondary)]">
+                    Choose your preferred interface theme
                 </p>
             </div>
 
             {/* Theme Cards */}
             <div 
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 transition-all duration-300 ease-in-out"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 role="radiogroup"
                 aria-label="Theme selection"
             >
@@ -51,3 +51,4 @@ export const ThemeTab: React.FC<ThemeTabProps> = ({ currentTheme, onThemeChange 
         </div>
     );
 };
+

@@ -6,8 +6,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@heroui/button';
-import { Card, CardBody } from '@heroui/card';
 import { ProviderLogo } from './ProviderLogo.js';
 import { validateProviderConfig } from './validation.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
@@ -204,26 +202,27 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
     const isSaveDisabled = !customName.trim() || !apiKey.trim() || isSaving;
 
     return (
-        <div 
+        <div
             className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
             onClick={handleBackdropClick}
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-provider-modal-title"
         >
-            <Card className="w-full max-w-[500px] border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-                <CardBody className="gap-6 p-6">
+            <div className="w-full max-w-[500px] border border-[var(--lg-border)] bg-[var(--lg-bg-strong)] backdrop-blur-[var(--lg-blur)] rounded-[var(--r-window)] shadow-[var(--lg-outer-shadow)] flex flex-col overflow-hidden">
+                <div className="flex flex-col gap-5 p-6 overflow-y-auto custom-scrollbar">
+
                     {/* Header */}
                     <div className="flex items-center justify-between">
-                        <h2 
+                        <h2
                             id="edit-provider-modal-title"
-                            className="text-xl font-semibold text-[var(--color-text-primary)]"
+                            className="text-[17px] font-semibold text-[var(--tx-primary)]"
                         >
                             Edit Provider
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-1 rounded-md hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                            className="lg-icon-btn lg-clear text-[var(--tx-secondary)] hover:text-[var(--tx-primary)]"
                             aria-label="Close modal"
                         >
                             <IconClose />
@@ -231,111 +230,108 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                     </div>
 
                     {/* Provider Display (Read-only) */}
-                    <div className="flex flex-col gap-2">
-                        <label 
-                            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]"
-                        >
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-medium uppercase tracking-wide text-[var(--tx-tertiary)]">
                             Provider
                         </label>
-                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] opacity-75">
+                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--r-control)] border border-[var(--lg-clear-border)] bg-[var(--lg-clear-bg)]">
                             <ProviderLogo
                                 providerId={provider.providerId}
                                 providerName={provider.customName}
                                 size="sm"
                             />
-                            <span className="text-sm text-[var(--color-text-primary)] capitalize">
+                            <span className="text-[13px] text-[var(--tx-primary)] capitalize">
                                 {provider.providerId}
                             </span>
                         </div>
-                        <p className="text-xs text-[var(--color-text-muted)]">
+                        <p className="text-[11px] text-[var(--tx-tertiary)]">
                             Provider cannot be changed
                         </p>
                     </div>
 
                     {/* Custom Name Input */}
-                    <div className="flex flex-col gap-2">
-                        <label 
-                            htmlFor="custom-name-input"
-                            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]"
+                    <div className="flex flex-col gap-1.5">
+                        <label
+                            htmlFor="edit-custom-name-input"
+                            className="text-[11px] font-medium uppercase tracking-wide text-[var(--tx-tertiary)]"
                         >
                             Custom Name *
                         </label>
                         <input
-                            id="custom-name-input"
+                            id="edit-custom-name-input"
                             type="text"
                             value={customName}
                             onChange={handleCustomNameChange}
                             disabled={isSaving}
                             placeholder="e.g., My OpenAI Account"
-                            className={`px-4 py-3 rounded-lg border ${
-                                validationErrors.customName 
-                                    ? 'border-[var(--color-danger)]' 
-                                    : 'border-[var(--color-border)]'
-                            } bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`lg-input !h-[44px] !py-0 ${
+                                validationErrors.customName
+                                    ? '!border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]'
+                                    : ''
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                             aria-invalid={!!validationErrors.customName}
-                            aria-describedby={validationErrors.customName ? 'custom-name-error' : undefined}
+                            aria-describedby={validationErrors.customName ? 'edit-custom-name-error' : undefined}
                         />
                         {validationErrors.customName && (
-                            <p id="custom-name-error" className="text-xs text-[var(--color-danger)]" role="alert">
+                            <p id="edit-custom-name-error" className="text-[11px] text-[var(--ac-red)]" role="alert">
                                 {validationErrors.customName}
                             </p>
                         )}
                     </div>
 
                     {/* API Key Input */}
-                    <div className="flex flex-col gap-2">
-                        <label 
-                            htmlFor="api-key-input"
-                            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]"
+                    <div className="flex flex-col gap-1.5">
+                        <label
+                            htmlFor="edit-api-key-input"
+                            className="text-[11px] font-medium uppercase tracking-wide text-[var(--tx-tertiary)]"
                         >
                             API Key *
                         </label>
                         <input
-                            id="api-key-input"
+                            id="edit-api-key-input"
                             type="password"
                             value={apiKey}
                             onChange={handleApiKeyChange}
                             disabled={isSaving}
                             placeholder="sk-..."
-                            className={`px-4 py-3 rounded-lg border ${
-                                validationErrors.apiKey 
-                                    ? 'border-[var(--color-danger)]' 
-                                    : 'border-[var(--color-border)]'
-                            } bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`lg-input !h-[44px] !py-0 font-mono text-sm ${
+                                validationErrors.apiKey
+                                    ? '!border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]'
+                                    : ''
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                             aria-invalid={!!validationErrors.apiKey}
-                            aria-describedby={validationErrors.apiKey ? 'api-key-error' : undefined}
+                            aria-describedby={validationErrors.apiKey ? 'edit-api-key-error' : undefined}
                         />
                         {validationErrors.apiKey && (
-                            <p id="api-key-error" className="text-xs text-[var(--color-danger)]" role="alert">
+                            <p id="edit-api-key-error" className="text-[11px] text-[var(--ac-red)]" role="alert">
                                 {validationErrors.apiKey}
                             </p>
                         )}
-                        <p className="text-xs text-[var(--color-text-muted)]">
+                        <p className="text-[11px] text-[var(--tx-tertiary)]">
                             Enter new API key or leave as-is to keep current key
                         </p>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex justify-end gap-3 mt-2">
-                        <Button 
-                            size="sm" 
-                            variant="flat" 
+                    <div className="flex justify-end gap-3 pt-4">
+                        <button
                             onClick={handleCancel}
-                            isDisabled={isSaving}
+                            disabled={isSaving}
+                            className="lg-btn hover:bg-[var(--lg-bg-hover)] disabled:opacity-50"
                         >
                             Cancel
-                        </Button>
-                        <Button 
-                            size="sm" 
-                            color="primary" 
+                        </button>
+                        <button
                             onClick={handleSave}
-                            isDisabled={isSaveDisabled}
+                            disabled={isSaveDisabled}
+                            className="lg-btn lg-btn-accent rounded-[var(--r-control)] px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? 'Saving...' : 'Save'}
-                        </Button>
+                        </button>
                     </div>
-                </CardBody>
-            </Card>
+
+                </div>
+            </div>
         </div>
     );
 };

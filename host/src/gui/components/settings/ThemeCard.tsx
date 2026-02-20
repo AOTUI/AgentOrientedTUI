@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import { MagicCard } from '../ui/MagicCard.js';
 import type { ThemeCardProps } from './types.js';
 
 /**
@@ -17,13 +16,13 @@ const IconCheck = (props: React.SVGProps<SVGSVGElement>) => (
         viewBox="0 0 24 24" 
         fill="none" 
         stroke="currentColor" 
-        strokeWidth={2} 
+        strokeWidth={2.5} 
         strokeLinecap="round" 
         strokeLinejoin="round" 
         {...props}
         className={`w-5 h-5 ${props.className || ''}`}
     >
-        <path d="M20 6L9 17l-5-5" />
+        <polyline points="20 6 9 17 4 12" />
     </svg>
 );
 
@@ -32,16 +31,18 @@ const IconCheck = (props: React.SVGProps<SVGSVGElement>) => (
  */
 const THEME_COLORS = {
     dark: {
-        background: '#0A0A0A',
-        surface: '#1A1A1A',
-        text: '#E5E5E5',
-        accent: '#3B82F6',
+        background: '#1c1c1e', // macOS Dark Window
+        surface: 'rgba(255, 255, 255, 0.1)',
+        border: 'rgba(255, 255, 255, 0.12)',
+        text: '#ffffff',
+        accent: '#0A84FF',
     },
     light: {
-        background: '#FFFFFF',
-        surface: '#F5F5F5',
-        text: '#1A1A1A',
-        accent: '#8B5CF6',
+        background: '#f5f5f7', // macOS Light Window
+        surface: 'rgba(255, 255, 255, 0.8)',
+        border: 'rgba(0, 0, 0, 0.08)',
+        text: '#1d1d1f',
+        accent: '#007AFF',
     },
 };
 
@@ -50,15 +51,20 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
     const themeName = theme.charAt(0).toUpperCase() + theme.slice(1);
 
     return (
-        <MagicCard
-            className={`cursor-pointer transition-all duration-300 ${
-                isActive ? 'border-2 border-[var(--color-primary)]' : 'border border-[var(--color-border)]'
-            }`}
+        <button
+            className={`
+                group relative w-full text-left outline-none
+                rounded-[var(--r-panel)] border transition-all duration-300
+                flex flex-col p-4 gap-4 h-[180px]
+                ${isActive 
+                    ? 'bg-[var(--ac-blue-subtle)] border-[var(--ac-blue)] ring-2 ring-[var(--ac-blue-subtle)]' 
+                    : 'bg-[var(--lg-bg)] border-[var(--lg-border)] hover:bg-[var(--lg-bg-hover)] hover:border-[var(--lg-border-hover)]'
+                }
+            `}
             onClick={onSelect}
             role="radio"
             aria-checked={isActive}
             aria-label={`${themeName} theme`}
-            tabIndex={0}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -66,48 +72,45 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
                 }
             }}
         >
-            <div className="flex flex-col h-full">
-                {/* Header with theme name and checkmark */}
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-medium text-[var(--color-text-primary)]">
-                        {themeName}
-                    </h3>
-                    {isActive && (
-                        <IconCheck className="text-[var(--color-primary)]" aria-hidden="true" />
-                    )}
-                </div>
-
-                {/* Theme preview */}
-                <div 
-                    className="flex-1 rounded-lg p-4 flex flex-col gap-2 transition-all duration-300"
-                    style={{ backgroundColor: colors.background }}
-                >
-                    {/* Preview surface */}
+            {/* Preview Area */}
+            <div 
+                className="flex-1 w-full rounded-[var(--r-control)] border shadow-sm overflow-hidden relative"
+                style={{ 
+                    backgroundColor: colors.background,
+                    borderColor: colors.border
+                }}
+            >
+                {/* Mock UI */}
+                <div className="absolute top-3 left-3 right-3 flex flex-col gap-2">
+                    <div className="h-2 w-1/3 rounded-full opacity-20 bg-current" style={{ color: colors.text }} />
                     <div 
-                        className="h-12 rounded-md flex items-center px-3"
-                        style={{ backgroundColor: colors.surface }}
+                        className="h-8 rounded-md w-full border flex items-center px-2"
+                        style={{ 
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border
+                        }}
                     >
-                        <div 
-                            className="text-xs font-medium"
-                            style={{ color: colors.text }}
-                        >
-                            Preview Text
-                        </div>
+                        <div className="h-1.5 w-1/2 rounded-full opacity-40 bg-current" style={{ color: colors.text }} />
                     </div>
-
-                    {/* Preview accent */}
-                    <div className="flex gap-2">
-                        <div 
-                            className="h-6 flex-1 rounded"
-                            style={{ backgroundColor: colors.accent }}
-                        />
-                        <div 
-                            className="h-6 w-16 rounded"
-                            style={{ backgroundColor: colors.surface }}
-                        />
+                    <div className="flex gap-2 mt-1">
+                        <div className="h-6 w-12 rounded-md" style={{ backgroundColor: colors.accent }} />
+                        <div className="h-6 w-12 rounded-md border" style={{ borderColor: colors.border }} />
                     </div>
                 </div>
             </div>
-        </MagicCard>
+
+            {/* Label */}
+            <div className="flex items-center justify-between w-full">
+                <span className={`text-[13px] font-medium ${isActive ? 'text-[var(--ac-blue)]' : 'text-[var(--tx-primary)]'}`}>
+                    {themeName}
+                </span>
+                {isActive && (
+                    <div className="text-[var(--ac-blue)]">
+                        <IconCheck />
+                    </div>
+                )}
+            </div>
+        </button>
     );
 };
+

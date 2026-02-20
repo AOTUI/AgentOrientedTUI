@@ -34,29 +34,37 @@
 
     /* ── Dark Mode: Liquid Glass 材质 ── */
     /* Regular 变体: 用于导航/侧边栏/工具栏 */
-    --lg-bg:        rgba(255, 255, 255, 0.09);
-    --lg-bg-hover:  rgba(255, 255, 255, 0.14);
-    --lg-bg-active: rgba(255, 255, 255, 0.18);
-    --lg-border:    rgba(255, 255, 255, 0.13);
-    --lg-blur:      saturate(180%) blur(28px);
+    --lg-bg:        rgba(255, 255, 255, 0.12);  /* Increased opacity for less dimness */
+    --lg-bg-alt:    rgba(255, 255, 255, 0.15);
+    --lg-bg-strong: rgba(255, 255, 255, 0.20);
+    --lg-bg-hover:  rgba(255, 255, 255, 0.18);
+    --lg-bg-active: rgba(255, 255, 255, 0.25);
+    --lg-border:    rgba(255, 255, 255, 0.15);
+    --lg-border-subtle: rgba(255, 255, 255, 0.10);
+    --lg-border-hover:  rgba(255, 255, 255, 0.25);
+    --lg-blur:      saturate(180%) blur(40px);  /* Stronger blur for depth */
     /* 玻璃内发光(顶边高光线 — 折射感) */
     --lg-inner-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
         inset 0 -1px 0 rgba(0, 0, 0, 0.20);
     --lg-outer-shadow:
         0 8px 32px rgba(0, 0, 0, 0.30),
         0 2px 8px rgba(0, 0, 0, 0.20);
+    --lg-shadow-2xl:
+        0 24px 64px rgba(0, 0, 0, 0.45),
+        0 8px 24px rgba(0, 0, 0, 0.30);
 
     /* Clear 变体: 用于嵌套在玻璃上的子控件 */
-    --lg-clear-bg:     rgba(255, 255, 255, 0.05);
-    --lg-clear-border: rgba(255, 255, 255, 0.09);
+    --lg-clear-bg:     rgba(255, 255, 255, 0.08);
+    --lg-clear-border: rgba(255, 255, 255, 0.12);
 
     /* ── Dark Mode: 背景层 ── */
-    --bg-app:      #0E0E12;    /* Electron window / 最底层 */
-    --bg-base:     #111115;    /* 主内容区背景 */
-    --bg-surface:  #18181E;    /* 卡片/面板 */
-    --bg-elevated: #22222A;    /* 弹出/悬浮 */
-    --bg-overlay:  #2A2A34;    /* Toast/Tooltip */
+    --bg-app:      #121216;    /* Base dark color */
+    --bg-gradient-app: radial-gradient(circle at 50% 0%, #2A2A35 0%, #121216 100%); /* Global Vibrant Gradient */
+    --bg-base:     #18181E;    /* 主内容区背景 */
+    --bg-surface:  #202026;    /* 卡片/面板 */
+    --bg-elevated: #282830;    /* 弹出/悬浮 */
+    --bg-overlay:  #303038;    /* Toast/Tooltip */
 
     /* ── Dark Mode: 文字层级 ── */
     --tx-primary:   rgba(255, 255, 255, 0.90);
@@ -86,9 +94,13 @@
 /* Light Mode 覆盖 */
 [data-theme='light'] {
     --lg-bg:        rgba(255, 255, 255, 0.70);
+    --lg-bg-alt:    rgba(255, 255, 255, 0.80);
+    --lg-bg-strong: rgba(255, 255, 255, 0.92);
     --lg-bg-hover:  rgba(255, 255, 255, 0.84);
-    --lg-bg-active: rgba(255, 255, 255, 0.92);
+    --lg-bg-active: rgba(255, 255, 255, 0.96);
     --lg-border:    rgba(0, 0, 0, 0.08);
+    --lg-border-subtle: rgba(0, 0, 0, 0.06);
+    --lg-border-hover:  rgba(0, 0, 0, 0.16);
     --lg-blur:      saturate(200%) blur(28px);
     --lg-inner-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.90),
@@ -96,6 +108,9 @@
     --lg-outer-shadow:
         0 8px 32px rgba(0, 0, 0, 0.10),
         0 2px 8px rgba(0, 0, 0, 0.06);
+    --lg-shadow-2xl:
+        0 24px 64px rgba(0, 0, 0, 0.16),
+        0 8px 24px rgba(0, 0, 0, 0.10);
 
     --lg-clear-bg:     rgba(0, 0, 0, 0.03);
     --lg-clear-border: rgba(0, 0, 0, 0.06);
@@ -162,10 +177,10 @@
 
     /* --- Dark Mode (Immersive Dark Tech) --- */
     /* Deepest Black / Dark Grey as requested */
-    --color-bg-base: #0a0a0a;          /* Main Background - Darker than surface */
-    --color-bg-surface: #121212;       /* Card Background - The "Dark Grey" */
-    --color-bg-elevated: #1E1E1E;      /* Elevated Surface */
-    --color-bg-highlight: #27272A;     /* Highlight */
+    --color-bg-base: #121216;          /* Main Background - Matches new Liquid Glass base */
+    --color-bg-surface: #1C1C24;       /* Card Background - Slightly richer dark */
+    --color-bg-elevated: #24242C;      /* Elevated Surface */
+    --color-bg-highlight: #2C2C36;     /* Highlight */
 
     /* Text - High Contrast but not pure white */
     --color-text-primary: #EDEDED;     /* Zinc 100 */

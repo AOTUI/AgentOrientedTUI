@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import { MagicCard } from '../ui/MagicCard.js';
 import type { ModelCardProps } from './types.js';
 
 /**
@@ -79,86 +78,121 @@ export const ModelCard: React.FC<ModelCardProps> = ({
     const hasVision = hasVisionCapability(model);
 
     return (
-        <MagicCard
-            className={`cursor-pointer transition-all duration-300 ${
-                isActive 
-                    ? 'border-2 border-[var(--color-primary)]' 
-                    : 'border border-[var(--color-border)]'
-            }`}
-            onClick={handleCardClick}
+        <div
+            className={`
+                group relative w-full text-left outline-none
+                p-3 rounded-[var(--r-panel)] border transition-all duration-200 min-h-[160px]
+                flex flex-col gap-2.5 overflow-hidden
+                bg-[var(--lg-bg)] border-[var(--lg-border)] hover:bg-[var(--lg-bg-hover)] hover:border-[var(--lg-border-hover)]
+            `}
             role="listitem"
             aria-label={`${model.name} model${isActive ? ' (active)' : ''}`}
-            tabIndex={0}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleCardClick();
-                }
-            }}
         >
-            <div className="flex flex-col gap-2">
-                {/* Header: Model Name and Active Badge */}
-                <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-medium text-[var(--color-text-primary)] flex-1 line-clamp-2">
+            <div className="flex flex-col gap-1 w-full">
+                {/* Header: Model Name and Active Badge/Activate Button */}
+                <div className="flex items-start justify-between gap-2 w-full">
+                    <h3 className={`text-[13px] font-medium leading-tight line-clamp-2 text-[var(--tx-primary)]`}>
                         {model.name}
                     </h3>
-                    {isActive && (
-                        <div className="px-1.5 py-0.5 rounded-full bg-[var(--color-primary)] text-white text-[10px] font-medium uppercase tracking-wide flex-shrink-0">
-                            Active
-                        </div>
+                    {isActive ? (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--ac-green-subtle)] text-[var(--ac-green)] border border-[var(--ac-green-subtle)]">
+                            ACTIVE
+                        </span>
+                    ) : (
+                         <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSelect();
+                            }}
+                            className="
+                                shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200
+                                bg-[var(--lg-bg-alt)] hover:bg-[var(--ac-blue-subtle)] text-[var(--tx-secondary)] hover:text-[var(--ac-blue)]
+                                border border-[var(--lg-border)] hover:border-[var(--ac-blue-muted)]
+                            "
+                        >
+                            Activate
+                        </button>
                     )}
                 </div>
 
                 {/* Family */}
                 {model.family && (
-                    <div className="text-xs text-[var(--color-text-secondary)] truncate">
+                    <div className="text-[11px] text-[var(--tx-tertiary)] truncate">
                         {model.family}
                     </div>
                 )}
 
-                {/* Capability Badges */}
-                {(hasToolCall || hasReasoning || hasVision) && (
-                    <div className="flex flex-wrap gap-1">
-                        {hasToolCall && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] text-[10px] font-medium border border-[var(--color-border)]">
-                                Tools
-                            </span>
-                        )}
-                        {hasReasoning && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] text-[10px] font-medium border border-[var(--color-border)]">
-                                Reasoning
-                            </span>
-                        )}
-                        {hasVision && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] text-[10px] font-medium border border-[var(--color-border)]">
-                                Vision
-                            </span>
-                        )}
+                {!model.family && (
+                    <div className="text-[11px] text-[var(--tx-tertiary)] truncate opacity-80">
+                        {model.id}
                     </div>
                 )}
+            </div>
 
-                {/* Context Length and Pricing */}
-                <div className="flex flex-col gap-0.5 text-[10px] text-[var(--color-text-secondary)]">
-                    {/* Context Length */}
-                    {model.limit?.context && (
-                        <div>
-                            Context: {formatContextLength(model.limit.context)}
-                        </div>
+            {/* Separator */}
+            <div className="h-px w-full bg-[var(--lg-border)]" />
+
+            {/* Capability Badges */}
+            {(hasToolCall || hasReasoning || hasVision) && (
+                <div className="flex flex-wrap gap-1.5">
+                    {hasToolCall && (
+                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--lg-bg-alt)] border-[var(--lg-border-subtle)] text-[var(--tx-secondary)]">
+                            Tools
+                        </span>
                     )}
-
-                    {/* Pricing */}
-                    {(model.cost?.input !== undefined || model.cost?.output !== undefined) && (
-                        <div className="flex gap-2">
-                            {model.cost?.input !== undefined && (
-                                <span>In: {formatPricing(model.cost.input)}</span>
-                            )}
-                            {model.cost?.output !== undefined && (
-                                <span>Out: {formatPricing(model.cost.output)}</span>
-                            )}
-                        </div>
+                    {hasReasoning && (
+                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--lg-bg-alt)] border-[var(--lg-border-subtle)] text-[var(--tx-secondary)]">
+                            Reasoning
+                        </span>
+                    )}
+                    {hasVision && (
+                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--lg-bg-alt)] border-[var(--lg-border-subtle)] text-[var(--tx-secondary)]">
+                            Vision
+                        </span>
                     )}
                 </div>
+            )}
+
+            {/* Context Length and Pricing */}
+            <div className="flex flex-col gap-0.5 text-[10px] text-[var(--tx-tertiary)] mt-auto pt-1">
+                {/* Context Length */}
+                <div className="flex items-center gap-1.5">
+                    <span className="opacity-70">Context:</span>
+                    <span className="text-[var(--tx-secondary)]">{formatContextLength(model.limit?.context)}</span>
+                </div>
+
+                {/* Pricing */}
+                <div className="flex gap-3">
+                    <span className="flex gap-1">
+                        <span className="opacity-70">In:</span> 
+                        <span className="text-[var(--tx-secondary)]">{formatPricing(model.cost?.input)}</span>
+                    </span>
+                    <span className="flex gap-1">
+                        <span className="opacity-70">Out:</span>
+                        <span className="text-[var(--tx-secondary)]">{formatPricing(model.cost?.output)}</span>
+                    </span>
+                </div>
             </div>
-        </MagicCard>
+
+            {/* Activate Button - Only visible when not active */}
+            {/* {!isActive && (
+                <div className="mt-2 pt-2 border-t border-[var(--lg-border)] flex justify-end">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSelect();
+                        }}
+                        className="
+                            px-3 py-1.5 rounded-[var(--r-control)] text-xs font-medium transition-all duration-200
+                            bg-[var(--lg-bg-alt)] hover:bg-[var(--ac-blue-subtle)] text-[var(--tx-secondary)] hover:text-[var(--ac-blue)]
+                            border border-[var(--lg-border)] hover:border-[var(--ac-blue-muted)]
+                        "
+                    >
+                        Activate
+                    </button>
+                </div>
+            )} */}
+        </div>
     );
 };
+

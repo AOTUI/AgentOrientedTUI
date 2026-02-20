@@ -6,13 +6,12 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Button } from '@heroui/button';
-import { Card, CardBody } from '@heroui/card';
 import { useChatBridge } from '../../ChatBridge.js';
 import { ProviderLogo } from './ProviderLogo.js';
 import { validateProviderConfig } from './validation.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
 import type { AddProviderModalProps, NewProviderConfig, ProviderConfig } from './types.js';
+
 
 /**
  * Icon component for close
@@ -376,25 +375,26 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
 
     return (
         <div 
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
             onClick={handleBackdropClick}
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-provider-modal-title"
         >
-            <Card className="w-full max-w-[560px] border border-[var(--color-border)] bg-[var(--color-bg-surface)] rounded-[24px] shadow-[0_16px_48px_var(--color-shadow)]">
-                <CardBody className="gap-5 p-6 sm:p-7">
+            <div className="w-full max-w-[560px] border border-[var(--lg-border)] bg-[var(--lg-bg-strong)] backdrop-blur-[var(--lg-blur)] rounded-[var(--r-window)] shadow-[var(--lg-outer-shadow)] flex flex-col overflow-hidden max-h-[90vh]">
+                <div className="flex flex-col gap-5 p-6 sm:p-7 overflow-y-auto custom-scrollbar">
+
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <h2 
                             id="add-provider-modal-title"
-                            className="text-xl font-semibold text-[var(--color-text-primary)]"
+                            className="text-[17px] font-semibold text-[var(--tx-primary)]"
                         >
                             Add New Provider
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-1 rounded-md hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                            className="lg-icon-btn lg-clear text-[var(--tx-secondary)] hover:text-[var(--tx-primary)]"
                             aria-label="Close modal"
                         >
                             <IconClose />
@@ -414,11 +414,12 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                 id="provider-select"
                                 onClick={() => setShowProviderDropdown(!showProviderDropdown)}
                                 disabled={isLoading || isSaving}
-                                className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg border ${
+                                className={`lg-input flex items-center justify-between gap-3 h-auto min-h-[44px] ${
                                     validationErrors.providerId 
-                                        ? 'border-[var(--color-danger)]' 
-                                        : 'border-[var(--color-border)]'
-                                } bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        ? 'border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]' 
+                                        : ''
+                                } disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--lg-bg-hover)] cursor-pointer`}
+
                                 aria-haspopup="listbox"
                                 aria-expanded={showProviderDropdown}
                             >
@@ -442,7 +443,8 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                             {/* Dropdown Menu */}
                             {showProviderDropdown && !isLoading && (
                                 <div 
-                                    className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg z-10 overflow-hidden"
+                                    className="absolute top-full left-0 right-0 mt-2 rounded-[var(--r-panel)] border border-[var(--lg-border)] bg-[var(--lg-bg)] backdrop-blur-xl shadow-xl z-[70] overflow-hidden"
+
                                     role="listbox"
                                 >
                                     <div className="p-2 border-b border-[var(--color-border)]">
@@ -507,11 +509,12 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                             onChange={handleCustomNameChange}
                             disabled={isSaving}
                             placeholder="e.g., My OpenAI Account"
-                            className={`px-4 py-3 rounded-lg border ${
+                            className={`lg-input h-[44px] ${
                                 validationErrors.customName 
-                                    ? 'border-[var(--color-danger)]' 
-                                    : 'border-[var(--color-border)]'
-                            } bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    ? 'border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]' 
+                                    : ''
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+
                             aria-invalid={!!validationErrors.customName}
                             aria-describedby={validationErrors.customName ? 'custom-name-error' : undefined}
                         />
@@ -537,11 +540,12 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                             onChange={handleApiKeyChange}
                             disabled={isSaving}
                             placeholder="sk-..."
-                            className={`px-4 py-3 rounded-lg border ${
+                            className={`lg-input h-[44px] font-mono text-sm ${
                                 validationErrors.apiKey 
-                                    ? 'border-[var(--color-danger)]' 
-                                    : 'border-[var(--color-border)]'
-                            } bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    ? 'border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]' 
+                                    : ''
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+
                             aria-invalid={!!validationErrors.apiKey}
                             aria-describedby={validationErrors.apiKey ? 'api-key-error' : undefined}
                         />
@@ -571,7 +575,8 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                         id="model-input"
                                         onClick={() => setShowModelDropdown(!showModelDropdown)}
                                         disabled={isSaving}
-                                        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="lg-input flex items-center justify-between gap-3 h-[44px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[var(--lg-bg-hover)]"
+
                                         aria-haspopup="listbox"
                                         aria-expanded={showModelDropdown}
                                     >
@@ -581,7 +586,8 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                         <IconChevronDown className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showModelDropdown && (
-                                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg z-10 overflow-hidden">
+                                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[var(--r-panel)] border border-[var(--lg-border)] bg-[var(--lg-bg)] backdrop-blur-xl shadow-xl z-[70] overflow-hidden">
+
                                             <div className="p-2 border-b border-[var(--color-border)]">
                                                 <input
                                                     type="text"
@@ -622,7 +628,8 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                     onChange={(e) => setModel(e.target.value)}
                                     disabled={isSaving}
                                     placeholder="e.g., gpt-4o"
-                                    className="px-4 py-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="lg-input h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+
                                 />
                             )}
                             <p className="text-xs text-[var(--color-text-muted)]">
@@ -632,27 +639,25 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex justify-end gap-3 mt-2">
-                        <Button 
-                            size="sm" 
-                            variant="flat" 
+                    <div className="flex justify-end gap-3 mt-4">
+                        <button 
                             onClick={handleCancel}
                             disabled={isSaving}
+                            className="lg-btn hover:bg-[var(--lg-bg-hover)] disabled:opacity-50"
                         >
                             Cancel
-                        </Button>
-                        <Button 
-                            size="sm" 
-                            color="primary" 
+                        </button>
+                        <button 
                             onClick={handleSave}
-                            className="rounded-full px-4"
                             disabled={isSaveDisabled}
+                            className="lg-btn lg-btn-accent rounded-[var(--r-control)] px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? 'Saving...' : 'Save'}
-                        </Button>
+                        </button>
                     </div>
-                </CardBody>
-            </Card>
+                </div>
+            </div>
+
         </div>
     );
 };

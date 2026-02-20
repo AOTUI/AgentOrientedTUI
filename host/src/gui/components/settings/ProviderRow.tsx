@@ -27,15 +27,20 @@ const IconPlus = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const AddProviderButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <button
-        onClick={onClick}
-        className="shrink-0 w-[120px] h-[108px] border border-dashed border-[var(--color-primary)]/45 rounded-[var(--radius-md)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/16 transition-colors flex flex-col items-center justify-center gap-2 text-[var(--color-primary)]"
-        aria-label="Add new provider"
-    >
-        <IconPlus aria-hidden="true" className="w-5 h-5" />
-        <span className="text-xs font-medium">Add Provider</span>
-    </button>
+    <div className="flex flex-col items-center gap-1.5 select-none">
+        <button
+            onClick={onClick}
+            className="shrink-0 w-[120px] h-[120px] border border-dashed border-[var(--lg-border)] rounded-[var(--r-panel)] bg-[var(--lg-bg-strong)] hover:bg-[var(--lg-bg-active)] transition-all duration-200 flex items-center justify-center text-[var(--tx-secondary)] hover:text-[var(--ac-blue)] hover:border-[var(--ac-blue-subtle)] active:scale-[0.98] backdrop-blur-[var(--lg-blur)] shadow-[var(--lg-inner-shadow)]"
+            aria-label="Add new provider"
+        >
+            <div className="p-3 rounded-full bg-[var(--lg-clear-bg)] border border-[var(--lg-clear-border)] shadow-[var(--lg-inner-shadow)]">
+                <IconPlus aria-hidden="true" className="w-5 h-5" />
+            </div>
+        </button>
+        <span className="text-[11px] font-medium text-[var(--tx-secondary)] text-center">Add Provider</span>
+    </div>
 );
+
 
 /**
  * ProviderRow Component
@@ -132,7 +137,7 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
                     overflowX: 'auto',
                     overflowY: 'hidden',
                     paddingBottom: '8px',
-                    paddingRight: isOverflowing && onAddProvider ? '132px' : '0px',
+                    paddingRight: isOverflowing && onAddProvider ? '108px' : '0px',
                     scrollBehavior: 'smooth',
                     WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
                 }}

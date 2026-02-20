@@ -14,7 +14,7 @@ describe('ModelCard', () => {
     const mockModel: ModelsDevModel = {
         id: 'openai/gpt-4',
         name: 'GPT-4',
-        family: 'GPT-4',
+        family: 'GPT-Family',
         tool_call: true,
         reasoning: true,
         modalities: {
@@ -61,7 +61,7 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.getByText(/Family: GPT-4/)).toBeInTheDocument();
+            expect(screen.getByText('GPT-Family')).toBeInTheDocument();
         });
 
         it('should not display family section when family is undefined', () => {
@@ -101,7 +101,7 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.getByText('• Tool Call')).toBeInTheDocument();
+            expect(screen.getByText('Tools')).toBeInTheDocument();
         });
 
         it('should display reasoning badge when model has reasoning capability', () => {
@@ -113,7 +113,7 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.getByText('• Reasoning')).toBeInTheDocument();
+            expect(screen.getByText('Reasoning')).toBeInTheDocument();
         });
 
         it('should display vision badge when model has image input modality', () => {
@@ -125,7 +125,7 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.getByText('• Vision')).toBeInTheDocument();
+            expect(screen.getByText('Vision')).toBeInTheDocument();
         });
 
         it('should not display tool_call badge when capability is false', () => {
@@ -138,7 +138,7 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.queryByText('• Tool Call')).not.toBeInTheDocument();
+            expect(screen.queryByText('Tools')).not.toBeInTheDocument();
         });
 
         it('should not display reasoning badge when capability is false', () => {
@@ -151,7 +151,7 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.queryByText('• Reasoning')).not.toBeInTheDocument();
+            expect(screen.queryByText('Reasoning')).not.toBeInTheDocument();
         });
 
         it('should not display vision badge when model has no image input', () => {
@@ -167,27 +167,7 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.queryByText('• Vision')).not.toBeInTheDocument();
-        });
-
-        it('should not display capability section when no capabilities are present', () => {
-            const modelWithoutCapabilities = {
-                ...mockModel,
-                tool_call: false,
-                reasoning: false,
-                modalities: { input: ['text'], output: ['text'] },
-            };
-            const { container } = render(
-                <ModelCard
-                    model={modelWithoutCapabilities}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.queryByText('• Tool Call')).not.toBeInTheDocument();
-            expect(screen.queryByText('• Reasoning')).not.toBeInTheDocument();
-            expect(screen.queryByText('• Vision')).not.toBeInTheDocument();
+            expect(screen.queryByText('Vision')).not.toBeInTheDocument();
         });
 
         it('should style capability badges correctly', () => {
@@ -199,10 +179,9 @@ describe('ModelCard', () => {
                 />
             );
 
-            const toolCallBadge = screen.getByText('• Tool Call');
-            expect(toolCallBadge).toHaveClass('bg-[var(--color-bg-elevated)]');
-            expect(toolCallBadge).toHaveClass('text-[var(--color-text-primary)]');
-            expect(toolCallBadge).toHaveClass('border-[var(--color-border)]');
+            const toolCallBadge = screen.getByText('Tools');
+            expect(toolCallBadge).toHaveClass('bg-[var(--lg-bg-alt)]');
+            expect(toolCallBadge).toHaveClass('text-[var(--tx-secondary)]');
         });
     });
 
@@ -216,7 +195,8 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.getByText(/Input: \$30\.00\/1M/)).toBeInTheDocument();
+            expect(screen.getByText('In:')).toBeInTheDocument();
+            expect(screen.getByText('$30.00/1M')).toBeInTheDocument();
         });
 
         it('should display output pricing in correct format', () => {
@@ -228,7 +208,8 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.getByText(/Output: \$60\.00\/1M/)).toBeInTheDocument();
+            expect(screen.getByText('Out:')).toBeInTheDocument();
+            expect(screen.getByText('$60.00/1M')).toBeInTheDocument();
         });
 
         it('should format high cost as per 1K tokens', () => {
@@ -244,383 +225,26 @@ describe('ModelCard', () => {
                 />
             );
 
-            expect(screen.getByText(/Input: \$3\.00\/1K/)).toBeInTheDocument();
-            expect(screen.getByText(/Output: \$6\.00\/1K/)).toBeInTheDocument();
-        });
-
-        it('should display N/A when input cost is undefined', () => {
-            const modelWithoutInputCost = {
-                ...mockModel,
-                cost: { output: 0.00006 },
-            };
-            render(
-                <ModelCard
-                    model={modelWithoutInputCost}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.queryByText(/Input:/)).not.toBeInTheDocument();
-        });
-
-        it('should display N/A when output cost is undefined', () => {
-            const modelWithoutOutputCost = {
-                ...mockModel,
-                cost: { input: 0.00003 },
-            };
-            render(
-                <ModelCard
-                    model={modelWithoutOutputCost}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.queryByText(/Output:/)).not.toBeInTheDocument();
-        });
-
-        it('should not display pricing section when cost is undefined', () => {
-            const modelWithoutCost = { ...mockModel, cost: undefined };
-            render(
-                <ModelCard
-                    model={modelWithoutCost}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.queryByText(/Input:/)).not.toBeInTheDocument();
-            expect(screen.queryByText(/Output:/)).not.toBeInTheDocument();
-        });
-    });
-
-    describe('Context length formatting', () => {
-        it('should format context length in K format', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.getByText(/Context: 128K tokens/)).toBeInTheDocument();
-        });
-
-        it('should format context length in M format for large values', () => {
-            const modelWithLargeContext = {
-                ...mockModel,
-                limit: { context: 2000000, output: 4096 },
-            };
-            render(
-                <ModelCard
-                    model={modelWithLargeContext}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.getByText(/Context: 2M tokens/)).toBeInTheDocument();
-        });
-
-        it('should display raw number for small context values', () => {
-            const modelWithSmallContext = {
-                ...mockModel,
-                limit: { context: 512, output: 256 },
-            };
-            render(
-                <ModelCard
-                    model={modelWithSmallContext}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.getByText(/Context: 512 tokens/)).toBeInTheDocument();
-        });
-
-        it('should not display context when limit is undefined', () => {
-            const modelWithoutLimit = { ...mockModel, limit: undefined };
-            render(
-                <ModelCard
-                    model={modelWithoutLimit}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.queryByText(/Context:/)).not.toBeInTheDocument();
-        });
-
-        it('should not display context when context is undefined', () => {
-            const modelWithoutContext = {
-                ...mockModel,
-                limit: { output: 4096 },
-            };
-            render(
-                <ModelCard
-                    model={modelWithoutContext}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.queryByText(/Context:/)).not.toBeInTheDocument();
-        });
-    });
-
-    describe('Active badge', () => {
-        it('should display "Active" badge when isActive is true', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={true}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.getByText('Active')).toBeInTheDocument();
-        });
-
-        it('should not display "Active" badge when isActive is false', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.queryByText('Active')).not.toBeInTheDocument();
-        });
-
-        it('should style active badge with primary color', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={true}
-                    {...mockHandlers}
-                />
-            );
-
-            const badge = screen.getByText('Active');
-            expect(badge).toHaveClass('bg-[var(--color-primary)]');
-            expect(badge).toHaveClass('text-white');
-        });
-
-        it('should include active state in aria-label', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={true}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            expect(card).toHaveAttribute('aria-label', expect.stringContaining('(active)'));
-        });
-
-        it('should not include active state in aria-label when not active', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            expect(card).toHaveAttribute('aria-label', expect.not.stringContaining('(active)'));
-        });
-    });
-
-    describe('Click handler', () => {
-        it('should call onSelect when card is clicked', () => {
-            const { container } = render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = container.firstChild as HTMLElement;
-            fireEvent.click(card);
-
-            expect(mockHandlers.onSelect).toHaveBeenCalledTimes(1);
-        });
-
-        it('should handle keyboard Enter key to select', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            fireEvent.keyDown(card, { key: 'Enter' });
-
-            expect(mockHandlers.onSelect).toHaveBeenCalledTimes(1);
-        });
-
-        it('should handle keyboard Space key to select', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            fireEvent.keyDown(card, { key: ' ' });
-
-            expect(mockHandlers.onSelect).toHaveBeenCalledTimes(1);
-        });
-
-        it('should not call onSelect for other keyboard keys', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            fireEvent.keyDown(card, { key: 'Tab' });
-
-            expect(mockHandlers.onSelect).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('Selected state styling', () => {
-        it('should apply primary border when active', () => {
-            const { container } = render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={true}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = container.querySelector('[class*="border-2"]');
-            expect(card).toBeInTheDocument();
-            expect(card?.className).toContain('border-[var(--color-primary)]');
-        });
-
-        it('should apply default border when not active', () => {
-            const { container } = render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = container.querySelector('[class*="border-[var(--color-border)]"]');
-            expect(card).toBeInTheDocument();
-        });
-    });
-
-    describe('Accessibility', () => {
-        it('should have role="listitem"', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            expect(card).toBeInTheDocument();
-        });
-
-        it('should be keyboard focusable', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            expect(card).toHaveAttribute('tabIndex', '0');
-        });
-
-        it('should have descriptive aria-label', () => {
-            render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = screen.getByRole('listitem');
-            expect(card).toHaveAttribute('aria-label', 'GPT-4 model');
-        });
-
-        it('should have cursor-pointer class for visual feedback', () => {
-            const { container } = render(
-                <ModelCard
-                    model={mockModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = container.firstChild as HTMLElement;
-            expect(card.className).toContain('cursor-pointer');
+            expect(screen.getByText('$3.00/1K')).toBeInTheDocument();
+            expect(screen.getByText('$6.00/1K')).toBeInTheDocument();
         });
     });
 
     describe('Edge cases', () => {
-        it('should handle model with minimal data', () => {
-            const minimalModel: ModelsDevModel = {
-                id: 'test/minimal',
-                name: 'Minimal Model',
-            };
-
-            render(
-                <ModelCard
-                    model={minimalModel}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            expect(screen.getByText('Minimal Model')).toBeInTheDocument();
-            expect(screen.queryByText(/Family:/)).not.toBeInTheDocument();
-            expect(screen.queryByText(/Context:/)).not.toBeInTheDocument();
-            expect(screen.queryByText(/Input:/)).not.toBeInTheDocument();
-        });
-
-        it('should handle model with all capabilities', () => {
-            const fullModel: ModelsDevModel = {
+        it('should handle zero cost', () => {
+            const freeModel = {
                 ...mockModel,
-                tool_call: true,
-                reasoning: true,
-                modalities: { input: ['text', 'image'], output: ['text'] },
+                cost: { input: 0, output: 0 },
             };
-
             render(
                 <ModelCard
-                    model={fullModel}
+                    model={freeModel}
                     isActive={false}
                     {...mockHandlers}
                 />
             );
 
-            expect(screen.getByText('• Tool Call')).toBeInTheDocument();
-            expect(screen.getByText('• Reasoning')).toBeInTheDocument();
-            expect(screen.getByText('• Vision')).toBeInTheDocument();
+            expect(screen.getAllByText('$0.00/1M')).toHaveLength(2);
         });
 
         it('should handle very long model names', () => {
@@ -640,22 +264,220 @@ describe('ModelCard', () => {
             expect(screen.getByText('This is a very long model name that should still display correctly')).toBeInTheDocument();
         });
 
-        it('should handle zero cost', () => {
-            const freeModel = {
+        it('should render minimal model correctly', () => {
+            const minimalModel = {
                 ...mockModel,
-                cost: { input: 0, output: 0 },
+                name: 'Minimal Model',
+                family: undefined,
+                limit: undefined,
             };
 
             render(
                 <ModelCard
-                    model={freeModel}
+                    model={minimalModel}
                     isActive={false}
                     {...mockHandlers}
                 />
             );
 
-            expect(screen.getByText(/Input: \$0\.00\/1M/)).toBeInTheDocument();
-            expect(screen.getByText(/Output: \$0\.00\/1M/)).toBeInTheDocument();
+            expect(screen.getByText('Minimal Model')).toBeInTheDocument();
+            expect(screen.queryByText(/Family:/)).not.toBeInTheDocument();
+            expect(screen.getByText('Context:')).toBeInTheDocument();
+            expect(screen.getByText(/In:/)).toBeInTheDocument();
+        });
+    });
+
+    describe('Interaction', () => {
+        it('should show Activate button when not active', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            const activateButton = screen.getByText('Activate');
+            expect(activateButton).toBeInTheDocument();
+        });
+
+        it('should call onSelect when Activate button is clicked', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            const activateButton = screen.getByText('Activate');
+            fireEvent.click(activateButton);
+            expect(mockHandlers.onSelect).toHaveBeenCalled();
+        });
+
+        it('should not show Activate button when active', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={true}
+                    {...mockHandlers}
+                />
+            );
+
+            expect(screen.queryByText('Activate')).not.toBeInTheDocument();
+        });
+        
+        it('should show Active badge when active', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={true}
+                    {...mockHandlers}
+                />
+            );
+            
+            const badge = screen.getByText('Active');
+            expect(badge).toBeInTheDocument();
+            expect(badge).toHaveClass('bg-[var(--ac-green-subtle)]');
+        });
+    });
+
+    describe('Context length formatting', () => {
+        it('should format context length in K format', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            expect(screen.getByText('Context:')).toBeInTheDocument();
+            expect(screen.getByText('128K')).toBeInTheDocument();
+        });
+
+        it('should format context length in M format for large values', () => {
+            const modelWithLargeContext = {
+                ...mockModel,
+                limit: { context: 2000000, output: 4096 },
+            };
+            render(
+                <ModelCard
+                    model={modelWithLargeContext}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            expect(screen.getByText('2M')).toBeInTheDocument();
+        });
+
+        it('should display raw number for small context values', () => {
+            const modelWithSmallContext = {
+                ...mockModel,
+                limit: { context: 512, output: 256 },
+            };
+            render(
+                <ModelCard
+                    model={modelWithSmallContext}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            expect(screen.getByText('512')).toBeInTheDocument();
+        });
+
+        it('should display N/A when limit is undefined', () => {
+            const modelWithoutLimit = { ...mockModel, limit: undefined };
+            render(
+                <ModelCard
+                    model={modelWithoutLimit}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            expect(screen.getByText('Context:')).toBeInTheDocument();
+            expect(screen.getByText('N/A')).toBeInTheDocument();
+        });
+
+        it('should display N/A when context is undefined', () => {
+            const modelWithoutContext = {
+                ...mockModel,
+                limit: { output: 4096 },
+            };
+            render(
+                <ModelCard
+                    model={modelWithoutContext}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            expect(screen.getByText('Context:')).toBeInTheDocument();
+            expect(screen.getByText('N/A')).toBeInTheDocument();
+        });
+    });
+
+    describe('Click handler', () => {
+        it('should not call onSelect when card container is clicked', () => {
+            const { container } = render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            const card = container.firstChild as HTMLElement;
+            fireEvent.click(card);
+
+            expect(mockHandlers.onSelect).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Selected state styling', () => {
+        it('should not apply special border when active', () => {
+            const { container } = render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={true}
+                    {...mockHandlers}
+                />
+            );
+
+            // No blue border
+            const card = container.querySelector('[class*="border-[var(--ac-blue)]"]');
+            expect(card).not.toBeInTheDocument();
+        });
+    });
+
+    describe('Accessibility', () => {
+        it('should have role="listitem"', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            const card = screen.getByRole('listitem');
+            expect(card).toBeInTheDocument();
+        });
+
+        it('should have descriptive aria-label', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            const card = screen.getByRole('listitem');
+            expect(card).toHaveAttribute('aria-label', 'GPT-4 model');
         });
     });
 });

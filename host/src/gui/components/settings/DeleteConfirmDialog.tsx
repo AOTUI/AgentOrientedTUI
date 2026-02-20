@@ -6,8 +6,6 @@
  */
 
 import React, { useEffect } from 'react';
-import { Button } from '@heroui/button';
-import { Card, CardBody } from '@heroui/card';
 import type { DeleteConfirmDialogProps } from './types.js';
 
 /**
@@ -85,17 +83,14 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
             aria-labelledby="delete-confirm-dialog-title"
             aria-describedby="delete-confirm-dialog-description"
         >
-            <Card className="w-full max-w-[450px] border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-                <CardBody className="gap-6 p-6">
-                    {/* Header with Warning Icon */}
+            <div className="w-full max-w-[450px] border border-[var(--lg-border)] bg-[var(--lg-bg-strong)] backdrop-blur-[var(--lg-blur)] rounded-[var(--r-window)] shadow-[var(--lg-outer-shadow)] flex flex-col overflow-hidden">
+                <div className="flex flex-col gap-6 p-6">
+                    {/* Header */}
                     <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 p-2 rounded-full bg-[var(--color-danger)]/10">
-                            <IconAlertTriangle className="text-[var(--color-danger)]" />
-                        </div>
                         <div className="flex-1">
                             <h2 
                                 id="delete-confirm-dialog-title"
-                                className="text-xl font-semibold text-[var(--color-text-primary)]"
+                                className="text-[17px] font-semibold text-[var(--tx-primary)]"
                             >
                                 Delete Provider
                             </h2>
@@ -114,8 +109,8 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
                         {/* Special Warning for Active Provider */}
                         {isActive && (
-                            <div className="p-3 rounded-lg bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/20">
-                                <p className="text-sm font-medium text-[var(--color-danger)]">
+                            <div className="p-3 rounded-lg bg-[var(--ac-red-subtle)] border border-[var(--ac-red-subtle)]">
+                                <p className="text-sm font-medium text-[var(--ac-red)]">
                                     ⚠️ Warning: This is your active provider
                                 </p>
                                 <p className="text-xs text-[var(--color-text-secondary)] mt-1">
@@ -127,23 +122,21 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
                     {/* Action Buttons */}
                     <div className="flex justify-end gap-3 mt-2">
-                        <Button 
-                            size="sm" 
-                            variant="flat" 
+                        <button
                             onClick={onClose}
+                            className="lg-btn hover:bg-[var(--lg-bg-hover)]"
                         >
                             Cancel
-                        </Button>
-                        <Button 
-                            size="sm" 
-                            color="danger" 
+                        </button>
+                        <button
                             onClick={handleConfirm}
+                            className="lg-btn border border-[var(--ac-red)] bg-[var(--ac-red)] text-white hover:bg-[var(--ac-red-active)]"
                         >
                             Delete Provider
-                        </Button>
+                        </button>
                     </div>
-                </CardBody>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 };

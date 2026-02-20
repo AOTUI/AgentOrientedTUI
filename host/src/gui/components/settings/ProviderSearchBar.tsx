@@ -85,8 +85,8 @@ export const ProviderSearchBar: React.FC<ProviderSearchBarProps> = ({
     }, []);
 
     return (
-        <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
+        <div className="relative group">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--tx-tertiary)] group-focus-within:text-[var(--ac-blue)] transition-colors pointer-events-none">
                 <IconSearch aria-hidden="true" />
             </div>
             <input
@@ -94,9 +94,10 @@ export const ProviderSearchBar: React.FC<ProviderSearchBarProps> = ({
                 value={localValue}
                 onChange={handleInputChange}
                 placeholder="Search providers..."
-                className="w-full h-9 pl-9 pr-3 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors duration-200"
+                className="lg-input w-full !h-9 !py-0 !pl-11 !pr-3 text-[13px]"
                 aria-label="Search providers"
             />
         </div>
     );
 };
+

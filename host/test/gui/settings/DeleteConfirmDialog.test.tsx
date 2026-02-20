@@ -105,21 +105,6 @@ describe('DeleteConfirmDialog', () => {
             const dialog = screen.getByRole('dialog');
             expect(dialog).toHaveAttribute('aria-describedby', 'delete-confirm-dialog-description');
         });
-
-        it('should display warning icon', () => {
-            const { container } = render(
-                <DeleteConfirmDialog
-                    isOpen={true}
-                    providerName="OpenAI"
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            // Check for SVG icon
-            const icon = container.querySelector('svg');
-            expect(icon).toBeInTheDocument();
-        });
     });
 
     describe('Warning messages', () => {
@@ -238,8 +223,8 @@ describe('DeleteConfirmDialog', () => {
                 />
             );
 
-            // Check for danger color styling
-            const warningBox = container.querySelector('[class*="danger"]');
+            // Check for danger color styling (Liquid Glass red subtle)
+            const warningBox = container.querySelector('[class*="bg-[var(--ac-red-subtle)]"]');
             expect(warningBox).toBeInTheDocument();
         });
     });
@@ -339,7 +324,8 @@ describe('DeleteConfirmDialog', () => {
 
             const deleteButton = screen.getByRole('button', { name: /delete provider/i });
             // Check that the button has danger styling via class
-            expect(deleteButton.className).toContain('bg-danger');
+            expect(deleteButton.className).toContain('bg-[var(--ac-red)]');
+            expect(deleteButton.className).toContain('text-white');
         });
     });
 

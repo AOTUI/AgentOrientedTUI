@@ -67,14 +67,16 @@ describe('ProviderCard', () => {
             );
 
             const badge = screen.getByText('Active');
-            expect(badge).toHaveClass('bg-[var(--color-primary)]');
-            expect(badge).toHaveClass('text-white');
+            expect(badge).toHaveClass('bg-[var(--ac-green-subtle)]');
+            expect(badge).toHaveClass('text-[var(--ac-green)]');
+            expect(badge).toHaveClass('border');
+            expect(badge).toHaveClass('border-[var(--ac-green-subtle)]');
         });
     });
 
     describe('Selected state styling', () => {
-        it('should apply primary border when selected', () => {
-            const { container } = render(
+        it('should not apply special border when selected', () => {
+            render(
                 <ProviderCard
                     provider={mockProvider}
                     isSelected={true}
@@ -83,14 +85,13 @@ describe('ProviderCard', () => {
                 />
             );
 
-            // The MagicCard should have border-2 and border-primary classes when selected
-            const card = container.querySelector('[class*="border-2"]');
-            expect(card).toBeInTheDocument();
-            expect(card?.className).toContain('border-[var(--color-primary)]');
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
+            // Selection style is removed as per new design
+            expect(card).toHaveClass('border-[var(--lg-border)]');
         });
 
         it('should apply default border when not selected', () => {
-            const { container } = render(
+            render(
                 <ProviderCard
                     provider={mockProvider}
                     isSelected={false}
@@ -99,9 +100,8 @@ describe('ProviderCard', () => {
                 />
             );
 
-            // The MagicCard should have border class when not selected
-            const card = container.querySelector('[class*="border-[var(--color-border)]"]');
-            expect(card).toBeInTheDocument();
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
+            expect(card).toHaveClass('border-[var(--lg-border)]');
         });
 
         it('should include selected state in aria-label', () => {
@@ -114,7 +114,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             expect(card).toHaveAttribute('aria-label', expect.stringContaining('(selected)'));
         });
 
@@ -128,7 +128,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             expect(card).toHaveAttribute('aria-label', expect.not.stringContaining('(selected)'));
         });
     });
@@ -157,7 +157,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             expect(card).toHaveAttribute('aria-label', expect.stringContaining('My OpenAI'));
         });
 
@@ -171,14 +171,14 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             expect(card).toHaveAttribute('aria-label', expect.stringContaining('(active)'));
         });
     });
 
     describe('Hover actions', () => {
         it('should show edit and delete buttons on hover', () => {
-            const { container } = render(
+            render(
                 <ProviderCard
                     provider={mockProvider}
                     isSelected={false}
@@ -187,7 +187,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = container.firstChild as HTMLElement;
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             
             // Simulate hover
             fireEvent.mouseEnter(card);
@@ -210,7 +210,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = container.firstChild as HTMLElement;
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             
             // Simulate hover then leave
             fireEvent.mouseEnter(card);
@@ -234,7 +234,7 @@ describe('ProviderCard', () => {
             fireEvent.mouseEnter(card);
 
             const editButton = screen.getByLabelText('Edit My OpenAI provider');
-            expect(editButton).toHaveClass('bg-[var(--color-bg-elevated)]');
+            expect(editButton).toHaveClass('bg-[var(--lg-clear-bg)]');
         });
 
         it('should display delete button with danger styling', () => {
@@ -251,7 +251,7 @@ describe('ProviderCard', () => {
             fireEvent.mouseEnter(card);
 
             const deleteButton = screen.getByLabelText('Delete My OpenAI provider');
-            expect(deleteButton).toHaveClass('text-[var(--color-danger)]');
+            expect(deleteButton).toHaveClass('hover:bg-[var(--ac-red-subtle)]');
         });
     });
 
@@ -266,7 +266,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = container.firstChild as HTMLElement;
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             fireEvent.click(card);
 
             expect(mockHandlers.onSelect).toHaveBeenCalledTimes(1);
@@ -282,7 +282,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = container.firstChild as HTMLElement;
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             fireEvent.mouseEnter(card);
 
             const editButton = screen.getByLabelText('Edit My OpenAI provider');
@@ -301,7 +301,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = container.firstChild as HTMLElement;
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             fireEvent.mouseEnter(card);
 
             const deleteButton = screen.getByLabelText('Delete My OpenAI provider');
@@ -320,7 +320,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = container.firstChild as HTMLElement;
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             fireEvent.mouseEnter(card);
 
             const editButton = screen.getByLabelText('Edit My OpenAI provider');
@@ -358,7 +358,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio');
             fireEvent.keyDown(card, { key: 'Enter' });
 
             expect(mockHandlers.onSelect).toHaveBeenCalledTimes(1);
@@ -374,7 +374,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio');
             fireEvent.keyDown(card, { key: ' ' });
 
             expect(mockHandlers.onSelect).toHaveBeenCalledTimes(1);
@@ -437,22 +437,6 @@ describe('ProviderCard', () => {
 
     describe('Card dimensions', () => {
         it('should have fixed width of 120px', () => {
-            const { container } = render(
-                <ProviderCard
-                    provider={mockProvider}
-                    isSelected={false}
-                    isActive={false}
-                    {...mockHandlers}
-                />
-            );
-
-            const card = container.firstChild as HTMLElement;
-            expect(card).toHaveStyle({ width: '120px', minWidth: '120px' });
-        });
-    });
-
-    describe('Accessibility', () => {
-        it('should have role="listitem"', () => {
             render(
                 <ProviderCard
                     provider={mockProvider}
@@ -462,7 +446,24 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const container = screen.getByRole('radio');
+            expect(container).toHaveClass('w-[120px]');
+            expect(container).toHaveClass('h-[120px]');
+        });
+    });
+
+    describe('Accessibility', () => {
+        it('should have role="radio" on container', () => {
+            render(
+                <ProviderCard
+                    provider={mockProvider}
+                    isSelected={false}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            const card = screen.getByRole('radio');
             expect(card).toBeInTheDocument();
         });
 
@@ -476,7 +477,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio');
             expect(card).toHaveAttribute('tabIndex', '0');
         });
 
@@ -490,7 +491,7 @@ describe('ProviderCard', () => {
                 />
             );
 
-            const card = screen.getByRole('listitem');
+            const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             expect(card).toHaveAttribute('aria-label', 'My OpenAI provider');
         });
 

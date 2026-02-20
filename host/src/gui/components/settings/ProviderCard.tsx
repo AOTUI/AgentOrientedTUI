@@ -5,56 +5,35 @@
  * Shows active badge, selected state, and hover actions.
  */
 
-import React, { useState } from 'react';
-import { MagicCard } from '../ui/MagicCard.js';
+import React from 'react';
 import { ProviderLogo } from './ProviderLogo.js';
 import type { ProviderCardProps } from './types.js';
 
-/**
- * Icon component for edit
- */
-const IconEdit = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth={2} 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        {...props}
-        className={`w-4 h-4 ${props.className || ''}`}
+const ActionButton: React.FC<{ 
+    icon: React.ReactNode, 
+    onClick: (e: React.MouseEvent) => void,
+    label: string,
+    ariaLabel?: string,
+    variant?: 'default' | 'danger'
+}> = ({ icon, onClick, label, ariaLabel, variant = 'default' }) => (
+    <button
+        onClick={onClick}
+        className={`
+            p-1.5 rounded-[var(--r-item)] transition-all duration-200
+            bg-[var(--lg-clear-bg)] border border-[var(--lg-clear-border)] backdrop-blur-sm
+            ${variant === 'danger' 
+                ? 'hover:bg-[var(--ac-red-subtle)] hover:text-[var(--ac-red)]' 
+                : 'hover:bg-[var(--lg-bg-hover)] hover:text-[var(--tx-primary)]'
+            }
+            text-[var(--tx-secondary)] shadow-[var(--lg-inner-shadow)]
+        `}
+        aria-label={ariaLabel ?? label}
+        title={label}
     >
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
+        {icon}
+    </button>
 );
 
-/**
- * Icon component for delete
- */
-const IconDelete = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth={2} 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        {...props}
-        className={`w-4 h-4 ${props.className || ''}`}
-    >
-        <path d="M3 6h18" />
-        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    </svg>
-);
-
-/**
- * ProviderCard Component
- * 
- * Displays a provider with logo, custom name, and optional active badge.
- * Shows edit/delete buttons on hover.
- */
 export const ProviderCard: React.FC<ProviderCardProps> = ({
     provider,
     isSelected,
@@ -63,97 +42,85 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
     onEdit,
     onDelete,
 }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
-    const handleCardClick = () => {
-        onSelect();
-    };
-
-    const handleEditClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onEdit();
-    };
-
-    const handleDeleteClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onDelete();
-    };
-
+    const ariaLabel = `${provider.customName} provider${isActive ? ' (active)' : ''}${isSelected ? ' (selected)' : ''}`;
     return (
-        <div
-            className="flex flex-col items-center gap-3"
-            role="listitem"
-            aria-label={`${provider.customName} provider${isActive ? ' (active)' : ''}${isSelected ? ' (selected)' : ''}`}
-        >
+        /* Outer wrapper: card box + name label below */
+        <div className="flex flex-col items-center gap-1.5 select-none">
+            {/* Card Box — logo fills the interior */}
             <div
-                className="relative"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                className={`
+                    group relative flex items-center justify-center
+                    w-[120px] h-[120px]
+                    rounded-[var(--r-panel)] border transition-all duration-250
+                    cursor-pointer overflow-hidden
+                    bg-[var(--lg-bg-alt)] border-[var(--lg-border)] hover:bg-[var(--lg-bg-hover)] hover:border-[var(--lg-border-hover)] hover:shadow-sm
+                `}
+                onClick={onSelect}
+                role="radio"
+                aria-checked={isSelected}
+                aria-label={ariaLabel}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelect();
+                    }
+                }}
             >
-                <MagicCard
-                    className={`cursor-pointer transition-all duration-300 ${
-                        isSelected
-                            ? 'border-2 border-[var(--color-primary)]'
-                            : 'border border-[var(--color-border)]'
-                    }`}
-                    onClick={handleCardClick}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleCardClick();
-                        }
-                    }}
-                    style={{
-                        width: '120px',
-                        height: '108px',
-                        minWidth: '120px',
-                        minHeight: '108px',
-                        maxWidth: '120px',
-                        maxHeight: '108px',
-                    }}
-                >
-                    <div className="relative flex h-full w-full items-center justify-center p-0 overflow-visible rounded-[var(--radius-md)]">
-                        <ProviderLogo
-                            providerId={provider.providerId}
-                            providerName={provider.customName}
-                            size="fill"
-                            className="!w-full !h-full object-cover rounded-none border-0"
-                        />
-
-                        {isActive && (
-                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[var(--color-primary)] text-white text-[10px] font-medium uppercase tracking-wide z-20 shadow-sm pointer-events-none">
-                                Active
-                            </div>
-                        )}
-                    </div>
-                </MagicCard>
-
-                {isHovered && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 z-30">
-                        <button
-                            onClick={handleEditClick}
-                            className="p-1 rounded-md bg-[var(--color-bg-surface)]/96 hover:bg-[var(--color-border)] text-[var(--color-text-primary)] transition-colors duration-200 shadow-sm"
-                            aria-label={`Edit ${provider.customName} provider`}
-                            title="Edit"
-                        >
-                            <IconEdit aria-hidden="true" className="w-3 h-3" />
-                        </button>
-                        <button
-                            onClick={handleDeleteClick}
-                            className="p-1 rounded-md bg-[var(--color-bg-surface)]/96 hover:bg-[var(--color-danger)] hover:text-white text-[var(--color-danger)] transition-colors duration-200 shadow-sm"
-                            aria-label={`Delete ${provider.customName} provider`}
-                            title="Delete"
-                        >
-                            <IconDelete aria-hidden="true" className="w-3 h-3" />
-                        </button>
+                {/* Active indicator — label top-right */}
+                {isActive && (
+                    <div className="absolute top-1 right-1.5 z-20">
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide bg-[var(--ac-green-subtle)] text-[var(--ac-green)] border border-[var(--ac-green-subtle)] shadow-sm">
+                            Active
+                        </span>
                     </div>
                 )}
+
+                {/* Provider Logo — fills card */}
+                <ProviderLogo
+                    providerId={provider.providerId}
+                    providerName={provider.customName}
+                    size="lg"
+                    className="!w-16 !h-16 object-contain rounded-none border-0 transition-transform duration-200 group-hover:scale-110"
+                />
+
+                {/* Hover overlay with action buttons */}
+                <div
+                    className="absolute inset-0 flex items-end justify-end p-1.5 gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30 pointer-events-none group-hover:pointer-events-auto rounded-[calc(var(--r-panel)-1px)]"
+                >
+                    <ActionButton
+                        icon={
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                        }
+                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                        label="Edit"
+                        ariaLabel={`Edit ${provider.customName} provider`}
+                    />
+                    <ActionButton
+                        icon={
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                                <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            </svg>
+                        }
+                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                        label="Delete"
+                        ariaLabel={`Delete ${provider.customName} provider`}
+                        variant="danger"
+                    />
+                </div>
             </div>
 
-            <h3 className="text-xs font-medium text-[var(--color-text-primary)] text-center line-clamp-2 max-w-[120px]">
+            {/* Provider Name — below the card */}
+            <span className={`
+                text-[11px] font-medium text-center leading-tight
+                max-w-[96px] truncate
+                ${isSelected ? 'text-[var(--ac-blue)]' : 'text-[var(--tx-secondary)]'}
+            `}>
                 {provider.customName}
-            </h3>
+            </span>
         </div>
     );
 };

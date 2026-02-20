@@ -90,9 +90,9 @@ export const ModelSearchBar: React.FC<ModelSearchBarProps> = ({
     }, [disabled]);
 
     return (
-        <div className="relative">
-            <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${
-                disabled ? 'text-[var(--color-text-muted)] opacity-50' : 'text-[var(--color-text-muted)]'
+        <div className="relative group">
+            <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${
+                disabled ? 'text-[var(--tx-disabled)]' : 'text-[var(--tx-tertiary)] group-focus-within:text-[var(--ac-blue)]'
             }`}>
                 <IconSearch aria-hidden="true" />
             </div>
@@ -102,10 +102,10 @@ export const ModelSearchBar: React.FC<ModelSearchBarProps> = ({
                 onChange={handleInputChange}
                 disabled={disabled}
                 placeholder={disabled ? "Select a provider to search models..." : "Search models..."}
-                className={`w-full h-9 pl-9 pr-3 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] transition-colors duration-200 ${
+                className={`lg-input w-full !h-9 !py-0 !pl-11 !pr-3 text-[13px] ${
                     disabled 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'focus:outline-none focus:border-[var(--color-primary)]'
+                        ? 'opacity-50 cursor-not-allowed bg-[var(--lg-bg-alt)] border-dashed' 
+                        : ''
                 }`}
                 aria-label="Search models"
                 aria-disabled={disabled}
@@ -113,3 +113,4 @@ export const ModelSearchBar: React.FC<ModelSearchBarProps> = ({
         </div>
     );
 };
+

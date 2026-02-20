@@ -46,7 +46,13 @@ html, body, #root {
     padding: 0;
     overflow: hidden;
     font-family: var(--font-body);
-    background-color: var(--color-bg-base);
+    
+    /* Global Background Design (MacOS 26 Style) */
+    background-color: var(--bg-app);
+    background-image: var(--bg-gradient-app);
+    background-attachment: fixed;
+    background-size: cover;
+    
     color: var(--color-text-primary);
 }
 
@@ -403,4 +409,19 @@ html, body, #root {
     color: var(--color-primary);
     text-decoration: underline;
     text-underline-offset: 2px;
+}
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(150, 150, 150, 0.3);
+    border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(150, 150, 150, 0.5);
 }

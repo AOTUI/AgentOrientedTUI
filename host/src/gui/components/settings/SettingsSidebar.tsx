@@ -10,9 +10,27 @@ import { IconModel, IconTheme } from '../Icons.js';
 import type { SettingsSidebarProps } from './types.js';
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange }) => {
+    // Shared button styles
+    const baseBtnClass = `
+        flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 md:gap-3 
+        px-3 md:px-4 py-2 md:py-2.5 rounded-[var(--r-control)]
+        transition-all duration-300 text-left border
+    `;
+
+    const activeBtnClass = `
+        bg-[var(--ac-blue-subtle)] border-[color-mix(in_srgb,var(--ac-blue)_30%,transparent)] text-[var(--ac-blue)]
+        shadow-[var(--lg-inner-shadow)]
+    `;
+
+    const inactiveBtnClass = `
+        bg-transparent border-transparent
+        text-[var(--tx-secondary)] 
+        hover:bg-[var(--lg-bg-hover)] hover:text-[var(--tx-primary)]
+    `;
+
     return (
         <nav 
-            className="w-full md:w-[132px] flex flex-row md:flex-col gap-2"
+            className="w-full md:w-[160px] flex flex-row md:flex-col gap-1 p-2"
             role="tablist"
             aria-label="Settings navigation"
         >
@@ -23,17 +41,13 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 aria-selected={activeTab === 'model'}
                 aria-controls="model-tab-panel"
                 id="model-tab"
-                className={`
-                    flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-lg
-                    transition-all duration-300 text-left
-                    ${activeTab === 'model'
-                        ? 'bg-primary/10 border border-primary/30 text-primary'
-                        : 'bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-highlight)] hover:text-[var(--color-text-primary)]'
-                    }
-                `}
+                className={`${baseBtnClass} ${activeTab === 'model' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconModel className={`w-4 h-4 ${activeTab === 'model' ? 'text-primary' : ''}`} aria-hidden="true" />
-                <span className="text-xs md:text-[13px] font-medium uppercase tracking-wide">Model</span>
+                <IconModel 
+                    className={`w-4 h-4 ${activeTab === 'model' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`} 
+                    aria-hidden="true" 
+                />
+                <span className="text-[13px] font-medium tracking-wide">Model</span>
             </button>
 
             {/* Theme Tab Button */}
@@ -43,18 +57,15 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 aria-selected={activeTab === 'theme'}
                 aria-controls="theme-tab-panel"
                 id="theme-tab"
-                className={`
-                    flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-lg
-                    transition-all duration-300 text-left
-                    ${activeTab === 'theme'
-                        ? 'bg-primary/10 border border-primary/30 text-primary'
-                        : 'bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-highlight)] hover:text-[var(--color-text-primary)]'
-                    }
-                `}
+                className={`${baseBtnClass} ${activeTab === 'theme' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconTheme className={`w-4 h-4 ${activeTab === 'theme' ? 'text-primary' : ''}`} aria-hidden="true" />
-                <span className="text-xs md:text-[13px] font-medium uppercase tracking-wide">Theme</span>
+                <IconTheme 
+                    className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`} 
+                    aria-hidden="true" 
+                />
+                <span className="text-[13px] font-medium tracking-wide">Theme</span>
             </button>
         </nav>
     );
 };
+
