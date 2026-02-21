@@ -1,0 +1,33 @@
+{
+    "name": "system-lite-browser",
+    "displayName": "Lite Browser App",
+    "version": "0.1.0",
+    "description": "A lightweight TUI browser with web search and URL fetch",
+    "author": "AOTUI Team",
+    "license": "MIT",
+    "runtime": {
+        "minVersion": "0.1.0"
+    },
+    "entry": {
+        "main": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+    },
+    "views": [
+        {
+            "name": "Root",
+            "description": "App instructions and usage overview"
+        },
+        {
+            "name": "Search",
+            "description": "Search query status and summary"
+        },
+        {
+            "name": "ResultList",
+            "description": "Parsed search result links"
+        },
+        {
+            "name": "Page",
+            "description": "Fetched page content"
+        }
+    ]
+}

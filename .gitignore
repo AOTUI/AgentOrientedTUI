@@ -30,7 +30,7 @@ backup
 .agent
 .claude
 .gemini
-# .trae
+.trae
 .shared
 .kiro
 .vscode

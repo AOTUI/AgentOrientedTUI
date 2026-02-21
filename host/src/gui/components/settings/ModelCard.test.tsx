@@ -336,9 +336,23 @@ describe('ModelCard', () => {
                 />
             );
             
-            const badge = screen.getByText('Active');
+            const badge = screen.getByText('ACTIVE');
             expect(badge).toBeInTheDocument();
             expect(badge).toHaveClass('bg-[var(--ac-green-subtle)]');
+        });
+
+        it('should have hover visibility classes on Activate button', () => {
+            render(
+                <ModelCard
+                    model={mockModel}
+                    isActive={false}
+                    {...mockHandlers}
+                />
+            );
+
+            const activateButton = screen.getByText('Activate');
+            expect(activateButton).toHaveClass('opacity-0');
+            expect(activateButton).toHaveClass('group-hover:opacity-100');
         });
     });
 

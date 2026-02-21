@@ -51,7 +51,6 @@
   },
   "dependencies": {
     "@aotui/agent-driver-v2": "file:../agent-driver-v2",
-    "@aotui/preact": "file:../packages/aotui-preact",
     "ai": "^6.0.77",
     "happy-dom": "^20.1.0",
     "linkedom": "^0.18.12",

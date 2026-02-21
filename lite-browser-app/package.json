@@ -1,0 +1,23 @@
+{
+    "name": "@aotui/system-lite-browser",
+    "version": "0.1.0",
+    "description": "AOTUI Lite Browser App - web search and fetch views for LLM workflows",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest",
+        "test:run": "vitest run"
+    },
+    "dependencies": {
+        "@aotui/sdk": "file:../sdk",
+        "preact": "^10.25.4"
+    },
+    "devDependencies": {
+        "@types/node": "^22.15.21",
+        "typescript": "^5.9.3",
+        "vitest": "^3.2.4"
+    },
+    "peerDependencies": {}
+}

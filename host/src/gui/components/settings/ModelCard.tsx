@@ -108,6 +108,8 @@ export const ModelCard: React.FC<ModelCardProps> = ({
                                 shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200
                                 bg-[var(--lg-bg-alt)] hover:bg-[var(--ac-blue-subtle)] text-[var(--tx-secondary)] hover:text-[var(--ac-blue)]
                                 border border-[var(--lg-border)] hover:border-[var(--ac-blue-muted)]
+                                opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto
+                                focus:opacity-100 focus:pointer-events-auto
                             "
                         >
                             Activate

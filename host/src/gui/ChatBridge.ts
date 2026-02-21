@@ -980,8 +980,18 @@ export class ChatBridge {
             const output = rawOutput as { type: string; value?: unknown; reason?: string };
             if (output.type === 'json' || output.type === 'text') {
                 result = output.value ?? '';
+            } else if (output.type === 'error-json') {
+                result = output.value ?? '';
+                isError = true;
             } else if (output.type === 'execution-denied') {
                 result = { type: output.type, reason: output.reason };
+                isError = true;
+            }
+        }
+
+        if (!isError && result && typeof result === 'object' && 'success' in result) {
+            const successValue = (result as { success?: unknown }).success;
+            if (typeof successValue === 'boolean' && successValue === false) {
                 isError = true;
             }
         }
