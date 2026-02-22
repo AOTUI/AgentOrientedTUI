@@ -51,13 +51,13 @@ interface McpVisualEditorProps {
 
 const StatusBadge: React.FC<{ status: string; error?: string }> = ({ status, error }) => {
     const map: Record<string, { label: string; cls: string; dot: string }> = {
-        connected: { label: 'Connected', cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', dot: 'bg-emerald-400' },
-        disabled: { label: 'Disabled', cls: 'text-[var(--color-text-tertiary)]    bg-[var(--mat-content-card-bg)]    border-[var(--color-border-subtle)]', dot: 'bg-[var(--color-text-tertiary)]' },
-        failed: { label: 'Failed', cls: 'text-red-400     bg-red-400/10      border-red-400/20', dot: 'bg-red-500' },
-        needs_auth: { label: 'Auth Required', cls: 'text-amber-400  bg-amber-400/10   border-amber-400/20', dot: 'bg-amber-400' },
-        needs_client_registration: { label: 'Config Error', cls: 'text-orange-400  bg-orange-400/10  border-orange-400/20', dot: 'bg-orange-400' },
+        connected: { label: 'Connected', cls: 'text-[var(--color-success)] bg-[var(--color-success)]/10 border-[var(--color-success)]/20', dot: 'bg-[var(--color-success)]' },
+        disabled: { label: 'Disabled', cls: 'text-[var(--color-text-tertiary)]    bg-[var(--mat-content-card-bg)]    border-[var(--mat-border)]', dot: 'bg-[var(--color-text-tertiary)]' },
+        failed: { label: 'Failed', cls: 'text-[var(--color-danger)]     bg-[var(--color-danger)]/10      border-[var(--color-danger)]/20', dot: 'bg-[var(--color-danger)]' },
+        needs_auth: { label: 'Auth Required', cls: 'text-[var(--color-warning)]  bg-[var(--color-warning)]/10   border-[var(--color-warning)]/20', dot: 'bg-[var(--color-warning)]' },
+        needs_client_registration: { label: 'Config Error', cls: 'text-[var(--color-warning)]  bg-[var(--color-warning)]/10  border-[var(--color-warning)]/20', dot: 'bg-[var(--color-warning)]' },
     };
-    const m = map[status] ?? { label: status, cls: 'text-[var(--color-text-tertiary)] bg-[var(--mat-content-card-bg)] border-[var(--color-border-subtle)]', dot: 'bg-[var(--color-text-tertiary)]' };
+    const m = map[status] ?? { label: status, cls: 'text-[var(--color-text-tertiary)] bg-[var(--mat-content-card-bg)] border-[var(--mat-border)]', dot: 'bg-[var(--color-text-tertiary)]' };
 
     return (
         <span
@@ -93,7 +93,7 @@ const Toggle: React.FC<ToggleProps> = ({ checked, onChange, disabled = false, si
                 relative inline-flex items-center shrink-0 rounded-full border border-transparent
                 transition-colors duration-200 focus:outline-none
                 ${w}
-                ${checked ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border-subtle)]'}
+                ${checked ? 'bg-[var(--color-accent)]' : 'bg-[var(--mat-border)]'}
                 ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
             `}
         >
@@ -269,7 +269,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
     return (
         <div className="flex flex-col h-full min-h-[400px]">
             {/* 顶部工具栏 */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border-subtle)] mat-lg-clear shrink-0">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--mat-border)] mat-lg-clear shrink-0">
                 <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
                     {runtimeLoading ? 'Loading...' : `${totalEnabledTools} / ${totalTools} tools active`}
                 </span>
@@ -277,7 +277,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     <button
                         onClick={fetchRuntime}
                         disabled={runtimeLoading}
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors disabled:opacity-40"
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-[var(--mat-border)] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors disabled:opacity-40"
                         title="Refresh runtime status"
                     >
                         <svg className={`w-3.5 h-3.5 ${runtimeLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -288,7 +288,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     <button
                         onClick={() => onSave(config)}
                         disabled={isSaving}
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors active:scale-95"
                     >
                         {isSaving ? 'Saving...' : 'Save Config'}
                     </button>
@@ -297,8 +297,8 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
 
             <div className="flex flex-1 min-h-0">
                 {/* ── 左侧 Server 列表 ─────────────────────────────────────────────── */}
-                <div className="w-[200px] shrink-0 border-r border-[var(--color-border-subtle)] mat-lg-clear flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border-subtle)]">
+                <div className="w-[200px] shrink-0 border-r border-[var(--mat-border)] mat-lg-clear flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--mat-border)]">
                         <span className="text-[10px] font-semibold text-[var(--color-text-tertiary)] tracking-[0.05em]">Servers</span>
                         <button
                             onClick={handleAddServer}
@@ -322,10 +322,10 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                     failed: 'bg-red-500',
                                     needs_auth: 'bg-amber-400',
                                     needs_client_registration: 'bg-orange-400',
-                                    disabled: 'bg-[var(--color-border-subtle)]',
-                                    loading: 'bg-[var(--color-border-subtle)] animate-pulse',
+                                    disabled: 'bg-[var(--mat-border)]',
+                                    loading: 'bg-[var(--mat-border)] animate-pulse',
                                 };
-                                const dotCls = dots[status] ?? 'bg-[var(--color-border-subtle)]';
+                                const dotCls = dots[status] ?? 'bg-[var(--mat-border)]';
                                 const enabledCount = rt?.tools.filter(t => t.enabled).length ?? 0;
                                 const totalCount = rt?.tools.length ?? 0;
                                 const statusText = statusLabelMap[status] ?? (status === 'loading' ? 'Loading' : 'Unknown');
@@ -380,7 +380,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     {selectedServer && selectedKey ? (
                         <>
                             {/* 详情头部 */}
-                            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--color-border-subtle)] shrink-0">
+                            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--mat-border)] shrink-0">
                                 <div className="flex-1 min-w-0">
                                     <h3 className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{selectedKey}</h3>
                                     <div className="flex items-center gap-3 mt-1 text-[11px] text-[var(--color-text-tertiary)]">
@@ -454,7 +454,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                         <p className="text-xs">This server has no tools listed.</p>
                                     </div>
                                 ) : (
-                                    <div className="divide-y divide-[var(--color-border-subtle)]/50">
+                                    <div className="divide-y divide-[var(--mat-border)]/50">
                                         {selectedRuntime.tools.map((tool, idx) => {
                                             const pendingKey = `tool:${selectedKey}:${tool.name}`;
                                             const isPending = pendingToggles.has(pendingKey);

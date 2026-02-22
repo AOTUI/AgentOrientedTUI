@@ -182,7 +182,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                             <MarkdownRenderer content={item.text} />
                         </div>
                         {showFoldedBarAfter && (
-                            <div className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg-highlight)]/40 text-[10px] text-[var(--color-text-secondary)]">
+                            <div className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[11px] text-[var(--color-text-secondary)]">
                                 <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
                                 <span className="font-medium">Folded Toolcalls</span>
                                 <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
@@ -273,7 +273,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         </div>
 
                         {!isExpanded && hiddenToolCount > 0 && (
-                            <div className="h-1.5 mb-3 rounded-full bg-[var(--color-bg-highlight)] overflow-hidden">
+                            <div className="h-1.5 mb-3 rounded-full bg-[var(--mat-content-card-hover-bg)] overflow-hidden">
                                 <div className={`h-full w-1/3 rounded-full ${isRunning ? 'bg-[var(--color-text-secondary)]' : 'bg-[var(--color-accent)] opacity-40'}`} />
                             </div>
                         )}
@@ -283,7 +283,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 <React.Fragment key={`trace-item-${index}`}>
                                     {!isExpanded && index === firstVisibleToolIndex && firstVisibleToolIndex >= 0 && hiddenToolCount > 0 && (
                                         <button
-                                            className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-[var(--color-bg-highlight)]/45 border border-[var(--color-border)] text-[10px] text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)]"
+                                            className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-[var(--mat-content-card-hover-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)]"
                                             onClick={() => toggleTraceExpand(key)}
                                             aria-label="Click to expand tool chain"
                                         >
@@ -301,7 +301,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         {isExpanded && (
                             <div className="mt-3 sticky bottom-2 z-10 flex justify-end">
                                 <button
-                                    className="text-[10px] px-2.5 py-1 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-highlight)]/45 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)]"
+                                    className="text-[11px] px-2.5 py-1 rounded-md border border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)]"
                                     onClick={() => toggleTraceExpand(key)}
                                     aria-label="Collapse tool chain"
                                 >
@@ -425,7 +425,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         max-w-[85%] shadow-sm
                                         ${isAgent
                                             ? 'mat-content rounded-2xl rounded-tl-sm'
-                                            : 'mat-lg-clear bg-[var(--color-accent)]/20 border-[var(--color-accent)]/30 rounded-2xl rounded-tr-sm'}
+                                            : 'mat-lg-clear bg-[var(--color-accent)]/15 border-[var(--color-accent)]/20 rounded-2xl rounded-tr-sm'}
                                     `}
                                 >
                                     <CardBody className="p-4 overflow-hidden">
@@ -456,7 +456,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                     <div className="flex justify-start">
                         <Card className="max-w-[85%] mat-content rounded-2xl rounded-tl-sm">
                             <CardBody className="p-4">
-                                <div className="flex items-center gap-2 mb-2 text-[var(--color-text-secondary)] text-[10px] font-medium tracking-wide">
+                                <div className="flex items-center gap-2 mb-2 text-[var(--color-text-secondary)] text-[11px] font-medium">
                                     <Spinner size="sm" color="current" />
                                     <span>Generating Response...</span>
                                 </div>
@@ -487,7 +487,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         <Button
                             isIconOnly
                             size="sm"
-                            className={`min-w-8 w-8 h-8 rounded-full flex items-center justify-center transition-all ${inputValue.trim() ? 'bg-[var(--color-accent)] text-white shadow-md' : 'bg-[var(--mat-lg-clear-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}`}
+                            className={`min-w-8 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${inputValue.trim() ? 'bg-[var(--color-accent)] text-white shadow-md' : 'bg-[var(--mat-lg-clear-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}`}
                             onClick={handleSendClick}
                         >
                             <IconSend />

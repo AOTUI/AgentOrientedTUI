@@ -324,7 +324,7 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                         <button
                             onClick={handleSave}
                             disabled={isSaveDisabled}
-                            className="lg-btn bg-[var(--color-accent)] text-white border-transparent hover:bg-[var(--color-accent)]/90 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="lg-btn rounded-full bg-[var(--color-accent)] text-white border-transparent hover:bg-[var(--color-accent)]/90 px-6 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                         >
                             {isSaving ? 'Saving...' : 'Save'}
                         </button>

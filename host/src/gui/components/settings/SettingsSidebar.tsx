@@ -18,7 +18,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
     `;
 
     const activeBtnClass = `
-        bg-[var(--color-accent)]/15 border-[var(--color-accent)]/25 text-[var(--color-accent)]
+        bg-[var(--mat-content-card-hover-bg)] border-[var(--mat-border)] text-[var(--color-text-primary)]
         shadow-[inset_0_1px_0_var(--mat-inset-highlight)]
     `;
 
@@ -47,7 +47,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                     className={`w-4 h-4 ${activeTab === 'model' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
-                <span className="text-[13px] font-medium tracking-wide">Model</span>
+                <span className="text-[13px] font-medium">Model</span>
             </button>
 
             {/* Theme Tab Button */}
@@ -63,7 +63,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                     className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
-                <span className="text-[13px] font-medium tracking-wide">Theme</span>
+                <span className="text-[13px] font-medium">Theme</span>
             </button>
 
             {/* MCP Tab Button */}
@@ -79,7 +79,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                     className={`w-4 h-4 ${activeTab === 'mcp' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
-                <span className="text-[13px] font-medium tracking-wide">MCP</span>
+                <span className="text-[13px] font-medium">MCP</span>
             </button>
         </nav>
     );

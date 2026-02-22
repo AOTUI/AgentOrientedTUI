@@ -94,7 +94,7 @@ export class SettingsErrorBoundary extends React.Component<
 
                     <button
                         onClick={this.handleReset}
-                        className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg font-medium hover:bg-[var(--color-accent)]/90 transition-all"
+                        className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-full font-medium hover:bg-[var(--color-accent)]/90 transition-all active:scale-95"
                     >
                         Try Again
                     </button>

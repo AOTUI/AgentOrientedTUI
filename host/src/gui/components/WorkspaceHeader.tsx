@@ -72,7 +72,7 @@ export function WorkspaceHeader({
                             size="sm"
                             variant="light"
                             onClick={() => setViewMode('chat')}
-                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'chat' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-base)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'chat' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
                         >
                             Chat
                         </Button>
@@ -80,7 +80,7 @@ export function WorkspaceHeader({
                             size="sm"
                             variant="light"
                             onClick={() => setViewMode('tui')}
-                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'tui' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-base)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'tui' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
                         >
                             TUI View
                         </Button>

@@ -198,7 +198,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <button
                         ref={exitButtonRef}
                         onClick={onClose}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] text-[13px] font-medium transition-all duration-200 md:mt-auto bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-transparent"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full text-[13px] font-medium transition-all duration-200 md:mt-auto bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-transparent active:scale-95"
                         aria-label="Exit settings panel"
                     >
                         <IconExit className="w-4 h-4" />

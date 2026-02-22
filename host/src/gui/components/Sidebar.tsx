@@ -102,8 +102,8 @@ export function Sidebar({
                                     group flex items-center justify-between gap-2 w-full px-3 py-2 rounded-xl cursor-pointer 
                                     transition-all duration-300 border
                                     ${isActive
-                                        ? 'bg-[var(--mat-lg-clear-bg)] border-[var(--mat-border-highlight)] shadow-sm'
-                                        : 'bg-transparent border-transparent hover:bg-[var(--color-bg-highlight)]/30 hover:border-[var(--color-border)]'}
+                                        ? 'bg-[var(--mat-content-card-hover-bg)] border-[var(--mat-border-highlight)] shadow-sm'
+                                        : 'bg-transparent border-transparent hover:bg-[var(--mat-content-card-hover-bg)] hover:border-[var(--mat-border)]'}
                                 `}
                             >
                                 <span className={`

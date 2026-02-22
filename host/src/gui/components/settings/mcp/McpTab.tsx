@@ -105,16 +105,16 @@ export const McpTab: React.FC = () => {
                 </div>
 
                 {/* View Mode Toggle */}
-                <div className="flex rounded-lg mat-lg-clear p-1 overflow-hidden">
+                <div className="flex items-center mat-lg-regular rounded-full p-1 shadow-sm">
                     <button
                         onClick={() => setViewMode('visual')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'visual' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${viewMode === 'visual' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Visual Form
                     </button>
                     <button
                         onClick={() => setViewMode('json')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${viewMode === 'json' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Raw JSON
                     </button>
@@ -144,7 +144,7 @@ export const McpTab: React.FC = () => {
             </div>
             {/* Save Success Banner */}
             {savedBanner && (
-                <div className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/90 text-white text-sm shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2">
+                <div className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-success)]/90 text-white text-sm shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     MCP config saved to ~/.tui/mcp.json
                 </div>

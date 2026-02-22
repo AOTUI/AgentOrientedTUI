@@ -14,7 +14,7 @@ export function EmptyState({ onNewChat }: EmptyStateProps) {
                 <div className="font-system text-[13px] font-medium text-[var(--color-text-secondary)]">
                     System Online
                 </div>
-                <div className="font-mono text-[10px] opacity-50">
+                <div className="font-mono text-[11px] opacity-50">
                     Awaiting Input Sequence
                 </div>
              </div>
