@@ -7,11 +7,10 @@ export function ConnectionScreen({ status, onRetry }: { status: 'connecting' | '
         <div className="flex flex-col items-center justify-center h-screen w-full bg-transparent text-[var(--color-text-primary)] relative overflow-hidden">
             {/* 真实的 macOS 壁纸模糊效果 */}
             <div 
-                className="absolute inset-0 z-0"
+                className="absolute inset-0 z-0 bg-[var(--mat-overlay-bg)]"
                 style={{
                     backdropFilter: 'blur(60px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(60px) saturate(200%)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)'
+                    WebkitBackdropFilter: 'blur(60px) saturate(200%)'
                 }}
             />
             <div className="z-10 flex flex-col items-center mat-lg-regular p-10 rounded-[20px] w-full max-w-[480px] mx-4 text-center shadow-2xl">

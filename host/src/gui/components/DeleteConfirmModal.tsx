@@ -13,8 +13,8 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm }: DeleteConfirm
     if (!isOpen) return null;
     
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--mat-overlay-bg)] backdrop-blur-md">
-            <Card className="w-[400px] mat-lg-regular rounded-[20px]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--mat-overlay-bg)] backdrop-blur-md animate-in fade-in duration-200">
+            <Card className="w-[400px] mat-lg-regular rounded-[20px] animate-in zoom-in-95 duration-200">
                 <CardBody className="gap-4 p-6">
                     <h3 className="text-[17px] font-semibold text-[var(--color-danger)] flex items-center gap-2">
                         <IconDelete /> Delete Session

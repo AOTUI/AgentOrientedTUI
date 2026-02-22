@@ -28,6 +28,7 @@
   --mat-base: var(--mat-base);
   --mat-lg-regular-bg: var(--mat-lg-regular-bg);
   --mat-lg-clear-bg: var(--mat-lg-clear-bg);
+  --mat-lg-clear-accent-bg: var(--mat-lg-clear-accent-bg);
   --mat-content-card-bg: var(--mat-content-card-bg);
   --mat-border: var(--mat-border);
   --mat-border-highlight: var(--mat-border-highlight);
@@ -51,10 +52,6 @@ html, body, #root {
     
     /* Global Background Design (MacOS 26 Style) */
     background-color: var(--mat-base);
-    background-image: radial-gradient(circle at 15% 50%, rgba(10, 132, 255, 0.15), transparent 25%),
-                      radial-gradient(circle at 85% 30%, rgba(191, 90, 242, 0.15), transparent 25%);
-    background-attachment: fixed;
-    background-size: cover;
     
     color: var(--color-text-primary);
 }
@@ -113,6 +110,15 @@ html, body, #root {
     -webkit-backdrop-filter: blur(20px) saturate(150%);
     border: 1px solid var(--mat-border);
     box-shadow: inset 0 1px 0 var(--mat-inset-highlight);
+}
+
+/* mat-lg-clear-accent — Accent tinted nested elements on glass */
+.mat-lg-clear-accent {
+    background: var(--mat-lg-clear-accent-bg);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(10, 132, 255, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* mat-content — Content Layer Cards (No backdrop-filter) */

@@ -45,7 +45,7 @@ export const McpJsonEditor: React.FC<McpJsonEditorProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full mat-content">
+        <div className="flex flex-col h-full">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--mat-border)] mat-lg-clear">
                 <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Raw JSON Config</span>
                 <button

@@ -167,11 +167,10 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
         >
             {/* 真实的 macOS 壁纸模糊效果 */}
             <div 
-                className="absolute inset-0 z-0"
+                className="absolute inset-0 z-0 bg-[var(--mat-overlay-bg)]"
                 style={{
                     backdropFilter: 'blur(60px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(60px) saturate(200%)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)'
+                    WebkitBackdropFilter: 'blur(60px) saturate(200%)'
                 }}
             />
 

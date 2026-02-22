@@ -425,7 +425,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         max-w-[85%] shadow-sm
                                         ${isAgent
                                             ? 'mat-content rounded-2xl rounded-tl-sm'
-                                            : 'mat-lg-clear bg-[var(--color-accent)]/20 border-[var(--color-accent)]/30 rounded-2xl rounded-tr-sm'}
+                                            : 'mat-lg-clear-accent rounded-2xl rounded-tr-sm'}
                                     `}
                                 >
                                     <CardBody className="p-4 overflow-hidden">
