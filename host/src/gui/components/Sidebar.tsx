@@ -64,31 +64,31 @@ export function Sidebar({
 
     return (
         <aside className={`
-            absolute left-0 top-0 bottom-0 w-[260px] z-20
+            relative h-full z-20 shrink-0
             mat-lg-regular flex flex-col overflow-hidden
-            transition-transform duration-400 ease-[var(--ease-spring)]
-            rounded-r-[16px] border-r border-[var(--mat-border)]
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            transition-all duration-400 ease-[var(--ease-spring)]
+            rounded-[14px] border border-[var(--mat-border)] shadow-lg
+            ${sidebarOpen ? 'w-[272px] opacity-100 mr-2' : 'w-0 opacity-0 mr-0 border-none'}
         `}>
             {/* Sidebar Header */}
-            <div className="px-6 pb-6 pt-10 flex flex-col gap-6 shrink-0 relative">
+            <div className="px-4 pb-4 pt-10 flex flex-col gap-4 shrink-0 relative w-[272px]">
                 <Button
-                    className="w-full h-10 font-medium bg-[var(--mat-lg-clear-bg)] text-[var(--color-accent)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] hover:border-[var(--mat-border-highlight)] transition-all flex items-center justify-center gap-2 group rounded-lg"
+                    className="w-full h-9 mt-2 font-medium bg-[var(--mat-lg-clear-bg)] text-[var(--color-accent)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] hover:border-[var(--mat-border-highlight)] transition-all flex items-center justify-center gap-2 group rounded-xl shadow-sm"
                     onClick={onNewChat}
                 >
                     <IconNewChat />
-                    <span>New Session</span>
+                    <span className="text-[13px]">New Session</span>
                 </Button>
             </div>
 
-            <div className="px-6 pb-2 flex items-center justify-between text-[12px] font-medium text-[var(--color-text-secondary)] shrink-0">
+            <div className="px-5 pb-2 flex items-center justify-between text-[12px] font-medium text-[var(--color-text-secondary)] shrink-0 w-[272px]">
                 <span>Sessions</span>
                 <span className="opacity-50">{topics.length} Active</span>
             </div>
 
             {/* Topic List */}
-            <ScrollShadow className="flex-1 w-full px-4 pb-6 overflow-y-auto scrollbar-hide">
-                <div className="space-y-2">
+            <ScrollShadow className="flex-1 w-[272px] px-3 pb-6 overflow-y-auto scrollbar-hide">
+                <div className="space-y-1">
                     {topics.map(topic => {
                         const isActive = topic.id === activeTopicId;
                         const paused = getTopicPaused?.(topic.id) ?? false;
@@ -99,30 +99,21 @@ export function Sidebar({
                                 key={topic.id}
                                 onClick={() => onSelectTopic(topic.id)}
                                 className={`
-                                    group flex items-center gap-3 w-full p-3 rounded-xl cursor-pointer 
-                                    transition-all duration-300 border backdrop-blur-md
+                                    group flex items-center justify-between gap-2 w-full px-3 py-2 rounded-xl cursor-pointer 
+                                    transition-all duration-300 border
                                     ${isActive
-                                        ? 'bg-[var(--mat-lg-clear-bg)] border-[var(--mat-border-highlight)] shadow-[0_4px_12px_rgba(0,0,0,0.1)] translate-x-1'
-                                        : 'bg-[var(--color-bg-highlight)]/30 border-transparent hover:bg-[var(--color-bg-highlight)] hover:border-[var(--color-border)] hover:translate-x-1'}
+                                        ? 'bg-[var(--mat-lg-clear-bg)] border-[var(--mat-border-highlight)] shadow-sm'
+                                        : 'bg-transparent border-transparent hover:bg-[var(--color-bg-highlight)]/30 hover:border-[var(--color-border)]'}
                                 `}
                             >
-                                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                    <span className={`
-                                        truncate text-[13px] font-medium transition-colors
-                                        ${isActive ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]'}
-                                    `}>
-                                        {topic.title}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-system text-[var(--color-text-tertiary)]">
-                                            {formatTimeAgo(topic.updatedAt)}
-                                        </span>
-                                        <span className={`text-[10px] font-medium tracking-[0.05em] ${getStateClass(state, paused)}`}>
-                                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${getDotClass(state, paused)}`} />
-                                            {stateLabel}
-                                        </span>
-                                        {isActive && <span className="text-[9px] text-[var(--color-accent)]">●</span>}
-                                    </div>
+                                <span className={`
+                                    flex-1 truncate text-[13px] font-medium transition-colors
+                                    ${isActive ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]'}
+                                `}>
+                                    {topic.title}
+                                </span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <span className={`inline-block w-2 h-2 rounded-full ${getDotClass(state, paused)}`} title={stateLabel} />
                                 </div>
                             </div>
                         );
@@ -131,7 +122,7 @@ export function Sidebar({
             </ScrollShadow>
 
             {/* Sidebar Footer - Navigation & Settings */}
-            <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg-surface)]/50 flex items-center justify-between">
+            <div className="p-3 border-t border-[var(--mat-border)] bg-[var(--mat-lg-clear-bg)] flex items-center justify-between w-[272px]">
                  <Tooltip content="Switch Project">
                      <Button
                          variant="light"

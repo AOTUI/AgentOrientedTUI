@@ -35,55 +35,66 @@ export function WorkspaceHeader({
     onShowDeleteConfirm
 }: WorkspaceHeaderProps) {
     return (
-        <header className="absolute top-4 left-0 right-0 z-30 flex items-center justify-between px-6 pointer-events-none">
-            {/* Left Island: Menu + Project Name */}
-            <div className="flex items-center gap-3 mat-lg-regular rounded-full px-2 py-1.5 pointer-events-auto">
-                <Tooltip content="Toggle Sidebar">
-                    <Button
-                        isIconOnly
-                        variant="light"
-                        size="sm"
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-full min-w-8 w-8 h-8 flex items-center justify-center"
-                    >
-                        <IconMenu />
-                    </Button>
-                </Tooltip>
+        <header className="absolute top-0 left-0 right-0 z-30 flex items-start justify-between pointer-events-none">
+            {/* Left Side: Menu + Project Name + View Mode Switcher */}
+            <div className="flex items-center gap-3 pointer-events-auto">
+                <div
+                    className="flex items-center gap-3 mat-lg-regular rounded-full px-2 py-1.5 shadow-sm"
+                    style={{ background: 'color-mix(in srgb, var(--mat-lg-regular-bg) 55%, transparent)' }}
+                >
+                    <Tooltip content="Toggle Sidebar">
+                        <Button
+                            isIconOnly
+                            variant="light"
+                            size="sm"
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-full min-w-8 w-8 h-8 flex items-center justify-center"
+                        >
+                            <IconMenu />
+                        </Button>
+                    </Tooltip>
 
-                <div className="flex items-center gap-2 pr-3 border-l border-[var(--mat-border)] pl-3">
-                    <div className={`w-2 h-2 rounded-full ${connected ? 'bg-success' : 'bg-danger'}`} />
-                    <h2 className="font-medium text-[13px] leading-tight truncate max-w-[200px] text-[var(--color-text-primary)]">
-                        {activeTopic?.title || 'System Chat'}
-                    </h2>
+                    <div className="flex items-center gap-2 pr-3 border-l border-[var(--mat-border)] pl-3">
+                        <div className={`w-2 h-2 rounded-full ${connected ? 'bg-success' : 'bg-danger'}`} />
+                        <h2 className="font-medium text-[13px] leading-tight truncate max-w-[150px] text-[var(--color-text-primary)]">
+                            {activeTopic?.title || 'System Chat'}
+                        </h2>
+                    </div>
                 </div>
+
+                {/* Center Island: View Mode Switcher */}
+                {activeTopic && (
+                    <div
+                        className="flex items-center mat-lg-regular rounded-full p-1 shadow-sm"
+                        style={{ background: 'color-mix(in srgb, var(--mat-lg-regular-bg) 55%, transparent)' }}
+                    >
+                        <Button
+                            size="sm"
+                            variant="light"
+                            onClick={() => setViewMode('chat')}
+                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'chat' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-base)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                        >
+                            Chat
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="light"
+                            onClick={() => setViewMode('tui')}
+                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'tui' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-base)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                        >
+                            TUI View
+                        </Button>
+                    </div>
+                )}
             </div>
-
-            {/* Center Island: View Mode Switcher */}
-            {activeTopic && (
-                <div className="flex items-center mat-lg-regular rounded-full p-1 pointer-events-auto">
-                    <Button
-                        size="sm"
-                        variant="light"
-                        onClick={() => setViewMode('chat')}
-                        className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'chat' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-base)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-                    >
-                        Chat
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="light"
-                        onClick={() => setViewMode('tui')}
-                        className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'tui' ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-base)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-                    >
-                        TUI View
-                    </Button>
-                </div>
-            )}
 
             {/* Right Island: Agent Status & Controls */}
             <div className="flex items-center gap-2 pointer-events-auto">
                 {activeTopic && (
-                    <div className="flex items-center gap-2 mat-lg-regular rounded-full px-3 py-1.5">
+                    <div
+                        className="flex items-center gap-2 mat-lg-regular rounded-full px-3 py-1.5 shadow-sm"
+                        style={{ background: 'color-mix(in srgb, var(--mat-lg-regular-bg) 55%, transparent)' }}
+                    >
                         <div className="flex items-center gap-2 pr-2">
                             <span className={`text-[12px] font-medium ${
                                 agentState === 'THINKING' ? 'text-[var(--color-text-secondary)]' : 

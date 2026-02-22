@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import { Button } from "@heroui/button";
-import { ScrollShadow } from "@heroui/scroll-shadow";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
 import { IconNewChat, IconSend } from './Icons.js';
@@ -128,7 +127,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
     const renderLiveReasoningBlock = () => (
         <div className="flex justify-start">
-            <Card className="max-w-[85%] mat-content rounded-tl-sm">
+            <Card className="max-w-[85%] mat-content rounded-2xl rounded-tl-sm">
                 <CardBody className="p-4">
                     <div className="flex items-center gap-2 mb-2 text-[var(--color-accent)] text-[12px] font-medium">
                         <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
@@ -264,7 +263,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
         return (
             <div key={key} data-trace-key={key} className="flex justify-start">
-                <Card className="max-w-[92%] mat-content rounded-tl-sm overflow-hidden">
+                <Card className="max-w-[92%] mat-content rounded-2xl rounded-tl-sm overflow-hidden">
                     <CardBody className="p-4">
                         <div className="flex items-center justify-between gap-2 mb-2 text-[12px] font-medium text-[var(--color-text-tertiary)]">
                             <div className="flex items-center gap-2">
@@ -318,7 +317,27 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
     return (
         <div className="absolute inset-0 flex flex-col min-h-0">
-            <ScrollShadow ref={scrollAreaRef} className="flex-1 p-6 space-y-6 h-full overflow-y-auto">
+            <div
+                className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-none"
+                style={{
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
+                }}
+            />
+
+            <div
+                className="absolute bottom-0 left-0 right-0 h-24 z-10 pointer-events-none"
+                style={{
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    maskImage: 'linear-gradient(to top, black 0%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to top, black 0%, transparent 100%)'
+                }}
+            />
+
+            <div ref={scrollAreaRef} className="flex-1 px-6 pt-20 pb-32 space-y-6 h-full overflow-y-auto custom-scrollbar">
                 {messages.length === 0 && (
                     <EmptyState onNewChat={() => { }} />
                 )}
@@ -405,8 +424,8 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                     className={`
                                         max-w-[85%] shadow-sm
                                         ${isAgent
-                                            ? 'mat-content rounded-tl-sm'
-                                            : 'mat-lg-clear bg-[var(--color-accent)]/20 border-[var(--color-accent)]/30 rounded-tr-sm'}
+                                            ? 'mat-content rounded-2xl rounded-tl-sm'
+                                            : 'mat-lg-clear bg-[var(--color-accent)]/20 border-[var(--color-accent)]/30 rounded-2xl rounded-tr-sm'}
                                     `}
                                 >
                                     <CardBody className="p-4 overflow-hidden">
@@ -435,7 +454,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                 {/* Thinking / Output Block */}
                 {agentThinking && (
                     <div className="flex justify-start">
-                        <Card className="max-w-[85%] mat-content rounded-tl-sm">
+                        <Card className="max-w-[85%] mat-content rounded-2xl rounded-tl-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-2 mb-2 text-[var(--color-text-secondary)] text-[10px] font-medium tracking-wide">
                                     <Spinner size="sm" color="current" />
@@ -448,12 +467,13 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         </Card>
                     </div>
                 )}
+                <div className="h-10 shrink-0" />
                 <div ref={messagesEndRef} />
-            </ScrollShadow>
+            </div>
 
             {/* Input Area */}
-            <div className="p-4 z-10">
-                <div className="relative w-full mat-lg-clear rounded-[24px] flex items-end gap-2 p-1 pr-2 transition-all duration-200 focus-within:border-[var(--color-accent)] focus-within:shadow-[0_0_0_3px_var(--color-accent-ring),inset_0_1px_0_var(--mat-inset-highlight)]">
+            <div className="absolute bottom-0 left-0 right-0 p-4 z-20 pointer-events-none">
+                <div className="relative w-full max-w-3xl mx-auto mat-lg-regular rounded-[24px] flex items-end gap-2 p-1 pr-2 transition-all duration-200 focus-within:border-[var(--color-accent)] focus-within:shadow-[0_0_0_3px_var(--color-accent-ring),inset_0_1px_0_var(--mat-inset-highlight)] pointer-events-auto shadow-lg">
                     <textarea
                         ref={textareaRef}
                         className="w-full bg-transparent border-none outline-none focus:ring-0 focus:outline-none text-[13px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] px-4 py-2 min-h-[36px] max-h-48 resize-none overflow-y-auto scrollbar-hide"

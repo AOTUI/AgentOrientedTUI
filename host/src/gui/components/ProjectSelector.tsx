@@ -191,7 +191,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
     return (
         <div
-            className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--mat-base)] text-[var(--color-text-primary)] font-system"
+            className="fixed inset-0 flex flex-col overflow-hidden bg-transparent text-[var(--color-text-primary)] font-system"
         >
             {/* 微妙提示背景：极低透明度点网格 */}
             <div
@@ -206,7 +206,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
             {/* Traffic Light 拖动区域 */}
             <div
                 className="drag-region shrink-0 w-full"
-                style={{ height: 28 }}
+                style={{ height: 40 }}
             />
 
             {/* 内容区域 */}

@@ -4,8 +4,8 @@ import { Button } from "@heroui/button";
 
 export function ConnectionScreen({ status, onRetry }: { status: 'connecting' | 'error', onRetry?: () => void }) {
     return (
-        <div className="flex flex-col items-center justify-center h-screen w-full bg-[var(--mat-base)] text-[var(--color-text-primary)] relative overflow-hidden">
-             <div className="z-10 flex flex-col items-center mat-lg-regular p-10 rounded-[20px] w-full max-w-[480px] mx-4 text-center">
+        <div className="flex flex-col items-center justify-center h-screen w-full bg-transparent text-[var(--color-text-primary)] relative overflow-hidden">
+            <div className="z-10 flex flex-col items-center mat-lg-regular p-10 rounded-[20px] w-full max-w-[480px] mx-4 text-center shadow-2xl">
                 {status === 'connecting' ? (
                     <>
                         <Spinner size="lg" color="current" className="text-[var(--color-accent)]" />

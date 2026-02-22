@@ -305,72 +305,68 @@ export function App() {
     }
 
     return (
-        <div className="w-screen h-screen bg-[var(--mat-base)] text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative">
+        <div className="w-screen h-screen bg-[var(--mat-base)] text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative flex p-2 gap-2 box-border">
             {/* Background Layers */}
 
             {/* Window Drag Region */}
             <div className="fixed top-0 left-0 right-0 h-8 title-drag-region z-50" />
 
-            {/* Main Layout (macOS 26 Liquid Glass) */}
-            <div className="relative z-10 flex h-full w-full overflow-hidden">
+            {/* ======== Area 1: Sidebar (Layer 2) ======== */}
+            <Sidebar
+                sidebarOpen={sidebarOpen}
+                topics={topics}
+                activeTopicId={activeTopicId}
+                theme={theme}
+                onNewChat={handleNewChat}
+                onSelectTopic={handleSelectTopic}
+                toggleTheme={toggleTheme}
+                onSwitchProject={() => setCurrentProjectId(null)}
+                onOpenSettings={openSettings}
+                getTopicState={(topicId) => bridge.getAgentState(topicId)}
+                getTopicPaused={(topicId) => bridge.isAgentPaused(topicId)}
+            />
 
-                {/* ======== Area 1: Sidebar (Layer 2) ======== */}
-                <Sidebar
-                    sidebarOpen={sidebarOpen}
-                    topics={topics}
+            {/* ======== Area 2: Main Workspace (Layer 1) ======== */}
+            <div className="flex-1 flex flex-col min-w-0 h-full relative">
+                {/* Area 2.1: Header (Layer 2 Islands) */}
+                <WorkspaceHeader
+                    activeTopic={activeTopic}
                     activeTopicId={activeTopicId}
-                    theme={theme}
-                    onNewChat={handleNewChat}
-                    onSelectTopic={handleSelectTopic}
-                    toggleTheme={toggleTheme}
-                    onSwitchProject={() => setCurrentProjectId(null)}
-                    onOpenSettings={openSettings}
-                    getTopicState={(topicId) => bridge.getAgentState(topicId)}
-                    getTopicPaused={(topicId) => bridge.isAgentPaused(topicId)}
+                    connected={connected}
+                    sidebarOpen={sidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                    viewMode={viewMode}
+                    setViewMode={setViewMode}
+                    agentState={agentState}
+                    agentPaused={agentPaused}
+                    onResumeAgent={handleResumeAgent}
+                    onPauseAgent={handlePauseAgent}
+                    onShowDeleteConfirm={() => setShowDeleteConfirm(true)}
                 />
 
-                {/* ======== Area 2: Main Workspace (Layer 1) ======== */}
-                <div className={`flex-1 flex flex-col min-w-0 h-full relative transition-all duration-400 ease-[var(--ease-spring)] ${sidebarOpen ? 'ml-[260px]' : 'ml-0'}`}>
-                    {/* Area 2.1: Header (Layer 2 Islands) */}
-                    <WorkspaceHeader
-                        activeTopic={activeTopic}
-                        activeTopicId={activeTopicId}
-                        connected={connected}
-                        sidebarOpen={sidebarOpen}
-                        setSidebarOpen={setSidebarOpen}
-                        viewMode={viewMode}
-                        setViewMode={setViewMode}
-                        agentState={agentState}
-                        agentPaused={agentPaused}
-                        onResumeAgent={handleResumeAgent}
-                        onPauseAgent={handlePauseAgent}
-                        onShowDeleteConfirm={() => setShowDeleteConfirm(true)}
-                    />
-
-                    {/* Area 2.2: Content (Chat / TUI) */}
-                    <main className="flex-1 overflow-hidden relative flex flex-col">
-                        <div className="flex-1 overflow-hidden relative">
-                            {viewMode === 'chat' ? (
-                                <ChatArea
-                                    messages={messages}
+                {/* Area 2.2: Content (Chat / TUI) */}
+                <main className="flex-1 overflow-hidden relative flex flex-col">
+                    <div className="flex-1 overflow-hidden relative">
+                        {viewMode === 'chat' ? (
+                            <ChatArea
+                                messages={messages}
+                                agentThinking={agentThinking}
+                                agentReasoning={agentReasoning}
+                                onSendMessage={handleSendMessage}
+                                canSendMessage={canSendMessage}
+                                sendBlockedReason={sendBlockedReason}
+                                onOpenSettings={openSettings}
+                            />
+                        ) : (
+                            <div className="absolute inset-0 bg-[var(--color-bg-base)] rounded-2xl overflow-hidden border border-[var(--mat-border)]">
+                                <TuiDesktopViewer
+                                    snapshot={tuiSnapshot}
                                     agentThinking={agentThinking}
-                                    agentReasoning={agentReasoning}
-                                    onSendMessage={handleSendMessage}
-                                    canSendMessage={canSendMessage}
-                                    sendBlockedReason={sendBlockedReason}
-                                    onOpenSettings={openSettings}
                                 />
-                            ) : (
-                                <div className="absolute inset-0 bg-[var(--color-bg-base)]">
-                                    <TuiDesktopViewer
-                                        snapshot={tuiSnapshot}
-                                        agentThinking={agentThinking}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </main>
-                </div>
+                            </div>
+                        )}
+                    </div>
+                </main>
             </div>
 
             <Toast message={toastMessage} />

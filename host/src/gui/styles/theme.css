@@ -64,8 +64,8 @@
 
     /* Materials */
     --mat-base: var(--color-bg-base);
-    --mat-lg-regular-bg: rgba(30, 30, 35, 0.72);
-    --mat-lg-clear-bg: rgba(30, 30, 35, 0.4);
+    --mat-lg-regular-bg: rgba(30, 30, 35, 0.45);
+    --mat-lg-clear-bg: rgba(30, 30, 35, 0.25);
     --mat-content-card-bg: rgba(255, 255, 255, 0.04);
     --mat-border: rgba(255, 255, 255, 0.10);
     --mat-border-highlight: rgba(255, 255, 255, 0.15);
@@ -118,8 +118,8 @@
 
     /* Materials */
     --mat-base: var(--color-bg-base);
-    --mat-lg-regular-bg: rgba(255, 255, 255, 0.72);
-    --mat-lg-clear-bg: rgba(255, 255, 255, 0.4);
+    --mat-lg-regular-bg: rgba(255, 255, 255, 0.45);
+    --mat-lg-clear-bg: rgba(255, 255, 255, 0.25);
     --mat-content-card-bg: rgba(0, 0, 0, 0.04);
     --mat-border: rgba(0, 0, 0, 0.10);
     --mat-border-highlight: rgba(255, 255, 255, 0.5);

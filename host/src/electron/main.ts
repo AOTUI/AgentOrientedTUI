@@ -60,7 +60,7 @@ function createWindow() {
         height: 800,
         backgroundColor: '#000000', // Matches TUI theme
         titleBarStyle: 'hidden',
-        trafficLightPosition: { x: 8, y: 8 },
+        trafficLightPosition: { x: 20, y: 18 },
         webPreferences: {
             preload: resolve(__dirname, 'preload.cjs'),
             nodeIntegration: false,
