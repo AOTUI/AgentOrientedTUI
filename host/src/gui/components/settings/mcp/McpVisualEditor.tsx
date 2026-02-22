@@ -41,10 +41,55 @@ export interface McpRuntimeApi {
 interface McpVisualEditorProps {
     config: Record<string, any>;
     onChange: (config: Record<string, any>) => void;
-    onSave: (config: Record<string, any>) => void;
+    onSave: (config: Record<string, any>) => Promise<void> | void;
     isSaving?: boolean;
     /** 必须传入：从父组件注入（方便测试时传入 mock 对象）*/
     runtimeApi: McpRuntimeApi;
+}
+
+function toObject(value: unknown): Record<string, any> {
+    return value && typeof value === 'object' ? (value as Record<string, any>) : {};
+}
+
+function normalizeImportedServerEntry(entry: Record<string, any>): Record<string, any> {
+    const normalized: Record<string, any> = { ...entry };
+
+    if (normalized.enabled === undefined && typeof normalized.disabled === 'boolean') {
+        normalized.enabled = !normalized.disabled;
+    }
+
+    if (typeof normalized.command === 'string') {
+        const args = Array.isArray(normalized.args)
+            ? normalized.args.filter((arg: unknown): arg is string => typeof arg === 'string')
+            : [];
+        normalized.command = [normalized.command, ...args];
+    }
+
+    if (!normalized.type) {
+        if (typeof normalized.url === 'string') {
+            normalized.type = 'remote';
+        } else if (Array.isArray(normalized.command)) {
+            normalized.type = 'local';
+        }
+    }
+
+    if (!normalized.environment && normalized.env && typeof normalized.env === 'object') {
+        normalized.environment = normalized.env;
+    }
+
+    return normalized;
+}
+
+function extractServersFromImportJson(input: string): Record<string, any> {
+    const parsed = JSON.parse(input);
+    const obj = toObject(parsed);
+    const container = toObject(obj.mcpServers ?? obj.mcp ?? obj);
+
+    const entries = Object.entries(container)
+        .filter(([, value]) => value && typeof value === 'object')
+        .map(([name, value]) => [name, normalizeImportedServerEntry(value as Record<string, any>)]);
+
+    return Object.fromEntries(entries);
 }
 
 // ── 子组件：状态徽章 ──────────────────────────────────────────────────────────
@@ -122,6 +167,10 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
     const [runtimeLoading, setRuntimeLoading] = useState(true);
     const [runtimeError, setRuntimeError] = useState<string | null>(null);
     const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
+    const [showImportDialog, setShowImportDialog] = useState(false);
+    const [importText, setImportText] = useState('');
+    const [importError, setImportError] = useState<string | null>(null);
+    const [isImporting, setIsImporting] = useState(false);
 
     const statusLabelMap: Record<string, string> = {
         connected: 'Connected',
@@ -167,14 +216,44 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
     const commitChange = (newConfig: Record<string, any>) => onChange(newConfig);
 
     const handleAddServer = () => {
-        let key = 'new-server';
-        let count = 1;
-        while (config[key]) key = `new-server-${count++}`;
-        commitChange({
-            ...config,
-            [key]: { type: 'remote', url: 'http://localhost:8000/sse', enabled: true },
-        });
-        setSelectedKey(key);
+        setImportError(null);
+        setImportText(`{
+  "mcpServers": {
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.exa.ai/mcp"]
+    }
+  }
+}`);
+        setShowImportDialog(true);
+    };
+
+    const handleImportServers = async () => {
+        setImportError(null);
+        setIsImporting(true);
+        try {
+            const imported = extractServersFromImportJson(importText);
+            const importedNames = Object.keys(imported);
+            if (importedNames.length === 0) {
+                setImportError('No valid MCP servers found. Expecting { "mcpServers": { "name": { ... } } }.');
+                return;
+            }
+
+            const nextConfig = {
+                ...config,
+                ...imported,
+            };
+
+            commitChange(nextConfig);
+            setSelectedKey(importedNames[0]);
+            await onSave(nextConfig);
+            setShowImportDialog(false);
+            await fetchRuntime();
+        } catch (err) {
+            setImportError((err as Error).message || 'Failed to parse JSON');
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     const handleDeleteServer = (e: React.MouseEvent, key: string) => {
@@ -194,6 +273,14 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
         setPendingToggles(prev => new Set(prev).add(pendingKey));
         try {
             await api.setServerEnabled({ name: serverName, enabled });
+            const nextConfig = {
+                ...config,
+                [serverName]: {
+                    ...(config[serverName] || {}),
+                    enabled,
+                },
+            };
+            commitChange(nextConfig);
             // 乐观更新 runtime
             setRuntime(prev => ({
                 ...prev,
@@ -222,6 +309,25 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
         setPendingToggles(prev => new Set(prev).add(pendingKey));
         try {
             await api.setToolEnabled({ serverName, toolName, enabled });
+            const currentServer = (config[serverName] || {}) as Record<string, any>;
+            const disabledTools = new Set<string>(
+                Array.isArray(currentServer.disabledTools)
+                    ? currentServer.disabledTools.filter((name: unknown): name is string => typeof name === 'string')
+                    : []
+            );
+            if (enabled) {
+                disabledTools.delete(toolName);
+            } else {
+                disabledTools.add(toolName);
+            }
+            const nextConfig = {
+                ...config,
+                [serverName]: {
+                    ...currentServer,
+                    disabledTools: Array.from(disabledTools),
+                },
+            };
+            commitChange(nextConfig);
             // 乐观更新 runtime
             setRuntime(prev => {
                 const entry = prev[serverName];
@@ -309,7 +415,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                         <button
                             onClick={handleAddServer}
                             className="p-1 hover:bg-[var(--mat-content-card-hover-bg)] rounded-full text-[var(--color-accent)] transition-colors"
-                            title="Add Server"
+                            title="Import MCP JSON"
                         >
                             <IconNewChat className="w-3.5 h-3.5" />
                         </button>
@@ -317,7 +423,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     <div className="flex-1 overflow-y-auto p-1.5 flex flex-col gap-0.5">
                         {keys.length === 0 ? (
                             <div className="px-3 py-6 text-center text-[11px] text-[var(--color-text-tertiary)] italic">
-                                No servers configured.<br />Click + to add one.
+                                No servers configured.<br />Click + to import JSON.
                             </div>
                         ) : (
                             keys.map(key => {
@@ -510,6 +616,55 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     )}
                 </div>
             </div>
+
+            {showImportDialog && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 p-4">
+                    <div className="w-full max-w-2xl mat-content rounded-[16px] border border-[var(--mat-border)] shadow-2xl flex flex-col max-h-[80vh]">
+                        <div className="px-4 py-3 border-b border-[var(--mat-border)] flex items-center justify-between">
+                            <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)]">Import MCP JSON</h4>
+                            <button
+                                onClick={() => setShowImportDialog(false)}
+                                className="text-[11px] px-2 py-1 rounded-full hover:bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-tertiary)]"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+
+                        <div className="p-4 flex-1 min-h-0 flex flex-col gap-3">
+                            <p className="text-[11px] text-[var(--color-text-tertiary)]">
+                                Paste JSON like {'{ "mcpServers": { "exa": { ... } } }'}. Imported servers are saved immediately.
+                            </p>
+                            <textarea
+                                value={importText}
+                                onChange={(e) => setImportText(e.target.value)}
+                                spellCheck={false}
+                                className="flex-1 min-h-[240px] w-full font-mono text-[12px] p-3 rounded-xl resize-none outline-none mat-content border border-[var(--mat-border)] focus:border-[var(--color-accent)]"
+                            />
+                            {importError && (
+                                <div className="text-[11px] px-3 py-2 rounded-lg bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/20 text-[var(--color-danger)] break-words">
+                                    {importError}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="px-4 py-3 border-t border-[var(--mat-border)] flex items-center justify-end gap-2">
+                            <button
+                                onClick={() => setShowImportDialog(false)}
+                                className="px-3 py-1.5 text-[12px] rounded-full border border-[var(--mat-border)] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={handleImportServers}
+                                disabled={isImporting || !importText.trim()}
+                                className="px-3 py-1.5 text-[12px] rounded-full bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {isImporting ? 'Importing...' : 'Import & Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

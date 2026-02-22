@@ -307,25 +307,39 @@ describe('McpVisualEditor 组件', () => {
     // ─── Server 管理 ─────────────────────────────────────────────────────────
 
     describe('Server 管理', () => {
-        it('点击 + 按钮应调用 onChange 添加新 server', async () => {
+        it('点击 + 按钮应打开 JSON 导入并在导入后保存配置', async () => {
             const onChange = vi.fn();
+            const onSave = vi.fn().mockResolvedValue(undefined);
             const api = makeRuntimeApi();
-            render(<McpVisualEditor {...makeProps(api, { onChange })} />);
+            render(<McpVisualEditor {...makeProps(api, { onChange, onSave })} />);
 
             await waitFor(() => {
-                expect(screen.getByTitle('Add Server')).toBeInTheDocument();
+                expect(screen.getByTitle('Import MCP JSON')).toBeInTheDocument();
             });
 
-            const addBtn = screen.getByTitle('Add Server');
+            const addBtn = screen.getByTitle('Import MCP JSON');
             expect(addBtn).not.toBeNull();
 
             fireEvent.click(addBtn);
 
-            expect(onChange).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    'new-server': expect.objectContaining({ type: 'remote' }),
-                })
-            );
+            await waitFor(() => {
+                expect(screen.getByText('Import MCP JSON')).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByText('Import & Save'));
+
+            await waitFor(() => {
+                expect(onChange).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        exa: expect.objectContaining({ type: 'local' }),
+                    })
+                );
+                expect(onSave).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        exa: expect.objectContaining({ type: 'local' }),
+                    })
+                );
+            });
         });
     });
 });

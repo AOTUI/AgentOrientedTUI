@@ -65,14 +65,14 @@
 
     /* Materials */
     --mat-base: var(--color-bg-base);
-    --mat-lg-regular-bg: rgba(30, 30, 35, 0.45);
+    --mat-lg-regular-bg: rgba(30, 30, 35, 0.65);
     --mat-lg-regular-bg-fallback: rgba(30, 30, 35, 0.95);
-    --mat-lg-clear-bg: rgba(30, 30, 35, 0.25);
+    --mat-lg-clear-bg: rgba(30, 30, 35, 0.45);
     --mat-lg-clear-bg-fallback: rgba(30, 30, 35, 0.85);
     --mat-lg-clear-accent-bg: rgba(10, 132, 255, 0.2);
     --mat-lg-clear-accent-bg-fallback: rgba(10, 132, 255, 0.8);
-    --mat-content-card-bg: rgba(255, 255, 255, 0.04);
-    --mat-content-card-hover-bg: rgba(255, 255, 255, 0.08);
+    --mat-content-card-bg: rgba(255, 255, 255, 0.06);
+    --mat-content-card-hover-bg: rgba(255, 255, 255, 0.1);
     --mat-border: rgba(255, 255, 255, 0.10);
     --mat-border-highlight: rgba(255, 255, 255, 0.15);
     --mat-inset-highlight: rgba(255, 255, 255, 0.05);
@@ -124,19 +124,19 @@
 
     /* Materials */
     --mat-base: var(--color-bg-base);
-    --mat-lg-regular-bg: rgba(255, 255, 255, 0.65);
-    --mat-lg-regular-bg-fallback: rgba(255, 255, 255, 0.95);
-    --mat-lg-clear-bg: rgba(255, 255, 255, 0.45);
-    --mat-lg-clear-bg-fallback: rgba(255, 255, 255, 0.9);
-    --mat-lg-clear-accent-bg: rgba(0, 122, 255, 0.12);
-    --mat-lg-clear-accent-bg-fallback: rgba(0, 122, 255, 0.8);
-    --mat-content-card-bg: rgba(255, 255, 255, 0.6);
-    --mat-content-card-hover-bg: rgba(255, 255, 255, 0.8);
-    --mat-border: rgba(0, 0, 0, 0.06);
-    --mat-border-highlight: rgba(255, 255, 255, 0.8);
-    --mat-inset-highlight: rgba(255, 255, 255, 0.9);
+    --mat-lg-regular-bg: rgba(255, 255, 255, 0.85);
+    --mat-lg-regular-bg-fallback: rgba(255, 255, 255, 0.98);
+    --mat-lg-clear-bg: rgba(255, 255, 255, 0.65);
+    --mat-lg-clear-bg-fallback: rgba(255, 255, 255, 0.95);
+    --mat-lg-clear-accent-bg: rgba(0, 122, 255, 0.15);
+    --mat-lg-clear-accent-bg-fallback: rgba(0, 122, 255, 0.85);
+    --mat-content-card-bg: rgba(255, 255, 255, 0.85);
+    --mat-content-card-hover-bg: rgba(255, 255, 255, 0.95);
+    --mat-border: rgba(0, 0, 0, 0.12);
+    --mat-border-highlight: rgba(0, 0, 0, 0.2);
+    --mat-inset-highlight: rgba(255, 255, 255, 1);
     --mat-shadow-color: rgba(0, 0, 0, 0.08);
-    --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.6);
+    --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.85);
     --mat-overlay-bg: rgba(0, 0, 0, 0.15);
     
     /* Legacy mappings */

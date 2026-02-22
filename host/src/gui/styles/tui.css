@@ -68,7 +68,7 @@
 }
 
 .tui-app-switcher__item.active {
-    border-color: rgba(59, 130, 246, 0.35);
+    border-color: var(--color-accent-ring);
     background: color-mix(in srgb, var(--color-accent) 14%, var(--glass-bg));
     color: var(--color-text-primary);
 }
@@ -88,6 +88,7 @@
 .tui-app-card {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     overflow: hidden;
@@ -96,9 +97,15 @@
     transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
+@supports not (backdrop-filter: blur(1px)) {
+    .tui-app-card {
+        background: var(--mat-lg-regular-bg-fallback);
+    }
+}
+
 .tui-app-card:hover {
     border-color: var(--glass-border-highlight);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px var(--mat-shadow-color);
 }
 
 /* Header */
@@ -108,7 +115,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--mat-content-card-bg);
 }
 
 .tui-app-card-title {
@@ -152,16 +159,15 @@
 }
 
 .status-badge--running {
-    background: rgba(0, 255, 157, 0.1);
+    background: var(--color-success-muted);
     color: var(--color-success);
-    border-color: rgba(0, 255, 157, 0.2);
-    box-shadow: 0 0 8px rgba(0, 255, 157, 0.1);
+    border-color: var(--color-success);
 }
 
 .status-badge--mounted {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--color-accent-light);
-    border-color: rgba(59, 130, 246, 0.2);
+    background: var(--color-accent-muted);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
 }
 
 .breathing-dot {
@@ -179,11 +185,11 @@
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md);
     padding: var(--space-md) var(--space-lg);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--mat-overlay-bg);
 }
 
 .tui-app-info-block {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--mat-content-card-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: var(--space-md);
@@ -256,12 +262,12 @@
 }
 
 .tui-view-tab:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--mat-content-card-hover-bg);
 }
 
 .tui-view-tab.active {
-    background: var(--color-accent-glow);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: var(--color-accent-muted);
+    border-color: var(--color-accent);
 }
 
 .tui-view-tab-name {
@@ -271,7 +277,7 @@
 }
 
 .tui-view-tab.active .tui-view-tab-name {
-    color: var(--color-accent-light);
+    color: var(--color-accent);
 }
 
 .tui-view-tab-id {
@@ -284,14 +290,14 @@
 .tui-app-card-content {
     padding: var(--space-lg);
     min-height: 200px;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--mat-overlay-bg);
 }
 
 /* View Block Styles */
 .tui-block--view {
     border: 1px dashed var(--color-border);
     border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.01);
+    background: var(--mat-content-card-bg);
     overflow: hidden;
 }
 
@@ -300,7 +306,7 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-sm) var(--space-md);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--mat-content-card-hover-bg);
     border-bottom: 1px dashed var(--color-border);
 }
 
@@ -315,7 +321,7 @@
     font-weight: 700;
     color: var(--color-text-tertiary);
     letter-spacing: 0.05em;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--mat-content-card-bg);
     padding: 2px 4px;
     border-radius: 4px;
 }
@@ -353,7 +359,7 @@
 }
 
 .tui-markdown pre {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--mat-overlay-bg);
     padding: var(--space-md);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
@@ -369,13 +375,20 @@
     bottom: var(--space-lg);
     right: var(--space-lg);
     width: 300px;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--mat-lg-clear-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--color-text-secondary);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--mat-border);
     border-radius: var(--radius-lg);
     padding: var(--space-md);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 24px var(--mat-shadow-color);
     z-index: 100;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+    .tui-thinking-overlay {
+        background: var(--mat-lg-clear-bg-fallback);
+    }
 }
 
 .tui-thinking-header {
@@ -402,46 +415,46 @@
 }
 
 [data-theme='light'] .tui-app-card-header {
-    background: rgba(255, 255, 255, 0.65);
+    background: var(--mat-content-card-bg);
 }
 
 [data-theme='light'] .tui-app-switcher__item {
-    background: rgba(255, 255, 255, 0.75);
+    background: var(--mat-lg-clear-bg);
 }
 
 [data-theme='light'] .tui-app-info-section {
-    background: rgba(24, 24, 27, 0.04);
+    background: var(--mat-overlay-bg);
 }
 
 [data-theme='light'] .tui-app-info-block {
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--mat-content-card-bg);
 }
 
 [data-theme='light'] .tui-view-tab:hover {
-    background: rgba(24, 24, 27, 0.06);
+    background: var(--mat-content-card-hover-bg);
 }
 
 [data-theme='light'] .tui-app-card-content {
-    background: rgba(24, 24, 27, 0.03);
+    background: var(--mat-overlay-bg);
 }
 
 [data-theme='light'] .tui-block--view {
-    background: rgba(255, 255, 255, 0.6);
+    background: var(--mat-content-card-bg);
 }
 
 [data-theme='light'] .tui-block__header {
-    background: rgba(24, 24, 27, 0.04);
+    background: var(--mat-content-card-hover-bg);
 }
 
 [data-theme='light'] .tui-block__label {
-    background: rgba(24, 24, 27, 0.06);
+    background: var(--mat-content-card-bg);
 }
 
 [data-theme='light'] .tui-markdown pre {
-    background: rgba(24, 24, 27, 0.06);
+    background: var(--mat-content-card-bg);
 }
 
 [data-theme='light'] .tui-thinking-overlay {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(24, 24, 27, 0.12);
+    background: var(--mat-lg-clear-bg);
+    border-color: var(--mat-border);
 }

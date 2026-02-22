@@ -190,7 +190,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Sidebar - horizontal on mobile, vertical on desktop */}
-                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--mat-border)] flex flex-col gap-3 md:h-full bg-transparent">
+                <div className="relative z-10 flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--mat-border)] flex flex-col gap-3 md:h-full bg-transparent">
                     <SettingsSidebar
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
@@ -207,7 +207,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
 
                 {/* Content Area - scrollable */}
-                <div className="flex-1 p-5 sm:p-6 overflow-hidden flex flex-col min-h-0 relative">
+                <div className="relative z-10 flex-1 p-5 sm:p-6 overflow-hidden flex flex-col min-h-0">
                     {/* Hidden title for accessibility */}
                     <h1 id="settings-panel-title" className="sr-only">
                         Settings Panel

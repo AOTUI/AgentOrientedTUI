@@ -228,4 +228,33 @@ export namespace Config {
     await fs.writeFile(filepath, JSON.stringify(merged, null, 2), "utf8")
     return merged
   }
+
+  /**
+   * 以“替换”语义更新 MCP 配置。
+   *
+   * 注意：MCP 管理场景（可删除 server）不能使用 merge 语义，
+   * 否则旧 key 会残留，导致 Delete/Save 看起来不生效。
+   */
+  export async function replaceGlobalMcp(mcp: Info["mcp"]): Promise<Info> {
+    const filepath = getGlobalConfigPath()
+    await fs.mkdir(path.dirname(filepath), { recursive: true })
+
+    const existing = await readConfigFile(filepath)
+    const merged: Info = {
+      ...existing,
+      mcp: mcp ?? {},
+    }
+
+    // 清理历史字段，避免双源配置不一致（mcp 优先 / mcpServers 残留）
+    if ("mcpServers" in merged) {
+      delete (merged as Record<string, unknown>).mcpServers
+    }
+
+    if (!merged.$schema) {
+      merged.$schema = "https://opencode.ai/config.json"
+    }
+
+    await fs.writeFile(filepath, JSON.stringify(merged, null, 2), "utf8")
+    return merged
+  }
 }

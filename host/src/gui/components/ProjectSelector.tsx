@@ -62,7 +62,7 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
         >
             {/* Card body — Liquid Glass Regular */}
             <div
-                className="mat-lg-regular relative flex items-center gap-4 p-4 overflow-hidden cursor-pointer rounded-[var(--radius-lg)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
+                className="mat-content relative flex items-center gap-4 p-4 overflow-hidden cursor-pointer rounded-[var(--radius-lg)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
             >
                 {/* 项目图标 — 同心圆角小方块 */}
                 <div
@@ -120,6 +120,15 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
     const bridge = useChatBridge();
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const isDark = theme === 'dark';
+
+    const overlayFilter = isDark
+        ? 'blur(56px) saturate(120%) brightness(0.72)'
+        : 'blur(56px) saturate(170%) brightness(1.02)';
+
+    const panelBackdropFilter = isDark
+        ? 'blur(36px) saturate(120%) brightness(0.86)'
+        : 'blur(40px) saturate(180%) brightness(1.02)';
 
     useEffect(() => {
         loadProjects();
@@ -169,13 +178,20 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
             <div 
                 className="absolute inset-0 z-0 bg-[var(--mat-overlay-bg)]"
                 style={{
-                    backdropFilter: 'blur(60px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(60px) saturate(200%)'
+                    backdropFilter: overlayFilter,
+                    WebkitBackdropFilter: overlayFilter
                 }}
             />
 
             {/* 居中对话框 */}
-            <div className="mat-lg-regular flex flex-col w-full max-w-[480px] max-h-[80vh] rounded-[20px] shadow-2xl overflow-hidden relative z-10">
+            <div
+                className="mat-lg-regular flex flex-col w-full max-w-[480px] max-h-[80vh] rounded-[20px] shadow-2xl overflow-hidden relative z-10"
+                style={{
+                    background: isDark ? 'rgba(24, 24, 28, 0.78)' : 'var(--mat-lg-regular-bg)',
+                    backdropFilter: panelBackdropFilter,
+                    WebkitBackdropFilter: panelBackdropFilter,
+                }}
+            >
                 {/* Traffic Light 拖动区域 */}
                 <div
                     className="drag-region shrink-0 w-full"
@@ -183,14 +199,18 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                 />
 
                 {/* 内容区域 */}
-                <div className="no-drag flex-1 flex flex-col overflow-hidden px-8 pb-8">
+                <div className="no-drag relative z-10 flex-1 flex flex-col overflow-hidden px-8 pb-8">
 
                 {/* 头部: title + 操作按钮 */}
                 <header className="shrink-0 flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                         {/* 微型 AOTUI Logomark */}
                         <div
-                            className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20"
+                            className={`w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center border ${
+                                theme === 'light'
+                                    ? 'bg-[var(--mat-content-card-hover-bg)] border-[var(--mat-border-highlight)]'
+                                    : 'bg-[var(--color-accent-muted)] border-[var(--color-accent-ring)]'
+                            }`}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className="text-[var(--color-accent)]">
                                 <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -207,7 +227,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                         </h1>
                         {projects.length > 0 && (
                             <span
-                                className="text-[11px] font-medium px-2 py-0.5 rounded-full mat-lg-clear text-[var(--color-text-tertiary)]"
+                                className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] text-[var(--color-text-tertiary)]"
                             >
                                 {projects.length}
                             </span>
@@ -219,7 +239,11 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                         {onOpenSettings && (
                             <button
                                 onClick={onOpenSettings}
-                                  className="p-2 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
+                                className={`p-2 rounded-full transition-colors ${
+                                    theme === 'light'
+                                        ? 'cursor-pointer text-[var(--color-text-primary)] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] shadow-[inset_0_1px_0_var(--mat-inset-highlight)] hover:bg-[var(--mat-content-card-hover-bg)] hover:border-[var(--mat-border-highlight)]'
+                                        : 'cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-content-card-hover-bg)]'
+                                }`}
                                 title="Settings"
                             >
                                 <IconSettings />
@@ -227,7 +251,11 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                         )}
                         <button
                             onClick={toggleTheme}
-                              className="p-2 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
+                            className={`p-2 rounded-full transition-colors ${
+                                theme === 'light'
+                                    ? 'cursor-pointer text-[var(--color-text-primary)] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] shadow-[inset_0_1px_0_var(--mat-inset-highlight)] hover:bg-[var(--mat-content-card-hover-bg)] hover:border-[var(--mat-border-highlight)]'
+                                    : 'cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-content-card-hover-bg)]'
+                            }`}
                             title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
                         >
                             {theme === 'dark' ? <IconSun /> : <IconMoon />}
@@ -240,7 +268,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
                         <button
                             onClick={handleOpenFolder}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all active:scale-95 motion-reduce:active:scale-100"
+                            className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] shadow-[inset_0_1px_0_var(--mat-inset-highlight)] hover:bg-[var(--mat-content-card-hover-bg)] hover:border-[var(--mat-border-highlight)] transition-all active:scale-95 motion-reduce:active:scale-100"
                         >
                             <IconFolder className="w-3.5 h-3.5" />
                             <span>Open Folder</span>
@@ -317,7 +345,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
                             <button
                                 onClick={handleOpenFolder}
-                                className="flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all active:scale-95 motion-reduce:active:scale-100"
+                                className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] shadow-[inset_0_1px_0_var(--mat-inset-highlight)] hover:bg-[var(--mat-content-card-hover-bg)] hover:border-[var(--mat-border-highlight)] transition-all active:scale-95 motion-reduce:active:scale-100"
                             >
                                 <IconFolder className="w-3.5 h-3.5" />
                                 <span>Open Folder</span>

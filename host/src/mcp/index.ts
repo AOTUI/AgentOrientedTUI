@@ -564,7 +564,11 @@ export namespace MCP {
       const mcpConfig = config[clientName]
       const entry = isMcpConfigured(mcpConfig) ? mcpConfig : undefined
       const timeout = entry?.timeout ?? defaultTimeout
+      const disabledTools = new Set(entry?.disabledTools ?? [])
       for (const mcpTool of toolsResult.tools) {
+        if (disabledTools.has(mcpTool.name)) {
+          continue
+        }
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
         const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
         result[`mcp-${sanitizedClientName}-${sanitizedToolName}`] = await convertMcpTool(mcpTool, client, timeout)

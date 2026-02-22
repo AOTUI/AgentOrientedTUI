@@ -304,8 +304,12 @@ function normalizeMcpServerEntry(entry: Record<string, any>): Record<string, any
         normalized.command = [normalized.command, ...args];
     }
 
-    if (!normalized.type && Array.isArray(normalized.command)) {
-        normalized.type = 'local';
+    if (!normalized.type) {
+        if (typeof normalized.url === 'string') {
+            normalized.type = 'remote';
+        } else if (Array.isArray(normalized.command)) {
+            normalized.type = 'local';
+        }
     }
 
     if (!normalized.environment && normalized.env && typeof normalized.env === 'object') {
@@ -339,7 +343,7 @@ const mcpRouter = router({
             mcp: z.record(z.string(), z.any())
         }))
         .mutation(async ({ input }) => {
-            await Config.updateGlobal({ mcp: normalizeMcpConfig(input.mcp) });
+            await Config.replaceGlobalMcp(normalizeMcpConfig(input.mcp));
             return { success: true };
         }),
 
@@ -423,7 +427,7 @@ const mcpRouter = router({
             }
 
             mcpConfig[input.name] = { ...mcpConfig[input.name], enabled: input.enabled };
-            await Config.updateGlobal({ mcp: mcpConfig });
+            await Config.replaceGlobalMcp(mcpConfig);
 
             if (input.enabled) {
                 await MCP.connect(input.name);
@@ -466,7 +470,7 @@ const mcpRouter = router({
 
             serverConfig.disabledTools = disabledTools;
             mcpConfig[input.serverName] = serverConfig;
-            await Config.updateGlobal({ mcp: mcpConfig });
+            await Config.replaceGlobalMcp(mcpConfig);
 
             return { success: true };
         }),
