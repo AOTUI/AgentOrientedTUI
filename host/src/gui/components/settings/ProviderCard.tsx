@@ -54,7 +54,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                     rounded-[16px] border transition-all duration-200 ease-[var(--ease-spring)]
                     cursor-pointer overflow-hidden
                     mat-content hover:bg-[var(--mat-content-card-hover-bg)]
-                    ${isSelected ? 'border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-accent)]' : 'border-[var(--mat-border)]'}
+                    border-[var(--mat-border)]
                 `}
                 onClick={onSelect}
                 role="radio"

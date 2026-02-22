@@ -267,7 +267,13 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <div className="flex flex-col h-full min-h-[400px]">
+        <div
+            className="flex flex-col h-full min-h-[400px] rounded-[inherit] overflow-hidden"
+            style={{
+                isolation: 'isolate',
+                WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+            }}
+        >
             {/* 顶部工具栏 */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--mat-border)] mat-lg-clear shrink-0">
                 <span className="text-[11px] text-[var(--color-text-tertiary)] font-mono">

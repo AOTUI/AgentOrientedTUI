@@ -121,7 +121,14 @@ export const McpTab: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 relative mat-content rounded-[16px] overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+            <div
+                className="flex-1 min-h-0 relative mat-content rounded-[16px] overflow-hidden"
+                style={{
+                    transform: 'translateZ(0)',
+                    isolation: 'isolate',
+                    WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                }}
+            >
                 {viewMode === 'visual' ? (
                     <McpVisualEditor
                         config={mcpConfig}
