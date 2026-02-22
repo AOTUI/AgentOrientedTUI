@@ -64,16 +64,14 @@ export function Sidebar({
 
     return (
         <aside className={`
-            mat-content relative flex flex-col overflow-hidden min-h-0 h-full
-            transition-all duration-400 ease-[var(--ease-out-expo)]
-            rounded-[var(--radius-xl)]
-            ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10 border-0 p-0 pointer-events-none'}
+            absolute left-0 top-0 bottom-0 w-[260px] z-20
+            mat-lg-regular flex flex-col overflow-hidden
+            transition-transform duration-400 ease-[var(--ease-spring)]
+            rounded-r-[16px] border-r border-[var(--mat-border)]
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
             {/* Sidebar Header */}
             <div className="px-6 pb-6 pt-10 flex flex-col gap-6 shrink-0 relative">
-                {/* Header Background Glow */}
-                <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-                
                 <Button
                     className="w-full h-10 font-medium bg-[var(--mat-lg-clear-bg)] text-[var(--color-accent)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] hover:border-[var(--mat-border-highlight)] transition-all flex items-center justify-center gap-2 group rounded-lg"
                     onClick={onNewChat}

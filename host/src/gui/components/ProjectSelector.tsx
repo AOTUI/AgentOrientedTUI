@@ -58,48 +58,39 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
             tabIndex={0}
             role="button"
             aria-label={`Open project ${project.name}`}
-            className="group relative text-left w-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--ac-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-[var(--r-panel)]"
-            style={{ borderRadius: 'var(--r-panel)' }}
+            className="group relative text-left w-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-[var(--radius-lg)]"
         >
-            {/* Card body \u2014 Liquid Glass Regular */}
+            {/* Card body — Liquid Glass Regular */}
             <div
-                className="lg-card relative flex flex-col h-full min-h-[148px] p-5 overflow-hidden cursor-pointer"
-                style={{ borderRadius: 'var(--r-panel)' }}
+                className="mat-lg-regular relative flex flex-col h-full min-h-[148px] p-5 overflow-hidden cursor-pointer rounded-[var(--radius-lg)]"
             >
-                {/* \u9876\u90e8: \u56fe\u6807 + \u5185\u5bb9 + \u5220\u9664\u6309\u94ae */}
+                {/* 顶部: 图标 + 内容 + 删除按钮 */}
                 <div className="flex items-start justify-between gap-3 mb-auto">
                     <div className="flex items-center gap-3 min-w-0">
-                        {/* \u9879\u76ee\u56fe\u6807 \u2014 \u540c\u5fc3\u5706\u89d2\u5c0f\u65b9\u5757 */}
+                        {/* 项目图标 — 同心圆角小方块 */}
                         <div
-                            className={`proj-icon-${colorIdx} shrink-0 w-9 h-9 rounded-[var(--r-item)] border flex items-center justify-center`}
-                            style={{ borderRadius: 'var(--r-item)' }}
+                            className={`proj-icon-${colorIdx} shrink-0 w-9 h-9 rounded-[var(--radius-sm)] border flex items-center justify-center`}
                         >
                             <span
-                                className="text-sm font-semibold leading-none"
-                                style={{ fontFamily: 'var(--font-system)' }}
+                                className="text-sm font-semibold leading-none font-system"
                             >
                                 {project.name.charAt(0).toUpperCase()}
                             </span>
                         </div>
 
-                        {/* \u9879\u76ee\u540d\u79f0 */}
+                        {/* 项目名称 */}
                         <h3
-                            className="text-sm font-semibold tracking-tight truncate"
-                            style={{
-                                color: 'var(--tx-primary)',
-                                fontFamily: 'var(--font-system)',
-                                letterSpacing: '-0.015em',
-                            }}
+                            className="text-sm font-semibold tracking-tight truncate text-[var(--color-text-primary)] font-system"
+                            style={{ letterSpacing: '-0.015em' }}
                         >
                             {project.name}
                         </h3>
                     </div>
 
-                    {/* \u5220\u9664\u6309\u94ae \u2014 hover \u65f6\u663e\u73b0 */}
+                    {/* 删除按钮 — hover 时显现 */}
                     <button
                         onClick={onDelete}
-                        className="lg-icon-btn shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 -mr-1 -mt-1"
-                        style={{ borderRadius: 'var(--r-item)', color: 'var(--tx-tertiary)' }}
+                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 -mr-1 -mt-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-[var(--radius-sm)] p-1"
                         title="Remove project"
                         aria-label="Remove project"
                     >
@@ -109,35 +100,28 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
                     </button>
                 </div>
 
-                {/* \u8def\u5f84 */}
+                {/* 路径 */}
                 <p
-                    className="mt-4 mb-0 text-[11px] truncate leading-none"
-                    style={{
-                        color: 'var(--tx-tertiary)',
-                        fontFamily: 'var(--font-system)',
-                        letterSpacing: '0.01em',
-                    }}
+                    className="mt-4 mb-0 text-[11px] truncate leading-none text-[var(--color-text-tertiary)] font-system"
+                    style={{ letterSpacing: '0.01em' }}
                     title={project.path}
                 >
                     {project.path}
                 </p>
 
-                {/* \u5206\u5272\u7ebf + \u5e95\u90e8\u5143\u4fe1\u606f */}
+                {/* 分割线 + 底部元信息 */}
                 <div
-                    className="mt-3 pt-3 flex items-center justify-between"
-                    style={{ borderTop: '1px solid var(--bd-subtle)' }}
+                    className="mt-3 pt-3 flex items-center justify-between border-t border-[var(--mat-border)]"
                 >
                     <span
-                        className="text-[12px] font-medium text-[var(--color-text-secondary)]"
-                        style={{ color: 'var(--tx-tertiary)', fontFamily: 'var(--font-system)' }}
+                        className="text-[12px] font-medium text-[var(--color-text-tertiary)] font-system"
                     >
                         {formatDate(project.lastOpenedAt)}
                     </span>
 
-                    {/* Open \u7bad\u5934 \u2014 hover \u65f6\u5f39\u6027\u5de6\u79fb */}
+                    {/* Open 箭头 — hover 时弹性左移 */}
                     <span
-                        className="text-[11px] font-medium flex items-center gap-1 translate-x-0 group-hover:translate-x-0.5 transition-transform duration-200"
-                        style={{ color: 'var(--ac-blue)', fontFamily: 'var(--font-system)' }}
+                        className="text-[11px] font-medium flex items-center gap-1 translate-x-0 group-hover:translate-x-0.5 transition-transform duration-200 text-[var(--color-accent)] font-system"
                     >
                         Open
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -146,11 +130,11 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
                     </span>
                 </div>
 
-                {/* hover \u65f6\u5361\u7247\u5185\u90e8\u5fae\u5149\u6655\u6548\u679c */}
+                {/* hover 时卡片内部微光晕效果 */}
                 <div
-                    className="pointer-events-none absolute inset-0 rounded-[var(--r-panel)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    className="pointer-events-none absolute inset-0 rounded-[var(--radius-lg)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
-                        background: 'radial-gradient(ellipse at 50% 0%, var(--lg-bg-hover) 0%, transparent 70%)',
+                        background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 70%)',
                     }}
                 />
             </div>
@@ -207,44 +191,35 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
     return (
         <div
-            className="fixed inset-0 flex flex-col overflow-hidden"
-            style={{
-                background: 'var(--bg-app)',
-                color: 'var(--tx-primary)',
-                fontFamily: 'var(--font-system)',
-            }}
+            className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--mat-base)] text-[var(--color-text-primary)] font-system"
         >
-            {/* \u2500\u2500 \u5fae\u5999\u63d0\u793a\u80cc\u666f\uff1a\u6781\u4f4e\u900f\u660e\u5ea6\u70b9\u7f51\u683c \u2500\u2500 */}
+            {/* 微妙提示背景：极低透明度点网格 */}
             <div
                 className="pointer-events-none absolute inset-0"
                 style={{
-                    backgroundImage: `radial-gradient(circle, var(--bd-subtle) 1px, transparent 1px)`,
+                    backgroundImage: `radial-gradient(circle, var(--mat-border) 1px, transparent 1px)`,
                     backgroundSize: '28px 28px',
                     opacity: 0.5,
                 }}
             />
 
-            {/* \u2500\u2500 Traffic Light \u62d6\u52a8\u5340\u57df \u2500\u2500 */}
+            {/* Traffic Light 拖动区域 */}
             <div
                 className="drag-region shrink-0 w-full"
                 style={{ height: 28 }}
             />
 
-            {/* \u2500\u2500 \u5185\u5bb9\u533a\u57df \u2500\u2500 */}
+            {/* 内容区域 */}
             <div className="no-drag flex-1 flex flex-col overflow-hidden px-8 pb-8">
 
-                {/* \u5934\u90e8: title + \u64cd\u4f5c\u6309\u94ae */}
+                {/* 头部: title + 操作按钮 */}
                 <header className="shrink-0 flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
-                        {/* \u5fae\u578b AOTUI Logomark */}
+                        {/* 微型 AOTUI Logomark */}
                         <div
-                            className="w-7 h-7 rounded-[var(--r-item)] flex items-center justify-center"
-                            style={{
-                                background: 'var(--ac-blue-subtle)',
-                                border: '1px solid color-mix(in srgb, var(--ac-blue) 25%, transparent)',
-                            }}
+                            className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" style={{ color: 'var(--ac-blue)' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className="text-[var(--color-accent)]">
                                 <rect x="3" y="3" width="7" height="7" rx="1.5" />
                                 <rect x="14" y="3" width="7" height="7" rx="1.5" />
                                 <rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -252,31 +227,26 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                             </svg>
                         </div>
                         <h1
-                            className="text-[17px] font-semibold tracking-tight"
-                            style={{ letterSpacing: '-0.02em', color: 'var(--tx-primary)' }}
+                            className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)]"
+                            style={{ letterSpacing: '-0.02em' }}
                         >
                             Projects
                         </h1>
                         {projects.length > 0 && (
                             <span
-                                className="text-[11px] font-medium px-2 py-0.5 rounded-[var(--r-pill)]"
-                                style={{
-                                    background: 'var(--lg-clear-bg)',
-                                    border: '1px solid var(--bd-subtle)',
-                                    color: 'var(--tx-tertiary)',
-                                }}
+                                className="text-[11px] font-medium px-2 py-0.5 rounded-full mat-lg-clear text-[var(--color-text-tertiary)]"
                             >
                                 {projects.length}
                             </span>
                         )}
                     </div>
 
-                    {/* \u64cd\u4f5c\u6309\u94ae\u7ec4 */}
+                    {/* 操作按钮组 */}
                     <div className="flex items-center gap-2">
                         {onOpenSettings && (
                             <button
                                 onClick={onOpenSettings}
-                                className="lg-icon-btn"
+                                className="p-2 rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
                                 title="Settings"
                             >
                                 <IconSettings />
@@ -284,22 +254,20 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                         )}
                         <button
                             onClick={toggleTheme}
-                            className="lg-icon-btn"
+                            className="p-2 rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
                             title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
                         >
                             {theme === 'dark' ? <IconSun /> : <IconMoon />}
                         </button>
 
-                        {/* \u5206\u9694\u7ebf */}
+                        {/* 分隔线 */}
                         <div
-                            className="h-4 w-px mx-1"
-                            style={{ background: 'var(--bd-default)' }}
+                            className="h-4 w-px mx-1 bg-[var(--mat-border)]"
                         />
 
                         <button
                             onClick={handleOpenFolder}
-                            className="lg-btn lg-btn-accent"
-                            style={{ borderRadius: 'var(--r-control)', height: 32, paddingLeft: 12, paddingRight: 14 }}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all"
                         >
                             <IconFolder className="w-3.5 h-3.5" />
                             <span>Open Folder</span>
@@ -334,8 +302,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                             {[1, 2, 3].map(i => (
                                 <div
                                     key={i}
-                                    className="min-h-[148px] rounded-[var(--r-panel)] animate-pulse"
-                                    style={{ background: 'var(--lg-clear-bg)', border: '1px solid var(--bd-subtle)' }}
+                                    className="min-h-[148px] rounded-[var(--radius-lg)] animate-pulse bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)]"
                                 />
                             ))}
                         </div>
@@ -353,44 +320,31 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                     ) : (
                         /* \u7a7a\u72b6\u6001 */
                         <div
-                            className="flex flex-col items-center justify-center rounded-[var(--r-panel)]"
-                            style={{
-                                minHeight: 280,
-                                border: '1.5px dashed var(--bd-default)',
-                                background: 'transparent',
-                            }}
+                            className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] min-h-[280px] border-2 border-dashed border-[var(--mat-border)] bg-transparent"
                         >
-                            {/* \u6846\u56fe\u6807 */}
+                            {/* 框图标 */}
                             <div
-                                className="w-14 h-14 rounded-[var(--r-control)] flex items-center justify-center mb-5"
-                                style={{
-                                    background: 'var(--lg-clear-bg)',
-                                    border: '1px solid var(--bd-default)',
-                                }}
+                                className="w-14 h-14 rounded-[var(--radius-md)] flex items-center justify-center mb-5 bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)]"
                             >
                                 <IconFolder
-                                    className="w-6 h-6"
-                                    style={{ color: 'var(--tx-tertiary)' } as React.CSSProperties}
+                                    className="w-6 h-6 text-[var(--color-text-tertiary)]"
                                 />
                             </div>
 
                             <p
-                                className="text-sm font-medium mb-1"
-                                style={{ color: 'var(--tx-secondary)' }}
+                                className="text-sm font-medium mb-1 text-[var(--color-text-secondary)]"
                             >
                                 No projects yet
                             </p>
                             <p
-                                className="text-xs mb-6"
-                                style={{ color: 'var(--tx-tertiary)' }}
+                                className="text-xs mb-6 text-[var(--color-text-tertiary)]"
                             >
                                 Open a folder to get started
                             </p>
 
                             <button
                                 onClick={handleOpenFolder}
-                                className="lg-btn lg-btn-accent"
-                                style={{ borderRadius: 'var(--r-control)', height: 34 }}
+                                className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all"
                             >
                                 <IconFolder className="w-3.5 h-3.5" />
                                 <span>Open Folder</span>

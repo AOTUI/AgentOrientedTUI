@@ -170,12 +170,12 @@ html, body, #root {
     box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* project-card-icon \u2014 \u9879\u76ee\u56fe\u6807\u989c\u8272\u6620\u5c04\u8868 */
-.proj-icon-0 { background: var(--ac-blue-subtle);   color: var(--ac-blue);   border-color: color-mix(in srgb, var(--ac-blue) 25%, transparent); }
-.proj-icon-1 { background: var(--ac-purple-subtle); color: var(--ac-purple); border-color: color-mix(in srgb, var(--ac-purple) 25%, transparent); }
-.proj-icon-2 { background: var(--ac-green-subtle);  color: var(--ac-green);  border-color: color-mix(in srgb, var(--ac-green) 25%, transparent); }
-.proj-icon-3 { background: var(--ac-amber-subtle);  color: var(--ac-amber);  border-color: color-mix(in srgb, var(--ac-amber) 25%, transparent); }
-.proj-icon-4 { background: var(--ac-red-subtle);    color: var(--ac-red);    border-color: color-mix(in srgb, var(--ac-red) 25%, transparent); }
+/* project-card-icon — 项目图标颜色映射表 */
+.proj-icon-0 { background: rgba(10, 132, 255, 0.15); color: #0A84FF; border-color: rgba(10, 132, 255, 0.25); }
+.proj-icon-1 { background: rgba(191, 90, 242, 0.15); color: #BF5AF2; border-color: rgba(191, 90, 242, 0.25); }
+.proj-icon-2 { background: rgba(48, 209, 88, 0.15); color: #30D158; border-color: rgba(48, 209, 88, 0.25); }
+.proj-icon-3 { background: rgba(255, 159, 10, 0.15); color: #FF9F0A; border-color: rgba(255, 159, 10, 0.25); }
+.proj-icon-4 { background: rgba(255, 69, 58, 0.15); color: #FF453A; border-color: rgba(255, 69, 58, 0.25); }
 
 /* drag region */
 .drag-region {

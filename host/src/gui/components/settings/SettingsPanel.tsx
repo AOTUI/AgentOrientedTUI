@@ -181,20 +181,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     max-w-[1000px] min-w-[320px]
                     max-h-[720px] h-[85vh]
                     mx-4 sm:mx-6
-                    bg-[var(--lg-bg)] backdrop-blur-[var(--lg-blur)]
-                    border border-[var(--lg-border)]
-                    rounded-[var(--r-window)]
+                    mat-lg-regular
+                    rounded-[var(--radius-xl)]
                     flex flex-col md:flex-row overflow-hidden
                     transition-all duration-300 ease-[var(--ease-spring)]
                     ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
                 `}
-                style={{
-                    boxShadow: 'var(--lg-shadow-2xl), 0 0 0 1px var(--lg-border-subtle)'
-                }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Sidebar - horizontal on mobile, vertical on desktop */}
-                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--lg-border)] flex flex-col gap-3 md:h-full bg-[var(--lg-bg-alt)]/10">
+                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--mat-border)] flex flex-col gap-3 md:h-full bg-[var(--mat-lg-clear-bg)]">
                     <SettingsSidebar
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
@@ -202,14 +198,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <button
                         ref={exitButtonRef}
                         onClick={onClose}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--r-control)] border text-[13px] font-medium transition-all duration-200 md:mt-auto"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] border text-[13px] font-medium transition-all duration-200 md:mt-auto"
                         style={{
-                            backgroundColor: 'var(--ac-red-subtle)',
-                            borderColor: 'color-mix(in srgb, var(--ac-red) 20%, transparent)',
-                            color: 'var(--ac-red)'
+                            backgroundColor: 'rgba(255, 69, 58, 0.15)',
+                            borderColor: 'rgba(255, 69, 58, 0.25)',
+                            color: '#FF453A'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--ac-red-subtle) 80%, var(--ac-red))'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--ac-red-subtle)'}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.25)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.15)'}
                         aria-label="Exit settings panel"
                     >
                         <IconExit className="w-4 h-4" />

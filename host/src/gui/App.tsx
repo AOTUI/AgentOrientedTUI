@@ -10,7 +10,6 @@ import type { Topic, Message } from '../types.js';
 // Components
 import { ProjectSelector } from './components/ProjectSelector.js';
 import { ConnectionScreen } from './components/ConnectionScreen.js';
-import { FUIOverlay } from './components/FUIOverlay.js';
 import { Sidebar } from './components/Sidebar.js';
 import { WorkspaceHeader } from './components/WorkspaceHeader.js';
 import { ChatArea } from './components/ChatArea.js';
@@ -286,7 +285,6 @@ export function App() {
     if (!currentProjectId) {
         return (
             <>
-                <FUIOverlay />
                 <ProjectSelector
                     onSelectProject={(projectId) => {
                         setSettingsPanelOpen(false);
@@ -310,16 +308,13 @@ export function App() {
         <div className="w-screen h-screen bg-[var(--mat-base)] text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative">
             {/* Background Layers */}
 
-            {/* FUI Overlay */}
-            <FUIOverlay />
-
             {/* Window Drag Region */}
             <div className="fixed top-0 left-0 right-0 h-8 title-drag-region z-50" />
 
-            {/* Main Bento Layout */}
-            <div className={`relative z-10 grid h-full w-full gap-6 p-6 max-w-[1920px] mx-auto transition-all duration-400 ease-[var(--ease-out-expo)] ${sidebarOpen ? 'grid-cols-[260px_1fr]' : 'grid-cols-[0px_1fr]'}`}>
+            {/* Main Layout (macOS 26 Liquid Glass) */}
+            <div className="relative z-10 flex h-full w-full overflow-hidden">
 
-                {/* ======== Area 1: Sidebar ======== */}
+                {/* ======== Area 1: Sidebar (Layer 2) ======== */}
                 <Sidebar
                     sidebarOpen={sidebarOpen}
                     topics={topics}
@@ -334,9 +329,9 @@ export function App() {
                     getTopicPaused={(topicId) => bridge.isAgentPaused(topicId)}
                 />
 
-                {/* ======== Area 2: Main Workspace ======== */}
-                <div className="flex flex-col gap-6 min-w-0 h-full overflow-visible">
-                    {/* Area 2.1: Header */}
+                {/* ======== Area 2: Main Workspace (Layer 1) ======== */}
+                <div className={`flex-1 flex flex-col min-w-0 h-full relative transition-all duration-400 ease-[var(--ease-spring)] ${sidebarOpen ? 'ml-[260px]' : 'ml-0'}`}>
+                    {/* Area 2.1: Header (Layer 2 Islands) */}
                     <WorkspaceHeader
                         activeTopic={activeTopic}
                         activeTopicId={activeTopicId}
@@ -353,7 +348,7 @@ export function App() {
                     />
 
                     {/* Area 2.2: Content (Chat / TUI) */}
-                    <main className="flex-1 mat-content rounded-[var(--radius-lg)] overflow-hidden relative flex flex-col">
+                    <main className="flex-1 overflow-hidden relative flex flex-col">
                         <div className="flex-1 overflow-hidden relative">
                             {viewMode === 'chat' ? (
                                 <ChatArea

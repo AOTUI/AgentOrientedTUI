@@ -13,19 +13,19 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
     // Shared button styles
     const baseBtnClass = `
         flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 md:gap-3 
-        px-3 md:px-4 py-2 md:py-2.5 rounded-[var(--r-control)]
+        px-3 md:px-4 py-2 md:py-2.5 rounded-[var(--radius-sm)]
         transition-all duration-300 text-left border
     `;
 
     const activeBtnClass = `
-        bg-[var(--ac-blue-subtle)] border-[color-mix(in_srgb,var(--ac-blue)_30%,transparent)] text-[var(--ac-blue)]
-        shadow-[var(--lg-inner-shadow)]
+        bg-[rgba(10,132,255,0.15)] border-[rgba(10,132,255,0.25)] text-[var(--color-accent)]
+        shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
     `;
 
     const inactiveBtnClass = `
         bg-transparent border-transparent
-        text-[var(--tx-secondary)] 
-        hover:bg-[var(--lg-bg-hover)] hover:text-[var(--tx-primary)]
+        text-[var(--color-text-secondary)] 
+        hover:bg-[var(--mat-lg-clear-bg)] hover:text-[var(--color-text-primary)]
     `;
 
     return (
@@ -44,7 +44,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 className={`${baseBtnClass} ${activeTab === 'model' ? activeBtnClass : inactiveBtnClass}`}
             >
                 <IconModel
-                    className={`w-4 h-4 ${activeTab === 'model' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`}
+                    className={`w-4 h-4 ${activeTab === 'model' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
                 <span className="text-[13px] font-medium tracking-wide">Model</span>
@@ -60,7 +60,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 className={`${baseBtnClass} ${activeTab === 'theme' ? activeBtnClass : inactiveBtnClass}`}
             >
                 <IconTheme
-                    className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`}
+                    className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
                 <span className="text-[13px] font-medium tracking-wide">Theme</span>
@@ -76,7 +76,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 className={`${baseBtnClass} ${activeTab === 'mcp' ? activeBtnClass : inactiveBtnClass}`}
             >
                 <IconPlug
-                    className={`w-4 h-4 ${activeTab === 'mcp' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`}
+                    className={`w-4 h-4 ${activeTab === 'mcp' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
                 <span className="text-[13px] font-medium tracking-wide">MCP</span>
