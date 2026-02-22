@@ -62,80 +62,53 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
         >
             {/* Card body — Liquid Glass Regular */}
             <div
-                className="mat-lg-regular relative flex flex-col h-full min-h-[148px] p-5 overflow-hidden cursor-pointer rounded-[var(--radius-lg)]"
+                className="mat-lg-regular relative flex items-center gap-4 p-4 overflow-hidden cursor-pointer rounded-[var(--radius-lg)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
             >
-                {/* 顶部: 图标 + 内容 + 删除按钮 */}
-                <div className="flex items-start justify-between gap-3 mb-auto">
-                    <div className="flex items-center gap-3 min-w-0">
-                        {/* 项目图标 — 同心圆角小方块 */}
-                        <div
-                            className={`proj-icon-${colorIdx} shrink-0 w-9 h-9 rounded-[var(--radius-sm)] border flex items-center justify-center`}
-                        >
-                            <span
-                                className="text-[14px] font-semibold leading-none font-system"
-                            >
-                                {project.name.charAt(0).toUpperCase()}
-                            </span>
-                        </div>
+                {/* 项目图标 — 同心圆角小方块 */}
+                <div
+                    className={`proj-icon-${colorIdx} shrink-0 w-10 h-10 rounded-[var(--radius-sm)] border flex items-center justify-center`}
+                >
+                    <span
+                        className="text-[15px] font-semibold leading-none font-system"
+                    >
+                        {project.name.charAt(0).toUpperCase()}
+                    </span>
+                </div>
 
-                        {/* 项目名称 */}
+                {/* 内容区 */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center justify-between gap-3">
                         <h3
                             className="text-[15px] font-semibold truncate text-[var(--color-text-primary)] font-system"
                         >
                             {project.name}
                         </h3>
+                        <span
+                            className="text-[12px] font-medium text-[var(--color-text-tertiary)] font-system shrink-0"
+                        >
+                            {formatDate(project.lastOpenedAt)}
+                        </span>
                     </div>
-
-                    {/* 删除按钮 — hover 时显现 */}
-                    <button
-                        onClick={onDelete}
-                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 -mr-1 -mt-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-[var(--radius-sm)] p-1"
-                        title="Remove project"
-                        aria-label="Remove project"
+                    <p
+                        className="mt-1 mb-0 text-[12px] truncate leading-none text-[var(--color-text-tertiary)] font-system"
+                        style={{ letterSpacing: '0.01em' }}
+                        title={project.path}
                     >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                            <path d="M18 6 6 18M6 6l12 12" />
-                        </svg>
-                    </button>
+                        {project.path}
+                    </p>
                 </div>
 
-                {/* 路径 */}
-                <p
-                    className="mt-4 mb-0 text-[11px] truncate leading-none text-[var(--color-text-tertiary)] font-system"
-                    style={{ letterSpacing: '0.01em' }}
-                    title={project.path}
+                {/* 删除按钮 — hover 时显现 */}
+                <button
+                    onClick={onDelete}
+                    className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-[var(--radius-sm)] p-1.5"
+                    title="Remove project"
+                    aria-label="Remove project"
                 >
-                    {project.path}
-                </p>
-
-                {/* 分割线 + 底部元信息 */}
-                <div
-                    className="mt-3 pt-3 flex items-center justify-between border-t border-[var(--mat-border)]"
-                >
-                    <span
-                        className="text-[12px] font-medium text-[var(--color-text-tertiary)] font-system"
-                    >
-                        {formatDate(project.lastOpenedAt)}
-                    </span>
-
-                    {/* Open 箭头 — hover 时弹性左移 */}
-                    <span
-                        className="text-[11px] font-medium flex items-center gap-1 translate-x-0 group-hover:translate-x-0.5 transition-transform duration-200 text-[var(--color-accent)] font-system"
-                    >
-                        Open
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                    </span>
-                </div>
-
-                {/* hover 时卡片内部微光晕效果 */}
-                <div
-                    className="pointer-events-none absolute inset-0 rounded-[var(--radius-lg)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{
-                        background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 70%)',
-                    }}
-                />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
         </div>
     );
@@ -190,26 +163,28 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
     return (
         <div
-            className="fixed inset-0 flex flex-col overflow-hidden bg-transparent text-[var(--color-text-primary)] font-system"
+            className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-transparent text-[var(--color-text-primary)] font-system"
         >
-            {/* 微妙提示背景：极低透明度点网格 */}
-            <div
-                className="pointer-events-none absolute inset-0"
+            {/* 真实的 macOS 壁纸模糊效果 */}
+            <div 
+                className="absolute inset-0 z-0"
                 style={{
-                    backgroundImage: `radial-gradient(circle, var(--mat-border) 1px, transparent 1px)`,
-                    backgroundSize: '28px 28px',
-                    opacity: 0.5,
+                    backdropFilter: 'blur(60px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(60px) saturate(200%)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)'
                 }}
             />
 
-            {/* Traffic Light 拖动区域 */}
-            <div
-                className="drag-region shrink-0 w-full"
-                style={{ height: 40 }}
-            />
+            {/* 居中对话框 */}
+            <div className="mat-lg-regular flex flex-col w-full max-w-[480px] max-h-[80vh] rounded-[20px] shadow-2xl overflow-hidden relative z-10">
+                {/* Traffic Light 拖动区域 */}
+                <div
+                    className="drag-region shrink-0 w-full"
+                    style={{ height: 40 }}
+                />
 
-            {/* 内容区域 */}
-            <div className="no-drag flex-1 flex flex-col overflow-hidden px-8 pb-8">
+                {/* 内容区域 */}
+                <div className="no-drag flex-1 flex flex-col overflow-hidden px-8 pb-8">
 
                 {/* 头部: title + 操作按钮 */}
                 <header className="shrink-0 flex items-center justify-between mb-8">
@@ -297,7 +272,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                 >
                     {isLoading ? (
                         /* \u52a0\u8f7d\u72b6\u6001: \u5361\u7247\u9aa8\u67b6\u5c4f */
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 gap-3">
                             {[1, 2, 3].map(i => (
                                 <div
                                     key={i}
@@ -306,7 +281,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                             ))}
                         </div>
                     ) : projects.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                        <div className="grid grid-cols-1 gap-3 pb-4">
                             {projects.map(project => (
                                 <ProjectCard
                                     key={project.id}
@@ -351,6 +326,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                         </div>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );

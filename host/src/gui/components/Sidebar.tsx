@@ -47,18 +47,18 @@ export function Sidebar({
     getTopicPaused
 }: SidebarProps) {
     const getStateClass = (state: string, paused: boolean) => {
-        if (paused) return 'text-warning';
+        if (paused) return 'text-[var(--color-warning)]';
         if (state === 'THINKING') return 'text-[var(--color-text-secondary)]';
-        if (state === 'EXECUTING') return 'text-success';
-        if (state === 'STOPPED') return 'text-danger';
+        if (state === 'EXECUTING') return 'text-[var(--color-success)]';
+        if (state === 'STOPPED') return 'text-[var(--color-danger)]';
         return 'text-[var(--color-text-tertiary)]';
     };
 
     const getDotClass = (state: string, paused: boolean) => {
-        if (paused) return 'bg-warning';
-        if (state === 'THINKING') return 'bg-secondary';
-        if (state === 'EXECUTING') return 'bg-success';
-        if (state === 'STOPPED') return 'bg-danger';
+        if (paused) return 'bg-[var(--color-warning)]';
+        if (state === 'THINKING') return 'bg-[var(--color-accent)]';
+        if (state === 'EXECUTING') return 'bg-[var(--color-success)]';
+        if (state === 'STOPPED') return 'bg-[var(--color-danger)]';
         return 'bg-[var(--color-text-tertiary)]';
     };
 

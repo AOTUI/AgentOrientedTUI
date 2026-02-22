@@ -133,7 +133,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
                         <span>Reasoning Chain</span>
                     </div>
-                    <div className="text-[11px] leading-5 text-[var(--color-text-secondary)] opacity-90 pl-2 border-l-2 border-primary/30">
+                    <div className="text-[11px] leading-5 text-[var(--color-text-secondary)] opacity-90 pl-2 border-l-2 border-[var(--color-accent)]/30">
                         <MarkdownRenderer content={agentReasoning} />
                     </div>
                 </CardBody>
@@ -200,10 +200,10 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
             const hasOutput = hasMeaningfulPayload(step.result);
             const showOutput = step.status !== 'called' && hasOutput;
             const dotClass = step.status === 'called'
-                ? 'bg-secondary'
+                ? 'bg-[var(--color-accent)]'
                 : step.status === 'error'
-                    ? 'bg-danger'
-                    : 'bg-success';
+                    ? 'bg-[var(--color-danger)]'
+                    : 'bg-[var(--color-success)]';
             const isLatestToolCall =
                 lastToolCall?.step === step ||
                 (

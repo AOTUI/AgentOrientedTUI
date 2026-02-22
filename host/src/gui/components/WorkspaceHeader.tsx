@@ -55,7 +55,7 @@ export function WorkspaceHeader({
                     </Tooltip>
 
                     <div className="flex items-center gap-2 pr-3 border-l border-[var(--mat-border)] pl-3">
-                        <div className={`w-2 h-2 rounded-full ${connected ? 'bg-success' : 'bg-danger'}`} />
+                        <div className={`w-2 h-2 rounded-full ${connected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'}`} />
                         <h2 className="font-medium text-[13px] leading-tight truncate max-w-[150px] text-[var(--color-text-primary)]">
                             {activeTopic?.title || 'System Chat'}
                         </h2>
@@ -98,8 +98,8 @@ export function WorkspaceHeader({
                         <div className="flex items-center gap-2 pr-2">
                             <span className={`text-[12px] font-medium ${
                                 agentState === 'THINKING' ? 'text-[var(--color-text-secondary)]' : 
-                                agentState === 'EXECUTING' ? 'text-success' : 
-                                agentState === 'STOPPED' ? 'text-danger' : 
+                                agentState === 'EXECUTING' ? 'text-[var(--color-success)]' : 
+                                agentState === 'STOPPED' ? 'text-[var(--color-danger)]' : 
                                 'text-[var(--color-text-tertiary)]'
                             }`}>
                                 {agentPaused ? 'Paused' : (agentState === 'IDLE' ? 'Idle' : agentState.charAt(0) + agentState.slice(1).toLowerCase())}
@@ -114,7 +114,7 @@ export function WorkspaceHeader({
                                         size="sm"
                                         variant="light"
                                         onClick={onResumeAgent}
-                                        className="text-success hover:bg-success/10 rounded-full min-w-8 w-8 h-8"
+                                        className="text-[var(--color-success)] hover:bg-[var(--color-success)]/10 rounded-full min-w-8 w-8 h-8"
                                     >
                                         <IconPlay />
                                     </Button>
@@ -126,7 +126,7 @@ export function WorkspaceHeader({
                                         size="sm"
                                         variant="light"
                                         onClick={onPauseAgent}
-                                        className="text-warning hover:bg-warning/10 rounded-full min-w-8 w-8 h-8"
+                                        className="text-[var(--color-warning)] hover:bg-[var(--color-warning)]/10 rounded-full min-w-8 w-8 h-8"
                                     >
                                         <IconPause />
                                     </Button>
@@ -138,7 +138,7 @@ export function WorkspaceHeader({
                                     size="sm"
                                     variant="light"
                                     onClick={onShowDeleteConfirm}
-                                    className="text-danger hover:bg-danger/10 rounded-full min-w-8 w-8 h-8"
+                                    className="text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 rounded-full min-w-8 w-8 h-8"
                                 >
                                     <IconDelete />
                                 </Button>
