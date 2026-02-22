@@ -184,8 +184,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     mat-lg-regular
                     rounded-[20px]
                     flex flex-col md:flex-row overflow-hidden
-                    transition-all duration-300 ease-[var(--ease-spring)]
-                    ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
+                    transition-all duration-300 ease-[var(--ease-spring)] motion-reduce:transition-none
+                    ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 motion-reduce:scale-100'}
                 `}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -198,7 +198,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <button
                         ref={exitButtonRef}
                         onClick={onClose}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full text-[13px] font-medium transition-all duration-200 md:mt-auto bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-transparent active:scale-95"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full text-[13px] font-medium transition-all duration-200 md:mt-auto bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-transparent active:scale-95 motion-reduce:active:scale-100"
                         aria-label="Exit settings panel"
                     >
                         <IconExit className="w-4 h-4" />

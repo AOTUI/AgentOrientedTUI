@@ -487,7 +487,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         <Button
                             isIconOnly
                             size="sm"
-                            className={`min-w-8 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${inputValue.trim() ? 'bg-[var(--color-accent)] text-white shadow-md' : 'bg-[var(--mat-lg-clear-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}`}
+                            className={`min-w-8 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 motion-reduce:active:scale-100 ${inputValue.trim() ? 'bg-[var(--color-accent)] text-white shadow-md' : 'bg-[var(--mat-lg-clear-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}`}
                             onClick={handleSendClick}
                         >
                             <IconSend />

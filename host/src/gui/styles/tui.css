@@ -38,8 +38,7 @@
 .tui-app-switcher__label {
     font-size: 0.72rem;
     font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     color: var(--color-text-tertiary);
     white-space: nowrap;
 }
@@ -172,7 +171,6 @@
     border-radius: 50%;
     background-color: var(--color-success);
     margin-right: 6px;
-    animation: pulse-glow 2s infinite;
 }
 
 /* Info Section - Bento Blocks */
@@ -193,8 +191,7 @@
 
 .tui-app-info-label {
     font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     color: var(--color-text-tertiary);
     margin-bottom: var(--space-sm);
     font-family: var(--font-mono);
@@ -379,7 +376,6 @@
     padding: var(--space-md);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
     z-index: 100;
-    animation: fade-in-up 0.3s ease-out;
 }
 
 .tui-thinking-header {
@@ -390,7 +386,7 @@
     font-size: 0.75rem;
     font-weight: 700;
     margin-bottom: var(--space-sm);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
 }
 
 .tui-thinking-content {
@@ -402,7 +398,7 @@
 }
 
 .thinking-indicator {
-    animation: pulse-glow 1s infinite;
+    /* Removed pulse-glow animation */
 }
 
 [data-theme='light'] .tui-app-card-header {

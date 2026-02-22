@@ -32,7 +32,7 @@ export function ConnectionScreen({ status, onRetry }: { status: 'connecting' | '
                             Unable to establish link with Host Core. Please check your connection and try again.
                         </p>
                         <Button 
-                            className="bg-[var(--color-accent)] text-white font-system text-[13px] font-medium px-6 rounded-full transition-all active:scale-95"
+                            className="bg-[var(--color-accent)] text-white font-system text-[13px] font-medium px-6 rounded-full transition-all active:scale-95 motion-reduce:active:scale-100"
                             onClick={onRetry}
                         >
                             Retry Connection

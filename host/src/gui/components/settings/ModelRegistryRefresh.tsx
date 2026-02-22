@@ -248,7 +248,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                     flex items-center justify-center gap-2
                     ${isRefreshing
                         ? 'mat-content text-[var(--color-text-tertiary)] cursor-not-allowed'
-                        : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 active:scale-95 rounded-full'
+                        : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 active:scale-95 motion-reduce:active:scale-100 rounded-full'
                     }
                 `}
             >

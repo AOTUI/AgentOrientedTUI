@@ -66,7 +66,7 @@ export function Sidebar({
         <aside className={`
             relative h-full z-20 shrink-0
             mat-lg-regular flex flex-col overflow-hidden
-            transition-all duration-400 ease-[var(--ease-spring)]
+            transition-all duration-400 ease-[var(--ease-spring)] motion-reduce:transition-none
             rounded-[14px] border border-[var(--mat-border)] shadow-lg
             ${sidebarOpen ? 'w-[272px] opacity-100 mr-2' : 'w-0 opacity-0 mr-0 border-none'}
         `}>

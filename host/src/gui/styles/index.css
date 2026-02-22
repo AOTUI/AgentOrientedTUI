@@ -90,6 +90,12 @@ html, body, #root {
     position: relative;
 }
 
+@supports not (backdrop-filter: blur(1px)) {
+    .mat-lg-regular {
+        background: var(--mat-lg-regular-bg-fallback);
+    }
+}
+
 .mat-lg-regular::before {
     content: '';
     position: absolute;
@@ -112,6 +118,12 @@ html, body, #root {
     box-shadow: inset 0 1px 0 var(--mat-inset-highlight);
 }
 
+@supports not (backdrop-filter: blur(1px)) {
+    .mat-lg-clear {
+        background: var(--mat-lg-clear-bg-fallback);
+    }
+}
+
 /* mat-lg-clear-accent — Accent tinted nested elements on glass */
 .mat-lg-clear-accent {
     background: var(--mat-lg-clear-accent-bg);
@@ -119,6 +131,12 @@ html, body, #root {
     -webkit-backdrop-filter: blur(20px) saturate(150%);
     border: 1px solid rgba(10, 132, 255, 0.3);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+    .mat-lg-clear-accent {
+        background: var(--mat-lg-clear-accent-bg-fallback);
+    }
 }
 
 /* mat-content — Content Layer Cards (No backdrop-filter) */
@@ -156,6 +174,18 @@ html, body, #root {
 }
 .lg-btn:active {
     transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lg-btn {
+        transition:
+            background var(--dur-fast) var(--ease-standard),
+            box-shadow var(--dur-fast) var(--ease-standard);
+    }
+    .lg-btn:active {
+        transform: none;
+        background: var(--mat-lg-regular-bg);
+    }
 }
 
 /* lg-input — Input Field */

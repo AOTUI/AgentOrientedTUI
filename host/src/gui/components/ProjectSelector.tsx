@@ -240,7 +240,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
                         <button
                             onClick={handleOpenFolder}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all active:scale-95"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all active:scale-95 motion-reduce:active:scale-100"
                         >
                             <IconFolder className="w-3.5 h-3.5" />
                             <span>Open Folder</span>
@@ -317,7 +317,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
                             <button
                                 onClick={handleOpenFolder}
-                                className="flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all active:scale-95"
+                                className="flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium text-[var(--color-text-primary)] bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] transition-all active:scale-95 motion-reduce:active:scale-100"
                             >
                                 <IconFolder className="w-3.5 h-3.5" />
                                 <span>Open Folder</span>
