@@ -69,6 +69,9 @@
     --mat-content-card-bg: rgba(255, 255, 255, 0.04);
     --mat-border: rgba(255, 255, 255, 0.10);
     --mat-border-highlight: rgba(255, 255, 255, 0.15);
+    --mat-inset-highlight: rgba(255, 255, 255, 0.05);
+    --mat-shadow-color: rgba(0, 0, 0, 0.30);
+    --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.08);
     
     /* Legacy mappings to prevent breaking existing components before Phase 2/3 */
     --color-accent: var(--color-accent);
@@ -79,6 +82,7 @@
     --color-text-secondary-glow: transparent;
     --color-accent-glow: transparent;
     --color-accent-muted: rgba(10, 132, 255, 0.2);
+    --color-accent-ring: rgba(10, 132, 255, 0.3);
     --color-danger-muted: rgba(255, 69, 58, 0.2);
     --color-success-muted: rgba(48, 209, 88, 0.2);
     --color-warning-muted: rgba(255, 159, 10, 0.2);
@@ -119,6 +123,9 @@
     --mat-content-card-bg: rgba(0, 0, 0, 0.04);
     --mat-border: rgba(0, 0, 0, 0.10);
     --mat-border-highlight: rgba(255, 255, 255, 0.5);
+    --mat-inset-highlight: rgba(255, 255, 255, 0.5);
+    --mat-shadow-color: rgba(0, 0, 0, 0.10);
+    --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.4);
     
     /* Legacy mappings */
     --color-accent: var(--color-accent);
@@ -129,6 +136,7 @@
     --color-text-secondary-glow: transparent;
     --color-accent-glow: transparent;
     --color-accent-muted: rgba(0, 122, 255, 0.2);
+    --color-accent-ring: rgba(0, 122, 255, 0.3);
     --color-danger-muted: rgba(255, 59, 48, 0.2);
     --color-success-muted: rgba(40, 205, 65, 0.2);
     --color-warning-muted: rgba(255, 149, 0, 0.2);

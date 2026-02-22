@@ -14,12 +14,12 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm }: DeleteConfirm
     
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md">
-            <Card className="w-[400px] mat-lg-regular rounded-[var(--radius-xl)]">
+            <Card className="w-[400px] mat-lg-regular rounded-[20px]">
                 <CardBody className="gap-4 p-6">
-                    <h3 className="text-lg font-semibold text-[var(--color-danger)] flex items-center gap-2 tracking-tight">
+                    <h3 className="text-[17px] font-semibold text-[var(--color-danger)] flex items-center gap-2 tracking-tight">
                         <IconDelete /> Delete Session
                     </h3>
-                    <p className="text-sm text-[var(--color-text-secondary)]">
+                    <p className="text-[13px] text-[var(--color-text-secondary)]">
                         Are you sure you want to terminate this session? All context and data will be purged from the runtime.
                     </p>
                     <div className="flex justify-end gap-3 mt-4">

@@ -83,7 +83,7 @@ export function Sidebar({
 
             <div className="px-6 pb-2 flex items-center justify-between text-[12px] font-medium text-[var(--color-text-secondary)] shrink-0">
                 <span>Sessions</span>
-                <span className="opacity-50">{topics.length} ACTIVE</span>
+                <span className="opacity-50">{topics.length} Active</span>
             </div>
 
             {/* Topic List */}
@@ -93,7 +93,7 @@ export function Sidebar({
                         const isActive = topic.id === activeTopicId;
                         const paused = getTopicPaused?.(topic.id) ?? false;
                         const state = getTopicState(topic.id);
-                        const stateLabel = (paused ? 'PAUSED' : state || 'IDLE').toUpperCase();
+                        const stateLabel = paused ? 'Paused' : (state ? state.charAt(0) + state.slice(1).toLowerCase() : 'Idle');
                         return (
                             <div
                                 key={topic.id}
@@ -108,16 +108,16 @@ export function Sidebar({
                             >
                                 <div className="flex-1 min-w-0 flex flex-col gap-1">
                                     <span className={`
-                                        truncate text-sm font-medium transition-colors
+                                        truncate text-[13px] font-medium transition-colors
                                         ${isActive ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]'}
                                     `}>
                                         {topic.title}
                                     </span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-mono text-[var(--color-text-tertiary)]">
+                                        <span className="text-[11px] font-system text-[var(--color-text-tertiary)]">
                                             {formatTimeAgo(topic.updatedAt)}
                                         </span>
-                                        <span className={`text-[9px] font-mono tracking-wider ${getStateClass(state, paused)}`}>
+                                        <span className={`text-[10px] font-medium tracking-[0.05em] ${getStateClass(state, paused)}`}>
                                             <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${getDotClass(state, paused)}`} />
                                             {stateLabel}
                                         </span>
@@ -140,7 +140,7 @@ export function Sidebar({
                          className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors data-[hover=true]:bg-white/5 flex items-center gap-2 px-2"
                      >
                          <IconFolder className="w-4 h-4" />
-                         <span className="text-xs font-medium">Projects</span>
+                         <span className="text-[12px] font-medium">Projects</span>
                      </Button>
                  </Tooltip>
 

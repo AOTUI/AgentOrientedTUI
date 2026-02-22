@@ -128,7 +128,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
     const renderLiveReasoningBlock = () => (
         <div className="flex justify-start">
-            <Card className="max-w-[85%] bg-[var(--color-bg-elevated)] border border-primary/20 rounded-tl-sm backdrop-blur-sm">
+            <Card className="max-w-[85%] mat-content rounded-tl-sm">
                 <CardBody className="p-4">
                     <div className="flex items-center gap-2 mb-2 text-[var(--color-accent)] text-[12px] font-medium">
                         <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
@@ -264,7 +264,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
         return (
             <div key={key} data-trace-key={key} className="flex justify-start">
-                <Card className="max-w-[92%] bg-[var(--color-bg-highlight)]/35 border border-[var(--color-border)] rounded-tl-sm backdrop-blur-sm overflow-hidden">
+                <Card className="max-w-[92%] mat-content rounded-tl-sm overflow-hidden">
                     <CardBody className="p-4">
                         <div className="flex items-center justify-between gap-2 mb-2 text-[12px] font-medium text-[var(--color-text-tertiary)]">
                             <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         {isExpanded && (
                             <div className="mt-3 sticky bottom-2 z-10 flex justify-end">
                                 <button
-                                    className="text-[10px] px-2.5 py-1 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-highlight)]/45 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)] animate-pulse"
+                                    className="text-[10px] px-2.5 py-1 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-highlight)]/45 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)]"
                                     onClick={() => toggleTraceExpand(key)}
                                     aria-label="Collapse tool chain"
                                 >
@@ -413,7 +413,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         <div className={`flex items-center gap-2 mb-2 text-[12px] font-medium ${isAgent ? 'text-[var(--color-text-tertiary)]' : 'text-[var(--color-text-tertiary)]'}`}>
                                             <span>{isAgent ? 'System Agent' : 'User Command'}</span>
                                             <span>•</span>
-                                            <span className="font-mono opacity-70">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                            <span className="font-system text-[11px] opacity-70">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                         </div>
                                         <div className="text-[13px] leading-6 text-[var(--color-text-primary)]">
                                             <MarkdownRenderer content={msg.content} />
@@ -441,7 +441,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                     <Spinner size="sm" color="current" />
                                     <span>Generating Response...</span>
                                 </div>
-                                <div className="font-mono text-xs text-[var(--color-text-secondary)] opacity-90 whitespace-pre-wrap border-l-2 border-[var(--mat-border)] pl-3">
+                                <div className="font-mono text-[12px] text-[var(--color-text-secondary)] opacity-90 whitespace-pre-wrap border-l-2 border-[var(--mat-border)] pl-3">
                                     {agentThinking}
                                 </div>
                             </CardBody>
@@ -453,7 +453,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
             {/* Input Area */}
             <div className="p-4 z-10">
-                <div className="relative w-full mat-lg-clear rounded-[24px] flex items-end gap-2 p-1 pr-2 transition-all duration-200 focus-within:border-[var(--color-accent)] focus-within:shadow-[0_0_0_3px_rgba(10,132,255,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="relative w-full mat-lg-clear rounded-[24px] flex items-end gap-2 p-1 pr-2 transition-all duration-200 focus-within:border-[var(--color-accent)] focus-within:shadow-[0_0_0_3px_var(--color-accent-ring),inset_0_1px_0_var(--mat-inset-highlight)]">
                     <textarea
                         ref={textareaRef}
                         className="w-full bg-transparent border-none outline-none focus:ring-0 focus:outline-none text-[13px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] px-4 py-2 min-h-[36px] max-h-48 resize-none overflow-y-auto scrollbar-hide"

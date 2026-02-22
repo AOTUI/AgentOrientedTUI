@@ -182,7 +182,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     max-h-[720px] h-[85vh]
                     mx-4 sm:mx-6
                     mat-lg-regular
-                    rounded-[var(--radius-xl)]
+                    rounded-[20px]
                     flex flex-col md:flex-row overflow-hidden
                     transition-all duration-300 ease-[var(--ease-spring)]
                     ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}

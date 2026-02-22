@@ -31,6 +31,9 @@
   --mat-content-card-bg: var(--mat-content-card-bg);
   --mat-border: var(--mat-border);
   --mat-border-highlight: var(--mat-border-highlight);
+  --mat-inset-highlight: var(--mat-inset-highlight);
+  --mat-shadow-color: var(--mat-shadow-color);
+  --mat-lg-highlight-gradient: var(--mat-lg-highlight-gradient);
   
   /* Legacy mappings for Tailwind */
   --color-accent: var(--color-accent);
@@ -86,7 +89,7 @@ html, body, #root {
     border: 1px solid var(--mat-border);
     border-bottom-color: transparent;
     border-right-color: transparent;
-    box-shadow: inset 0 1px 0 var(--mat-border-highlight), 0 8px 32px rgba(0, 0, 0, 0.30);
+    box-shadow: inset 0 1px 0 var(--mat-border-highlight), 0 8px 32px var(--mat-shadow-color);
     position: relative;
 }
 
@@ -97,7 +100,7 @@ html, body, #root {
     left: 0;
     right: 0;
     height: 33%;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), transparent);
+    background: linear-gradient(to bottom, var(--mat-lg-highlight-gradient), transparent);
     pointer-events: none;
     border-radius: inherit;
     z-index: 0;
@@ -109,13 +112,13 @@ html, body, #root {
     backdrop-filter: blur(20px) saturate(150%);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
     border: 1px solid var(--mat-border);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 var(--mat-inset-highlight);
 }
 
 /* mat-content — Content Layer Cards (No backdrop-filter) */
 .mat-content {
     background: var(--mat-content-card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--mat-border);
 }
 
 /* lg-btn — Glass Button */
@@ -133,7 +136,7 @@ html, body, #root {
     font-size: var(--text-body);
     font-weight: 500;
     cursor: pointer;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 var(--mat-inset-highlight);
     transition:
         background var(--dur-fast) var(--ease-standard),
         transform var(--dur-micro) var(--ease-spring),
@@ -143,7 +146,7 @@ html, body, #root {
 }
 .lg-btn:hover {
     background: var(--mat-lg-regular-bg);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: inset 0 1px 0 var(--mat-inset-highlight), 0 4px 12px var(--mat-shadow-color);
 }
 .lg-btn:active {
     transform: scale(0.94);
@@ -160,14 +163,14 @@ html, body, #root {
     font-size: var(--text-callout);
     font-family: var(--font-system);
     outline: none;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 var(--mat-inset-highlight);
     transition:
         border-color var(--dur-fast) var(--ease-standard),
         box-shadow var(--dur-fast) var(--ease-standard);
 }
 .lg-input:focus {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 3px var(--color-accent-ring), inset 0 1px 0 var(--mat-inset-highlight);
 }
 
 /* project-card-icon — 项目图标颜色映射表 */

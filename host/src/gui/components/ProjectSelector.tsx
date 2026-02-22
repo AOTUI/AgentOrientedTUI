@@ -72,7 +72,7 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
                             className={`proj-icon-${colorIdx} shrink-0 w-9 h-9 rounded-[var(--radius-sm)] border flex items-center justify-center`}
                         >
                             <span
-                                className="text-sm font-semibold leading-none font-system"
+                                className="text-[14px] font-semibold leading-none font-system"
                             >
                                 {project.name.charAt(0).toUpperCase()}
                             </span>
@@ -80,7 +80,7 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
 
                         {/* 项目名称 */}
                         <h3
-                            className="text-sm font-semibold tracking-tight truncate text-[var(--color-text-primary)] font-system"
+                            className="text-[14px] font-semibold tracking-tight truncate text-[var(--color-text-primary)] font-system"
                             style={{ letterSpacing: '-0.015em' }}
                         >
                             {project.name}
@@ -332,12 +332,12 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                             </div>
 
                             <p
-                                className="text-sm font-medium mb-1 text-[var(--color-text-secondary)]"
+                                className="text-[13px] font-medium mb-1 text-[var(--color-text-secondary)]"
                             >
                                 No projects yet
                             </p>
                             <p
-                                className="text-xs mb-6 text-[var(--color-text-tertiary)]"
+                                className="text-[12px] mb-6 text-[var(--color-text-tertiary)]"
                             >
                                 Open a folder to get started
                             </p>
