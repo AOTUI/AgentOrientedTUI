@@ -178,11 +178,11 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
                 return (
                     <React.Fragment key={`trace-reasoning-${index}`}>
-                        <div className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-2 rounded-md bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)]">
+                        <div className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-2 rounded-xl bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)]">
                             <MarkdownRenderer content={item.text} />
                         </div>
                         {showFoldedBarAfter && (
-                            <div className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[11px] text-[var(--color-text-secondary)]">
+                            <div className="flex items-center gap-2 px-2 py-1 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[11px] text-[var(--color-text-secondary)]">
                                 <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
                                 <span className="font-medium">Folded Toolcalls</span>
                                 <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
@@ -283,7 +283,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 <React.Fragment key={`trace-item-${index}`}>
                                     {!isExpanded && index === firstVisibleToolIndex && firstVisibleToolIndex >= 0 && hiddenToolCount > 0 && (
                                         <button
-                                            className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-[var(--mat-content-card-hover-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)]"
+                                                className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-full bg-[var(--mat-content-card-hover-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)]"
                                             onClick={() => toggleTraceExpand(key)}
                                             aria-label="Click to expand tool chain"
                                         >
@@ -301,7 +301,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         {isExpanded && (
                             <div className="mt-3 sticky bottom-2 z-10 flex justify-end">
                                 <button
-                                    className="text-[11px] px-2.5 py-1 rounded-md border border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)]"
+                                    className="text-[11px] px-2.5 py-1 rounded-full border border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)]"
                                     onClick={() => toggleTraceExpand(key)}
                                     aria-label="Collapse tool chain"
                                 >
@@ -425,7 +425,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         max-w-[85%] shadow-sm
                                         ${isAgent
                                             ? 'mat-content rounded-2xl rounded-tl-sm'
-                                            : 'mat-lg-clear bg-[var(--color-accent)]/15 border-[var(--color-accent)]/20 rounded-2xl rounded-tr-sm'}
+                                            : 'mat-lg-clear bg-[var(--color-accent)]/20 border-[var(--color-accent)]/30 rounded-2xl rounded-tr-sm'}
                                     `}
                                 >
                                     <CardBody className="p-4 overflow-hidden">

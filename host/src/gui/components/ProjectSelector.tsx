@@ -80,8 +80,7 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
 
                         {/* 项目名称 */}
                         <h3
-                            className="text-[14px] font-semibold tracking-tight truncate text-[var(--color-text-primary)] font-system"
-                            style={{ letterSpacing: '-0.015em' }}
+                            className="text-[15px] font-semibold truncate text-[var(--color-text-primary)] font-system"
                         >
                             {project.name}
                         </h3>
@@ -227,7 +226,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                             </svg>
                         </div>
                         <h1
-                            className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)]"
+                            className="text-[17px] font-semibold  text-[var(--color-text-primary)]"
                             style={{ letterSpacing: '-0.02em' }}
                         >
                             Projects
@@ -246,7 +245,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                         {onOpenSettings && (
                             <button
                                 onClick={onOpenSettings}
-                                className="p-2 rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
+                                  className="p-2 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
                                 title="Settings"
                             >
                                 <IconSettings />
@@ -254,7 +253,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                         )}
                         <button
                             onClick={toggleTheme}
-                            className="p-2 rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
+                              className="p-2 rounded-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--mat-lg-clear-bg)] transition-colors"
                             title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
                         >
                             {theme === 'dark' ? <IconSun /> : <IconMoon />}

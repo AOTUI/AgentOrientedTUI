@@ -99,21 +99,21 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
                     {/* Warning Message */}
                     <div id="delete-confirm-dialog-description" className="flex flex-col gap-3">
-                        <p className="text-sm text-[var(--color-text-secondary)]">
+                        <p className="text-[13px] text-[var(--color-text-secondary)]">
                             Are you sure you want to delete <span className="font-semibold text-[var(--color-text-primary)]">{providerName}</span>?
                         </p>
                         
-                        <p className="text-sm text-[var(--color-text-secondary)]">
+                        <p className="text-[13px] text-[var(--color-text-secondary)]">
                             This action cannot be undone. All configuration data for this provider will be permanently removed.
                         </p>
 
                         {/* Special Warning for Active Provider */}
                         {isActive && (
                             <div className="p-3 rounded-lg bg-[var(--color-danger)/15] border border-[var(--color-danger)/15]">
-                                <p className="text-sm font-medium text-[var(--color-danger)]">
+                                <p className="text-[13px] font-medium text-[var(--color-danger)]">
                                     ⚠️ Warning: This is your active provider
                                 </p>
-                                <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                                <p className="text-[11px] text-[var(--color-text-secondary)] mt-1">
                                     Deleting this provider will clear your active model selection. You will need to select a new provider and model to continue using the application.
                                 </p>
                             </div>

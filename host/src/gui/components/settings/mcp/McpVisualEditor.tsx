@@ -270,14 +270,14 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
         <div className="flex flex-col h-full min-h-[400px]">
             {/* 顶部工具栏 */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--mat-border)] mat-lg-clear shrink-0">
-                <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
+                <span className="text-[11px] text-[var(--color-text-tertiary)] font-mono">
                     {runtimeLoading ? 'Loading...' : `${totalEnabledTools} / ${totalTools} tools active`}
                 </span>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={fetchRuntime}
                         disabled={runtimeLoading}
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-[var(--mat-border)] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors disabled:opacity-40"
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded-full border border-[var(--mat-border)] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors disabled:opacity-40"
                         title="Refresh runtime status"
                     >
                         <svg className={`w-3.5 h-3.5 ${runtimeLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -288,7 +288,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     <button
                         onClick={() => onSave(config)}
                         disabled={isSaving}
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors active:scale-95"
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded-full bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors active:scale-95"
                     >
                         {isSaving ? 'Saving...' : 'Save Config'}
                     </button>
@@ -302,7 +302,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                         <span className="text-[10px] font-semibold text-[var(--color-text-tertiary)] tracking-[0.05em]">Servers</span>
                         <button
                             onClick={handleAddServer}
-                            className="p-1 hover:bg-[var(--mat-content-card-hover-bg)] rounded text-[var(--color-accent)] transition-colors"
+                            className="p-1 hover:bg-[var(--mat-content-card-hover-bg)] rounded-full text-[var(--color-accent)] transition-colors"
                             title="Add Server"
                         >
                             <IconNewChat className="w-3.5 h-3.5" />
@@ -310,7 +310,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     </div>
                     <div className="flex-1 overflow-y-auto p-1.5 flex flex-col gap-0.5">
                         {keys.length === 0 ? (
-                            <div className="px-3 py-6 text-center text-xs text-[var(--color-text-tertiary)] italic">
+                            <div className="px-3 py-6 text-center text-[11px] text-[var(--color-text-tertiary)] italic">
                                 No servers configured.<br />Click + to add one.
                             </div>
                         ) : (
@@ -336,7 +336,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                         onClick={() => setSelectedKey(key)}
                                         className={`
                                             group flex items-center gap-2 px-2.5 py-2 rounded-[8px] cursor-pointer
-                                            transition-colors text-sm
+                                            transition-colors text-[13px]
                                             ${selectedKey === key
                                                 ? 'bg-[var(--color-accent)/15] text-[var(--color-accent)]'
                                                 : 'hover:bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)]'}
@@ -347,7 +347,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
 
                                         {/* Server 名 + 状态 */}
                                         <div className="flex-1 min-w-0">
-                                            <p className="truncate text-xs font-medium leading-tight">{key}</p>
+                                            <p className="truncate text-[11px] font-medium leading-tight">{key}</p>
                                             <p className={`truncate text-[10px] mt-0.5 ${selectedKey === key ? 'text-[var(--color-accent)]/70' : 'text-[var(--color-text-tertiary)]'}`}>
                                                 {statusText}
                                             </p>
@@ -382,7 +382,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                             {/* 详情头部 */}
                             <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--mat-border)] shrink-0">
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{selectedKey}</h3>
+                                    <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate">{selectedKey}</h3>
                                     <div className="flex items-center gap-3 mt-1 text-[11px] text-[var(--color-text-tertiary)]">
                                         <span>Connection: {connectionStatusLabel}</span>
                                         <span>Runtime: {runtimeStatusLabel}</span>
@@ -391,7 +391,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                 {selectedRuntime && <StatusBadge status={selectedRuntime.status} error={selectedRuntime.error} />}
                                 {/* Server Enable/Disable 推钮 */}
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs text-[var(--color-text-tertiary)]">
+                                    <span className="text-[11px] text-[var(--color-text-tertiary)]">
                                         {pendingToggles.has(`server:${selectedKey}`)
                                             ? 'Updating...'
                                             : (selectedRuntime?.status === 'disabled' || selectedServer.enabled === false)
@@ -413,14 +413,14 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                             {/* Tools 列表 */}
                             <div className="flex-1 overflow-y-auto">
                                 {runtimeLoading ? (
-                                    <div className="flex items-center justify-center py-12 text-xs text-[var(--color-text-tertiary)]">
+                                    <div className="flex items-center justify-center py-12 text-[11px] text-[var(--color-text-tertiary)]">
                                         <svg className="w-4 h-4 animate-spin mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
                                         Loading tools...
                                     </div>
                                 ) : runtimeError ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-xs text-red-400 gap-2">
+                                    <div className="flex flex-col items-center justify-center py-12 text-[11px] text-red-400 gap-2">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
                                         </svg>
@@ -430,7 +430,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                     <div className="flex flex-col items-center justify-center py-12 text-[var(--color-text-tertiary)] gap-3">
                                         <IconPlug className="w-10 h-10 opacity-20" />
                                         <div className="text-center">
-                                            <p className="text-sm font-medium mb-1">
+                                            <p className="text-[13px] font-medium mb-1">
                                                 {!selectedRuntime || selectedRuntime.status === 'disabled'
                                                     ? 'Server is disabled'
                                                     : selectedRuntime.status === 'failed'
@@ -439,7 +439,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                                             ? 'Authentication required'
                                                             : 'Not connected'}
                                             </p>
-                                            <p className="text-xs text-[var(--color-text-tertiary)] max-w-[280px]">
+                                            <p className="text-[11px] text-[var(--color-text-tertiary)] max-w-[280px]">
                                                 {selectedRuntime?.status === 'failed'
                                                     ? (selectedRuntime.error || 'Unknown error')
                                                     : selectedRuntime?.status === 'disabled'
@@ -450,8 +450,8 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                     </div>
                                 ) : selectedRuntime.tools.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-12 text-[var(--color-text-tertiary)] gap-2">
-                                        <p className="text-sm">No tools available</p>
-                                        <p className="text-xs">This server has no tools listed.</p>
+                                        <p className="text-[13px]">No tools available</p>
+                                        <p className="text-[11px]">This server has no tools listed.</p>
                                     </div>
                                 ) : (
                                     <div className="divide-y divide-[var(--mat-border)]/50">
@@ -465,17 +465,17 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                                         }`}
                                                 >
                                                     {/* 序号 */}
-                                                    <span className="text-xs text-[var(--color-text-tertiary)] font-mono w-5 shrink-0 pt-0.5 tabular-nums">
+                                                    <span className="text-[11px] text-[var(--color-text-tertiary)] font-mono w-5 shrink-0 pt-0.5 tabular-nums">
                                                         {idx + 1}.
                                                     </span>
 
                                                     {/* 工具信息 */}
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-[var(--color-text-primary)] font-mono">
+                                                        <p className="text-[13px] font-semibold text-[var(--color-text-primary)] font-mono">
                                                             {tool.name}
                                                         </p>
                                                         {tool.description && (
-                                                            <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5 leading-relaxed">
+                                                            <p className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5 leading-relaxed">
                                                                 {tool.description}
                                                             </p>
                                                         )}
@@ -498,8 +498,8 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-text-tertiary)] p-8 text-center">
                             <IconPlug className="w-12 h-12 mb-4 opacity-20" />
-                            <h4 className="text-sm font-medium mb-1">No MCP Server Selected</h4>
-                            <p className="text-xs">Select a server from the left sidebar or click + to add a new one.</p>
+                            <h4 className="text-[13px] font-medium mb-1">No MCP Server Selected</h4>
+                            <p className="text-[11px]">Select a server from the left sidebar or click + to add a new one.</p>
                         </div>
                     )}
                 </div>

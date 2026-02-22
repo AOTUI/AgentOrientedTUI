@@ -18,7 +18,7 @@ export function ConnectionScreen({ status, onRetry }: { status: 'connecting' | '
                     </>
                 ) : (
                     <>
-                        <div className="text-[var(--color-danger)] text-4xl mb-4">⚠</div>
+                        <div className="text-[var(--color-danger)] text-[28px] mb-4">⚠</div>
                         <h2 className="font-display text-[22px] font-medium text-[var(--color-text-primary)]">Connection Lost</h2>
                         <p className="font-system text-[13px] text-[var(--color-text-secondary)] mt-2 mb-8">
                             Unable to establish link with Host Core. Please check your connection and try again.

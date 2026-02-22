@@ -202,9 +202,9 @@ describe('Responsive Behavior', () => {
             const heading = container.querySelector('h2');
             // May be null if database not initialized, but if it exists, should have responsive classes
             if (heading) {
-                expect(heading.className).toContain('text-lg');
-                expect(heading.className).toContain('sm:text-xl');
-                expect(heading.className).toContain('md:text-2xl');
+                expect(heading.className).toContain('text-[17px]');
+                expect(heading.className).toContain('sm:text-[22px]');
+                expect(heading.className).toContain('md:text-[28px]');
             } else {
                 // If no heading found, test passes (database not initialized scenario)
                 expect(true).toBe(true);
@@ -296,9 +296,9 @@ describe('Responsive Behavior', () => {
             );
 
             const heading = container.querySelector('h2');
-            expect(heading?.className).toContain('text-lg');
-            expect(heading?.className).toContain('sm:text-xl');
-            expect(heading?.className).toContain('md:text-2xl');
+            expect(heading?.className).toContain('text-[17px]');
+            expect(heading?.className).toContain('sm:text-[22px]');
+            expect(heading?.className).toContain('md:text-[28px]');
         });
 
         it('should have responsive spacing', () => {
@@ -347,9 +347,9 @@ describe('Responsive Behavior', () => {
             const { container } = render(<ThemeTab currentTheme="dark" onThemeChange={vi.fn()} />);
 
             const heading = container.querySelector('h2');
-            expect(heading?.className).toContain('text-lg');
-            expect(heading?.className).toContain('sm:text-xl');
-            expect(heading?.className).toContain('md:text-2xl');
+            expect(heading?.className).toContain('text-[17px]');
+            expect(heading?.className).toContain('sm:text-[22px]');
+            expect(heading?.className).toContain('md:text-[28px]');
         });
 
         it('should have responsive padding', () => {

@@ -23,7 +23,7 @@ export const ThemeTab: React.FC<ThemeTabProps> = ({ currentTheme, onThemeChange 
         <div className="flex flex-col h-full p-2 max-w-[800px] mx-auto">
             {/* Header */}
             <div className="mb-6 text-center sm:text-left">
-                <h2 className="text-xl font-semibold tracking-tight text-[var(--color-text-primary)]">
+                <h2 className="text-[22px] font-semibold text-[var(--color-text-primary)]">
                     Appearance
                 </h2>
                 <p className="mt-1 text-[13px] text-[var(--color-text-secondary)]">

@@ -84,7 +84,7 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
                 <div className="absolute top-3 left-3 right-3 flex flex-col gap-2">
                     <div className="h-2 w-1/3 rounded-full opacity-20 bg-current" style={{ color: colors.text }} />
                     <div 
-                        className="h-8 rounded-md w-full border flex items-center px-2"
+                        className="h-8 rounded-xl w-full border flex items-center px-2"
                         style={{ 
                             backgroundColor: colors.surface,
                             borderColor: colors.border
@@ -93,8 +93,8 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
                         <div className="h-1.5 w-1/2 rounded-full opacity-40 bg-current" style={{ color: colors.text }} />
                     </div>
                     <div className="flex gap-2 mt-1">
-                        <div className="h-6 w-12 rounded-md" style={{ backgroundColor: colors.accent }} />
-                        <div className="h-6 w-12 rounded-md border" style={{ borderColor: colors.border }} />
+                        <div className="h-6 w-12 rounded-xl" style={{ backgroundColor: colors.accent }} />
+                        <div className="h-6 w-12 rounded-xl border" style={{ borderColor: colors.border }} />
                     </div>
                 </div>
             </div>

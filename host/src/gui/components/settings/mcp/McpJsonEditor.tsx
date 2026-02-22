@@ -47,12 +47,12 @@ export const McpJsonEditor: React.FC<McpJsonEditorProps> = ({
     return (
         <div className="flex flex-col h-full mat-content">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--mat-border)] mat-lg-clear">
-                <span className="text-sm font-medium text-[var(--color-text-secondary)]">Raw JSON Config</span>
+                <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Raw JSON Config</span>
                 <button
                     onClick={handleSave}
                     disabled={!!error || isSaving}
                     className={`
-                        px-4 py-1.5 rounded-full text-sm font-medium transition-colors active:scale-95
+                        px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors active:scale-95
                         ${error ? 'bg-[var(--mat-content-card-bg)] text-[var(--color-text-tertiary)] cursor-not-allowed' : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90'}
                     `}
                 >
@@ -66,7 +66,7 @@ export const McpJsonEditor: React.FC<McpJsonEditorProps> = ({
                     onChange={handleChange}
                     spellCheck={false}
                     className={`
-                        w-full h-full font-mono text-[13px] p-4 rounded-lg resize-none outline-none
+                        w-full h-full font-mono text-[13px] p-4 rounded-xl resize-none outline-none
                         mat-content text-[var(--color-text-primary)] border
                         ${error ? 'border-[var(--color-danger)]/50 focus:border-[var(--color-danger)]' : 'border-[var(--mat-border)] focus:border-[var(--color-accent)/15]'}
                         focus:ring-1 focus:ring-[var(--color-accent)/15]
@@ -75,7 +75,7 @@ export const McpJsonEditor: React.FC<McpJsonEditorProps> = ({
                 />
 
                 {error && (
-                    <div className="absolute bottom-6 left-6 right-6 p-3 rounded-lg bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-sm font-mono break-words">
+                    <div className="absolute bottom-6 left-6 right-6 p-3 rounded-xl bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-[13px] font-mono break-words">
                         JSON Error: {error}
                     </div>
                 )}

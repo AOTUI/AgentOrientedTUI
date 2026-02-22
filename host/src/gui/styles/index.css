@@ -128,7 +128,7 @@ html, body, #root {
     justify-content: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
     background: var(--mat-lg-clear-bg);
     border: 1px solid var(--mat-border);
     color: var(--color-text-primary);

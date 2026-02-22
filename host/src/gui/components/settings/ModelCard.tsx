@@ -186,7 +186,7 @@ export const ModelCard: React.FC<ModelCardProps> = ({
                             onSelect();
                         }}
                         className="
-                            px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all duration-200
+                            px-3 py-1.5 rounded-[8px] text-[11px] font-medium transition-all duration-200
                             bg-[var(--color-bg-surface)] hover:bg-[var(--color-accent)]/15 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]
                             border border-[var(--color-border)] hover:border-[var(--color-accent)]/30
                         "

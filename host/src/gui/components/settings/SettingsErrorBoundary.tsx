@@ -70,7 +70,7 @@ export class SettingsErrorBoundary extends React.Component<
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                     <IconAlertCircle className="text-[var(--color-danger)] mb-4" />
                     
-                    <h2 className="text-xl font-medium text-[var(--color-text-primary)] mb-2">
+                    <h2 className="text-[17px] font-medium text-[var(--color-text-primary)] mb-2">
                         Something went wrong
                     </h2>
                     

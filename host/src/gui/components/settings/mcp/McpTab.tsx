@@ -96,10 +96,10 @@ export const McpTab: React.FC = () => {
         <div className="relative flex flex-col h-full min-h-0 gap-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
                 <div>
-                    <h3 className="text-xs sm:text-sm font-medium text-[var(--color-text-secondary)]">
+                    <h3 className="text-[13px] font-medium text-[var(--color-text-secondary)]">
                         Model Context Protocol Nodes
                     </h3>
-                    <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
+                    <p className="text-[13px] text-[var(--color-text-tertiary)] mt-1">
                         Connect external tools, databases, and capabilities to your LLM using MCP servers.
                     </p>
                 </div>
@@ -108,13 +108,13 @@ export const McpTab: React.FC = () => {
                 <div className="flex items-center mat-lg-regular rounded-full p-1 shadow-sm">
                     <button
                         onClick={() => setViewMode('visual')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${viewMode === 'visual' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-colors ${viewMode === 'visual' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Visual Form
                     </button>
                     <button
                         onClick={() => setViewMode('json')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${viewMode === 'json' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-colors ${viewMode === 'json' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Raw JSON
                     </button>
@@ -144,7 +144,7 @@ export const McpTab: React.FC = () => {
             </div>
             {/* Save Success Banner */}
             {savedBanner && (
-                <div className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-success)]/90 text-white text-sm shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2">
+                <div className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-success)]/90 text-white text-[13px] shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     MCP config saved to ~/.tui/mcp.json
                 </div>

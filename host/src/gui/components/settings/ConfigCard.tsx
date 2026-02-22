@@ -126,7 +126,7 @@ export const ConfigCard: React.FC<ConfigCardProps> = ({
                             size="md"
                         />
                         <div className="flex flex-col">
-                            <h3 className="text-base font-medium text-[var(--color-text-primary)]">
+                            <h3 className="text-[15px] font-medium text-[var(--color-text-primary)]">
                                 {config.name}
                             </h3>
                             <p className="text-xs text-[var(--color-text-tertiary)] font-mono">

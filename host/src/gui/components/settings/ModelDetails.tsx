@@ -115,10 +115,10 @@ function getRecommendedConfig(model: ModelsDevModel): { temperature: number; max
  */
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-[var(--color-border)] last:border-b-0">
-        <span className="text-sm font-medium text-[var(--color-text-secondary)] flex-shrink-0">
+        <span className="text-[13px] font-medium text-[var(--color-text-secondary)] flex-shrink-0">
             {label}
         </span>
-        <span className="text-sm text-[var(--color-text-primary)] text-right">
+        <span className="text-[13px] text-[var(--color-text-primary)] text-right">
             {value}
         </span>
     </div>
@@ -131,7 +131,7 @@ const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label,
  */
 const CapabilityBadge: React.FC<{ label: string; enabled: boolean }> = ({ label, enabled }) => (
     <div className={`
-        flex items-center gap-2 px-3 py-2 rounded-lg
+        flex items-center gap-2 px-3 py-2 rounded-xl
         ${enabled 
             ? 'bg-green-500/10 text-green-600 dark:text-green-400' 
             : 'mat-content text-[var(--color-text-tertiary)]'
@@ -142,7 +142,7 @@ const CapabilityBadge: React.FC<{ label: string; enabled: boolean }> = ({ label,
         ) : (
             <IconX className="w-4 h-4 flex-shrink-0" />
         )}
-        <span className="text-sm font-medium">{label}</span>
+        <span className="text-[13px] font-medium">{label}</span>
     </div>
 );
 
@@ -158,10 +158,10 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
     // Handle no model selected
     if (!model) {
         return (
-            <div className={`${className} p-6 rounded-lg mat-content`}>
+            <div className={`${className} p-6 rounded-xl mat-content`}>
                 <div className="flex items-center gap-3 text-[var(--color-text-tertiary)]">
                     <IconInfo />
-                    <p className="text-sm">
+                    <p className="text-[13px]">
                         Select a model to view detailed information
                     </p>
                 </div>
@@ -174,23 +174,23 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
     return (
         <div className={`${className} space-y-4`}>
             {/* Model Header */}
-            <div className="p-4 rounded-lg mat-content">
-                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
+            <div className="p-4 rounded-xl mat-content">
+                <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)] mb-1">
                     {model.name}
                 </h3>
-                <p className="text-sm text-[var(--color-text-tertiary)]">
+                <p className="text-[13px] text-[var(--color-text-tertiary)]">
                     {model.id}
                 </p>
                 {model.family && (
-                    <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+                    <p className="text-[11px] text-[var(--color-text-tertiary)] mt-1">
                         Family: {model.family}
                     </p>
                 )}
             </div>
 
             {/* Capabilities */}
-            <div className="p-4 rounded-lg mat-content">
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+            <div className="p-4 rounded-xl mat-content">
+                <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3">
                     Capabilities
                 </h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -209,8 +209,8 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
 
             {/* Pricing */}
             {model.cost && (
-                <div className="p-4 rounded-lg mat-content">
-                    <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+                <div className="p-4 rounded-xl mat-content">
+                    <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3">
                         Pricing
                     </h4>
                     <div className="space-y-0">
@@ -228,8 +228,8 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
 
             {/* Context Limits */}
             {model.limit && (
-                <div className="p-4 rounded-lg mat-content">
-                    <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+                <div className="p-4 rounded-xl mat-content">
+                    <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3">
                         Context Limits
                     </h4>
                     <div className="space-y-0">
@@ -244,8 +244,8 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
             )}
 
             {/* Recommended Configuration */}
-            <div className="p-4 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5">
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3 flex items-center gap-2">
+            <div className="p-4 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5">
+                <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3 flex items-center gap-2">
                     <IconInfo className="text-[var(--color-accent)]" />
                     Recommended Configuration
                 </h4>
@@ -255,7 +255,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
                         value={
                             <span>
                                 {recommendedConfig.temperature}
-                                <span className="text-xs text-[var(--color-text-tertiary)] ml-2">
+                                <span className="text-[11px] text-[var(--color-text-tertiary)] ml-2">
                                     ({model.reasoning ? 'Lower for reasoning' : 'Balanced'})
                                 </span>
                             </span>
@@ -266,7 +266,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
                         value={
                             <span>
                                 {recommendedConfig.maxSteps}
-                                <span className="text-xs text-[var(--color-text-tertiary)] ml-2">
+                                <span className="text-[11px] text-[var(--color-text-tertiary)] ml-2">
                                     ({model.reasoning ? 'More for complex tasks' : 'Standard'})
                                 </span>
                             </span>
@@ -277,8 +277,8 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
 
             {/* Additional Info */}
             {(model.release_date || model.last_updated || model.open_weights !== undefined) && (
-                <div className="p-4 rounded-lg mat-content">
-                    <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+                <div className="p-4 rounded-xl mat-content">
+                    <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3">
                         Additional Information
                     </h4>
                     <div className="space-y-0">

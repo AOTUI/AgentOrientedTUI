@@ -177,9 +177,9 @@ describe('SettingsSidebar', () => {
             const themeLabel = screen.getByText('Theme');
 
             expect(modelLabel).toHaveClass('uppercase');
-            expect(modelLabel).toHaveClass('tracking-wide');
+            expect(modelLabel).toHaveClass('font-medium');
             expect(themeLabel).toHaveClass('uppercase');
-            expect(themeLabel).toHaveClass('tracking-wide');
+            expect(themeLabel).toHaveClass('font-medium');
         });
 
         it('should apply hover styles to inactive tabs', () => {

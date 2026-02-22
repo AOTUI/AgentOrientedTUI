@@ -231,10 +231,10 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
 
                     {/* Provider Display (Read-only) */}
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-medium text-[var(--color-text-tertiary)]">
+                        <label className="text-[11px] font-medium text-[var(--color-text-tertiary)]">
                             Provider
                         </label>
-                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
                             <ProviderLogo
                                 providerId={provider.providerId}
                                 providerName={provider.customName}
@@ -253,7 +253,7 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                     <div className="flex flex-col gap-1.5">
                         <label
                             htmlFor="edit-custom-name-input"
-                            className="text-xs font-medium text-[var(--color-text-tertiary)]"
+                            className="text-[11px] font-medium text-[var(--color-text-tertiary)]"
                         >
                             Custom Name *
                         </label>
@@ -283,7 +283,7 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                     <div className="flex flex-col gap-1.5">
                         <label
                             htmlFor="edit-api-key-input"
-                            className="text-xs font-medium text-[var(--color-text-tertiary)]"
+                            className="text-[11px] font-medium text-[var(--color-text-tertiary)]"
                         >
                             API Key *
                         </label>
@@ -294,7 +294,7 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                             onChange={handleApiKeyChange}
                             disabled={isSaving}
                             placeholder="sk-..."
-                            className={`lg-input !h-[44px] !py-0 font-mono text-sm ${
+                            className={`lg-input !h-[44px] !py-0 font-mono text-[13px] ${
                                 validationErrors.apiKey
                                     ? '!border-[var(--color-danger)] ring-1 ring-[var(--color-danger)/15]'
                                     : ''

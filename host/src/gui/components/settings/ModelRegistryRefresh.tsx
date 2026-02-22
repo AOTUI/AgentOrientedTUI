@@ -147,8 +147,8 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
     // Handle loading state
     if (isLoadingStatus) {
         return (
-            <div className={`${className} p-4 rounded-lg mat-content`}>
-                <div className="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
+            <div className={`${className} p-4 rounded-xl mat-content`}>
+                <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-tertiary)]">
                     <Spinner size="sm" />
                     <span>Loading cache status...</span>
                 </div>
@@ -159,8 +159,8 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
     // Handle error state
     if (statusError) {
         return (
-            <div className={`${className} p-4 rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10`}>
-                <div className="flex items-center gap-2 text-sm text-[var(--color-danger)]">
+            <div className={`${className} p-4 rounded-xl border border-[var(--color-danger)] bg-[var(--color-danger)]/10`}>
+                <div className="flex items-center gap-2 text-[13px] text-[var(--color-danger)]">
                     <IconAlert />
                     <span>Failed to load cache status</span>
                 </div>
@@ -177,7 +177,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
         <div className={`${className} space-y-3`}>
             {/* Cache Status Card */}
             <div className={`
-                p-4 rounded-lg border
+                p-4 rounded-xl border
                 ${cacheStatus.isStale 
                     ? 'border-yellow-500/30 bg-yellow-500/5' 
                     : 'border-[var(--color-border)] mat-content'
@@ -186,12 +186,12 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                 <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex items-center gap-2">
                         <IconDatabase className="text-[var(--color-text-secondary)]" />
-                        <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                        <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)]">
                             Model Registry Cache
                         </h4>
                     </div>
                     {cacheStatus.isStale && (
-                        <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                        <span className="text-[11px] px-2 py-1 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
                             <IconAlert className="w-3 h-3" />
                             Stale
                         </span>
@@ -201,27 +201,27 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                 {/* Cache Stats */}
                 <div className="grid grid-cols-3 gap-3 mb-3">
                     <div className="text-center p-2 rounded bg-[var(--color-bg-surface)]">
-                        <div className="text-lg font-semibold text-[var(--color-text-primary)]">
+                        <div className="text-[15px] font-semibold text-[var(--color-text-primary)]">
                             {cacheStatus.providerCount}
                         </div>
-                        <div className="text-xs text-[var(--color-text-tertiary)]">
+                        <div className="text-[11px] text-[var(--color-text-tertiary)]">
                             Providers
                         </div>
                     </div>
                     <div className="text-center p-2 rounded bg-[var(--color-bg-surface)]">
-                        <div className="text-lg font-semibold text-[var(--color-text-primary)]">
+                        <div className="text-[15px] font-semibold text-[var(--color-text-primary)]">
                             {cacheStatus.modelCount}
                         </div>
-                        <div className="text-xs text-[var(--color-text-tertiary)]">
+                        <div className="text-[11px] text-[var(--color-text-tertiary)]">
                             Models
                         </div>
                     </div>
                     <div className="text-center p-2 rounded bg-[var(--color-bg-surface)]">
-                        <div className="text-xs font-medium text-[var(--color-text-primary)] flex items-center justify-center gap-1">
+                        <div className="text-[11px] font-medium text-[var(--color-text-primary)] flex items-center justify-center gap-1">
                             <IconClock className="w-3 h-3" />
                             {formatTimestamp(cacheStatus.lastFetch)}
                         </div>
-                        <div className="text-xs text-[var(--color-text-tertiary)]">
+                        <div className="text-[11px] text-[var(--color-text-tertiary)]">
                             Last Updated
                         </div>
                     </div>
@@ -230,7 +230,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                 {/* Stale Warning */}
                 {cacheStatus.isStale && (
                     <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
-                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                        <p className="text-[11px] text-yellow-600 dark:text-yellow-400">
                             Cache is older than 24 hours. Consider refreshing to get the latest model data.
                         </p>
                     </div>
@@ -242,8 +242,8 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 className={`
-                    w-full px-4 py-2.5 rounded-lg
-                    font-medium text-sm
+                    w-full px-4 py-2.5 rounded-full
+                    font-medium text-[13px]
                     transition-all duration-200
                     flex items-center justify-center gap-2
                     ${isRefreshing
@@ -267,14 +267,14 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
 
             {/* Refresh Error */}
             {refreshError && (
-                <div className="p-3 rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10">
+                <div className="p-3 rounded-xl border border-[var(--color-danger)] bg-[var(--color-danger)]/10">
                     <div className="flex items-start gap-2">
                         <IconAlert className="text-[var(--color-danger)] flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
-                            <p className="text-sm font-medium text-[var(--color-danger)] mb-1">
+                            <p className="text-[13px] font-medium text-[var(--color-danger)] mb-1">
                                 Refresh Failed
                             </p>
-                            <p className="text-xs text-[var(--color-danger)]/80">
+                            <p className="text-[11px] text-[var(--color-danger)]/80">
                                 {refreshError.message}
                             </p>
                         </div>
@@ -283,7 +283,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
             )}
 
             {/* Info Text */}
-            <p className="text-xs text-[var(--color-text-tertiary)] text-center">
+            <p className="text-[11px] text-[var(--color-text-tertiary)] text-center">
                 Refreshing will fetch the latest model data from models.dev
             </p>
         </div>

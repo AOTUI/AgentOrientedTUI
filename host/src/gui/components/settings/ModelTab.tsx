@@ -227,7 +227,7 @@ export const ModelTab: React.FC = () => {
             <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <div className="text-[var(--color-danger)] text-center">
                     <p className="font-medium mb-2">Failed to load providers</p>
-                    <p className="text-sm text-[var(--color-text-tertiary)]">{providerError.message}</p>
+                    <p className="text-[13px] text-[var(--color-text-tertiary)]">{providerError.message}</p>
                 </div>
             </div>
         );
@@ -238,7 +238,7 @@ export const ModelTab: React.FC = () => {
             {/* Provider row */}
             <div>
                 <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-center mb-2 sm:mb-3">
-                    <h3 className="text-xs sm:text-sm font-medium text-[var(--color-text-secondary)]">
+                    <h3 className="text-[11px] sm:text-[13px] font-medium text-[var(--color-text-secondary)]">
                         Providers
                     </h3>
                     <div className="w-full sm:w-[220px] sm:justify-self-end">
@@ -266,7 +266,7 @@ export const ModelTab: React.FC = () => {
             {/* Model search bar */}
             <div>
                 <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-center mb-2 sm:mb-3">
-                    <h3 className="text-xs sm:text-sm font-medium text-[var(--color-text-secondary)]">
+                    <h3 className="text-[11px] sm:text-[13px] font-medium text-[var(--color-text-secondary)]">
                         Models Of {selectedProviderName}
                     </h3>
                     <div className="w-full sm:w-[220px] sm:justify-self-end">

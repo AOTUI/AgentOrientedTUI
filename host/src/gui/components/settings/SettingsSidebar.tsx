@@ -13,7 +13,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
     // Shared button styles
     const baseBtnClass = `
         flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 md:gap-3 
-        px-3 md:px-4 py-2 md:py-2.5 rounded-[var(--radius-sm)]
+        px-3 md:px-4 py-2 md:py-2.5 rounded-xl
         transition-all duration-300 text-left border
     `;
 

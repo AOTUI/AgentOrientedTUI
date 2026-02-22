@@ -59,10 +59,10 @@ export const ModelRegistryTab: React.FC = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">
+                <h2 className="text-[17px] font-semibold text-[var(--color-text-primary)] mb-2">
                     Model Registry
                 </h2>
-                <p className="text-sm text-[var(--color-text-tertiary)]">
+                <p className="text-[13px] text-[var(--color-text-tertiary)]">
                     Browse and explore available LLM providers and models from models.dev
                 </p>
             </div>
@@ -76,7 +76,7 @@ export const ModelRegistryTab: React.FC = () => {
                 <div className="space-y-6">
                     {/* Provider Selection */}
                     <div>
-                        <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+                        <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3">
                             Select Provider
                         </h3>
                         <ProviderSelector
@@ -88,7 +88,7 @@ export const ModelRegistryTab: React.FC = () => {
                     {/* Model Selection */}
                     {selectedProviderId && (
                         <div>
-                            <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+                            <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3">
                                 Select Model
                             </h3>
                             <ModelSelector
@@ -98,8 +98,8 @@ export const ModelRegistryTab: React.FC = () => {
                                 isLoading={isLoading}
                             />
                             {error && (
-                                <div className="mt-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10">
-                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                                <div className="mt-3 p-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10">
+                                    <p className="text-[13px] text-yellow-600 dark:text-yellow-400">
                                         Failed to load models. Using cached data if available.
                                     </p>
                                 </div>
@@ -110,7 +110,7 @@ export const ModelRegistryTab: React.FC = () => {
 
                 {/* Right Column - Model Details */}
                 <div>
-                    <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+                    <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] mb-3">
                         Model Details
                     </h3>
                     <ModelDetails model={selectedModel} />
@@ -118,8 +118,8 @@ export const ModelRegistryTab: React.FC = () => {
             </div>
 
             {/* Info Footer */}
-            <div className="p-4 rounded-lg mat-content">
-                <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
+            <div className="p-4 rounded-xl mat-content">
+                <p className="text-[11px] text-[var(--color-text-tertiary)] leading-relaxed">
                     <strong className="text-[var(--color-text-secondary)]">Note:</strong> This is a read-only view of available models from models.dev. 
                     To configure and use these models, go to the "Model" tab to create provider configurations with your API keys.
                 </p>
