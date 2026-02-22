@@ -24,6 +24,7 @@ import type { LLMConfigService } from './llm-config-service.js';
 import type { MessageServiceV2 } from './message-service-v2.js';
 import { HostDrivenSourceV2 } from '../adapters/host-driven-source.js';
 import { SystemPromptDrivenSource } from '../adapters/system-prompt-source.js';
+import { McpDrivenSource } from '../mcp/source.js';
 import type { Session, SessionManagerConfig, GuiUpdateEvent } from '../types/session.js';
 import { Logger } from '../utils/logger.js';
 import type { DesktopManager } from './desktop-manager.js';
@@ -44,10 +45,10 @@ export class SessionManagerV3 extends EventEmitter {
     private messageService: MessageServiceV2;
     private logger: Logger;
     private cleanupTimer: NodeJS.Timeout | null = null;
-    
+
     // 配置
     private config: Required<SessionManagerConfig>;
-    
+
     constructor(
         kernel: IKernel,
         desktopManager: DesktopManager,
@@ -61,23 +62,23 @@ export class SessionManagerV3 extends EventEmitter {
         this.llmConfigService = llmConfigService;
         this.messageService = messageService;
         this.logger = new Logger('SessionManagerV3');
-        
+
         // 合并默认配置
         this.config = {
             maxSessions: config?.maxSessions ?? 10,
             idleTimeoutMs: config?.idleTimeoutMs ?? 30 * 60 * 1000, // 30分钟
             cleanupIntervalMs: config?.cleanupIntervalMs ?? 5 * 60 * 1000, // 5分钟
         };
-        
+
         // 启动定期清理任务
         this.startCleanupTask();
-        
+
         this.logger.info('SessionManagerV3 initialized', {
             maxSessions: this.config.maxSessions,
             idleTimeoutMs: this.config.idleTimeoutMs,
         });
     }
-    
+
     /**
      * 获取 Session (不创建)
      */
@@ -130,7 +131,7 @@ export class SessionManagerV3 extends EventEmitter {
         this.inFlightSessions.set(topicId, createPromise);
         return createPromise;
     }
-    
+
     /**
      * 创建 Session
      * 
@@ -148,14 +149,14 @@ export class SessionManagerV3 extends EventEmitter {
         const appConfig = projectPath
             ? { projectPath, workspace_dir_path: projectPath }
             : undefined;
-        
+
         let desktop: IDesktop;
         try {
             // ✅ 使用 DesktopManager.createDesktop() 而非直接调用 kernel
             // 这样可以自动安装 AppRegistry 中的所有 Apps
             const info = await this.desktopManager.createDesktop(desktopId, appConfig);
             desktop = this.kernel.getDesktop(info.desktopId)!;
-            
+
             this.logger.debug('Desktop created with apps', {
                 desktopId: info.desktopId,
                 thirdPartyAppCount: info.thirdPartyAppCount,
@@ -165,27 +166,29 @@ export class SessionManagerV3 extends EventEmitter {
             this.logger.error('Failed to create desktop', { topicId, error });
             throw new Error(`Failed to create desktop for topic: ${topicId}`);
         }
-        
+
         // 2. 获取 LLM 配置
         const llmConfig = await this.llmConfigService.getActiveLLMConfig();
         if (!llmConfig) {
             throw new Error('No active LLM config found. Please configure an LLM provider first.');
         }
-        
+
         // 3. 创建 DrivenSources
         const systemPromptSource = new SystemPromptDrivenSource({
             systemPrompt: this.getSystemPrompt(),
         });
-        
+
         const aotuiSource = new AOTUIDrivenSource(desktop, this.kernel, {
             includeInstruction: true, // 注入 AOTUI System Instruction
         });
-        
+
         const hostSource = new HostDrivenSourceV2(
             this.messageService,
             topicId
         );
-        
+
+        const mcpDrivenSource = new McpDrivenSource();
+
         // 4. 创建 AgentDriver
         const { providerId, modelId, modelLabel } = (() => {
             const rawModel = llmConfig.model;
@@ -220,6 +223,7 @@ export class SessionManagerV3 extends EventEmitter {
                 systemPromptSource, // timestamp=0
                 aotuiSource,        // timestamp=1 (instruction) + dynamic (state)
                 hostSource,         // timestamp=now (user/assistant messages)
+                mcpDrivenSource as any,    // Custom MCP Tools
             ],
             llm: llmConfig,
             onAssistantMessage: (message) => {
@@ -261,17 +265,17 @@ export class SessionManagerV3 extends EventEmitter {
                 this.emit('message', event);
             },
         });
-        
+
         // 5. 启动 AgentDriver
         agentDriver.start();
-        
+
         this.logger.info('Session components initialized', {
             topicId,
             desktopId,
             agentDriverId: agentDriver.getId(),
             sources: ['SystemPrompt', 'AOTUI', 'Host'],
         });
-        
+
         return {
             topicId,
             desktop,
@@ -280,13 +284,14 @@ export class SessionManagerV3 extends EventEmitter {
                 systemPrompt: systemPromptSource,
                 aotui: aotuiSource,
                 host: hostSource,
+                mcp: mcpDrivenSource,
             },
             state: 'active',
             createdAt: Date.now(),
             lastAccessTime: Date.now(),
         };
     }
-    
+
     /**
      * 发送用户消息
      * 
@@ -295,7 +300,7 @@ export class SessionManagerV3 extends EventEmitter {
      */
     async sendMessage(topicId: string, content: string, messageId?: string): Promise<void> {
         const session = await this.ensureSession(topicId);
-        
+
         // 1. 保存到数据库
         const userMessage: ModelMessage = {
             role: 'user',
@@ -306,10 +311,10 @@ export class SessionManagerV3 extends EventEmitter {
         }
         (userMessage as any).timestamp = Date.now();
         this.messageService.addMessage(topicId, userMessage);
-        
+
         // 2. 通知 HostDrivenSource
         session.sources.host.notifyNewMessage();
-        
+
         // 3. 触发 GUI 更新事件
         const event: GuiUpdateEvent = {
             topicId,
@@ -317,10 +322,10 @@ export class SessionManagerV3 extends EventEmitter {
             message: userMessage,
         };
         this.emit('message', event);
-        
+
         this.logger.debug('User message sent', { topicId, contentLength: content.length });
     }
-    
+
     /**
      * 切换 Topic
      * 
@@ -330,7 +335,7 @@ export class SessionManagerV3 extends EventEmitter {
     async switchTopic(topicId: string): Promise<Session | null> {
         return this.getSession(topicId) || null;
     }
-    
+
     /**
      * 销毁 Session
      * 
@@ -342,21 +347,21 @@ export class SessionManagerV3 extends EventEmitter {
             this.logger.warn('Attempted to destroy non-existent session', { topicId });
             return;
         }
-        
+
         try {
             // 1. 停止 AgentDriver
             session.agentDriver.stop();
-            
+
             // 2. 销毁 Desktop
             await this.kernel.destroyDesktop(session.desktop.id);
-            
+
             // 3. 更新状态
             session.state = 'destroyed';
-            
+
             // 4. 清理引用
             this.sessions.delete(topicId);
             this.inFlightSessions.delete(topicId);
-            
+
             this.logger.info('Session destroyed', {
                 topicId,
                 remainingSessions: this.sessions.size,
@@ -399,21 +404,21 @@ export class SessionManagerV3 extends EventEmitter {
             this.inFlightSessions.delete(topicId);
         }
     }
-    
+
     /**
      * 驱逐最旧的 Session
      */
     private async evictOldestSession(): Promise<void> {
         let oldestTopicId: string | null = null;
         let oldestTime = Infinity;
-        
+
         for (const [topicId, session] of this.sessions.entries()) {
             if (session.lastAccessTime < oldestTime) {
                 oldestTime = session.lastAccessTime;
                 oldestTopicId = topicId;
             }
         }
-        
+
         if (oldestTopicId) {
             const idleTime = Date.now() - oldestTime;
             this.logger.warn('Evicting oldest session', {
@@ -423,7 +428,7 @@ export class SessionManagerV3 extends EventEmitter {
             await this.destroySession(oldestTopicId);
         }
     }
-    
+
     /**
      * 定期清理空闲 Session
      */
@@ -431,32 +436,32 @@ export class SessionManagerV3 extends EventEmitter {
         this.cleanupTimer = setInterval(async () => {
             const now = Date.now();
             const toDestroy: string[] = [];
-            
+
             for (const [topicId, session] of this.sessions.entries()) {
                 const idleTime = now - session.lastAccessTime;
                 if (idleTime > this.config.idleTimeoutMs) {
                     toDestroy.push(topicId);
                 }
             }
-            
+
             if (toDestroy.length > 0) {
                 this.logger.info('Cleaning up idle sessions', {
                     count: toDestroy.length,
                     topics: toDestroy,
                 });
-                
+
                 for (const topicId of toDestroy) {
                     await this.destroySession(topicId);
                 }
             }
         }, this.config.cleanupIntervalMs);
-        
+
         // 避免阻止进程退出
         if (this.cleanupTimer.unref) {
             this.cleanupTimer.unref();
         }
     }
-    
+
     /**
      * 停止清理任务
      */
@@ -466,7 +471,7 @@ export class SessionManagerV3 extends EventEmitter {
             this.cleanupTimer = null;
         }
     }
-    
+
     /**
      * 处理 AgentDriver 消息
      * 
@@ -492,10 +497,10 @@ export class SessionManagerV3 extends EventEmitter {
         console.log('Message:', JSON.stringify(message, null, 2));
         console.log('Listeners count:', this.listenerCount('message'));
         console.log('=====================================\n');
-        
+
         // 1. 保存到数据库
         this.messageService.addMessage(topicId, message);
-        
+
         // 2. 触发 GUI 更新（通过事件总线）
         const event: GuiUpdateEvent = {
             topicId,
@@ -503,14 +508,14 @@ export class SessionManagerV3 extends EventEmitter {
             message, // 直接传递 message，不要重新构造
         };
         this.emit('message', event);
-        
+
         this.logger.debug('Message handled', {
             topicId,
             type,
             role: message.role,
         });
     }
-    
+
     /**
      * 获取系统提示词
      * 
@@ -533,7 +538,7 @@ Guidelines:
 
 Remember: You control the Desktop. The user communicates with you through applications.`;
     }
-    
+
     /**
      * 获取 Session 信息（用于调试和监控）
      */
@@ -546,7 +551,7 @@ Remember: You control the Desktop. The user communicates with you through applic
     }> {
         const now = Date.now();
         const info: Array<any> = [];
-        
+
         for (const [topicId, session] of this.sessions.entries()) {
             info.push({
                 topicId,
@@ -556,24 +561,24 @@ Remember: You control the Desktop. The user communicates with you through applic
                 idleTimeMs: now - session.lastAccessTime,
             });
         }
-        
+
         return info;
     }
-    
+
     /**
      * 检查 Session 是否存在
      */
     hasSession(topicId: string): boolean {
         return this.sessions.has(topicId);
     }
-    
+
     /**
      * 获取 Session 数量
      */
     getSessionCount(): number {
         return this.sessions.size;
     }
-    
+
     /**
      * 清理所有 Session（用于关闭应用）
      */
@@ -581,16 +586,16 @@ Remember: You control the Desktop. The user communicates with you through applic
         this.logger.info('Cleaning up all sessions', {
             count: this.sessions.size,
         });
-        
+
         // 停止清理任务
         this.stopCleanupTask();
-        
+
         // 销毁所有 Session
         const topicIds = Array.from(this.sessions.keys());
         for (const topicId of topicIds) {
             await this.destroySession(topicId);
         }
-        
+
         this.logger.info('All sessions cleaned up');
     }
 }

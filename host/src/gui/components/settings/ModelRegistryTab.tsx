@@ -62,7 +62,7 @@ export const ModelRegistryTab: React.FC = () => {
                 <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">
                     Model Registry
                 </h2>
-                <p className="text-sm text-[var(--color-text-muted)]">
+                <p className="text-sm text-[var(--color-text-tertiary)]">
                     Browse and explore available LLM providers and models from models.dev
                 </p>
             </div>
@@ -119,7 +119,7 @@ export const ModelRegistryTab: React.FC = () => {
 
             {/* Info Footer */}
             <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]">
-                <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
                     <strong className="text-[var(--color-text-secondary)]">Note:</strong> This is a read-only view of available models from models.dev. 
                     To configure and use these models, go to the "Model" tab to create provider configurations with your API keys.
                 </p>

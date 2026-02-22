@@ -115,7 +115,7 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
                         </div>
                     )}
                 </div>
-                <div className="mt-2 text-[var(--color-text-muted)] text-left">
+                <div className="mt-2 text-[var(--color-text-tertiary)] text-left">
                     No providers configured. Click "Add Provider" to get started.
                 </div>
             </div>

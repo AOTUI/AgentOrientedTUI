@@ -148,7 +148,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
     if (isLoadingStatus) {
         return (
             <div className={`${className} p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
-                <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                <div className="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
                     <Spinner size="sm" />
                     <span>Loading cache status...</span>
                 </div>
@@ -204,7 +204,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                         <div className="text-lg font-semibold text-[var(--color-text-primary)]">
                             {cacheStatus.providerCount}
                         </div>
-                        <div className="text-xs text-[var(--color-text-muted)]">
+                        <div className="text-xs text-[var(--color-text-tertiary)]">
                             Providers
                         </div>
                     </div>
@@ -212,7 +212,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                         <div className="text-lg font-semibold text-[var(--color-text-primary)]">
                             {cacheStatus.modelCount}
                         </div>
-                        <div className="text-xs text-[var(--color-text-muted)]">
+                        <div className="text-xs text-[var(--color-text-tertiary)]">
                             Models
                         </div>
                     </div>
@@ -221,7 +221,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                             <IconClock className="w-3 h-3" />
                             {formatTimestamp(cacheStatus.lastFetch)}
                         </div>
-                        <div className="text-xs text-[var(--color-text-muted)]">
+                        <div className="text-xs text-[var(--color-text-tertiary)]">
                             Last Updated
                         </div>
                     </div>
@@ -247,8 +247,8 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                     transition-all duration-200
                     flex items-center justify-center gap-2
                     ${isRefreshing
-                        ? 'bg-[var(--color-bg-highlight)] text-[var(--color-text-muted)] cursor-not-allowed'
-                        : 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90 active:scale-95'
+                        ? 'bg-[var(--color-bg-highlight)] text-[var(--color-text-tertiary)] cursor-not-allowed'
+                        : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 active:scale-95'
                     }
                 `}
             >
@@ -283,7 +283,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
             )}
 
             {/* Info Text */}
-            <p className="text-xs text-[var(--color-text-muted)] text-center">
+            <p className="text-xs text-[var(--color-text-tertiary)] text-center">
                 Refreshing will fetch the latest model data from models.dev
             </p>
         </div>

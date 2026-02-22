@@ -171,7 +171,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                     disabled={isSaving}
                     aria-describedby={validationErrors.name ? "config-name-error" : undefined}
                     aria-invalid={!!validationErrors.name}
-                    className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 {validationErrors.name && (
                     <p id="config-name-error" className="mt-1 text-sm text-[var(--color-danger)]" role="alert">{validationErrors.name}</p>
@@ -191,7 +191,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                         disabled={isSaving}
                         aria-describedby={validationErrors.providerId ? "provider-error" : undefined}
                         aria-invalid={!!validationErrors.providerId}
-                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)] transition-colors appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <option value="">Select a provider</option>
                         {providers.map(provider => (
@@ -222,15 +222,15 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                 </label>
                 {isLoadingModels ? (
                     <div className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg flex items-center gap-2">
-                        <Spinner size="sm" className="text-[var(--color-primary)]" />
-                        <span className="text-[var(--color-text-muted)]">Loading models...</span>
+                        <Spinner size="sm" className="text-[var(--color-accent)]" />
+                        <span className="text-[var(--color-text-tertiary)]">Loading models...</span>
                     </div>
                 ) : availableModels.length > 0 ? (
                     <select
                         id="model"
                         value={formData.model}
                         onChange={(e) => handleFieldChange('model', e.target.value)}
-                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
                         disabled={!formData.providerId || isSaving}
                         aria-describedby={validationErrors.model ? "model-error" : undefined}
                         aria-invalid={!!validationErrors.model}
@@ -249,7 +249,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                         value={formData.model}
                         onChange={(e) => handleFieldChange('model', e.target.value)}
                         placeholder="Enter model ID (e.g., gpt-4)"
-                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
                         disabled={!formData.providerId || isSaving}
                         aria-describedby={validationErrors.model ? "model-error" : undefined}
                         aria-invalid={!!validationErrors.model}
@@ -275,7 +275,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                         disabled={isSaving}
                         aria-describedby={validationErrors.apiKey ? "api-key-error" : undefined}
                         aria-invalid={!!validationErrors.apiKey}
-                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     {validationErrors.apiKey && (
                         <p id="api-key-error" className="mt-1 text-sm text-[var(--color-danger)]" role="alert">{validationErrors.apiKey}</p>
@@ -286,7 +286,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
             {/* Base URL (optional) */}
             <div>
                 <label htmlFor="base-url" className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
-                    Base URL <span className="text-[var(--color-text-muted)]">(Optional)</span>
+                    Base URL <span className="text-[var(--color-text-tertiary)]">(Optional)</span>
                 </label>
                 <input
                     id="base-url"
@@ -297,7 +297,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                     disabled={isSaving}
                     aria-describedby={validationErrors.baseUrl ? "base-url-error" : undefined}
                     aria-invalid={!!validationErrors.baseUrl}
-                    className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 {validationErrors.baseUrl && (
                     <p id="base-url-error" className="mt-1 text-sm text-[var(--color-danger)]" role="alert">{validationErrors.baseUrl}</p>
@@ -324,9 +324,9 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                     aria-valuemax={1}
                     aria-valuenow={formData.temperature}
                     aria-valuetext={`${formData.temperature.toFixed(1)} - ${formData.temperature < 0.5 ? 'Precise' : 'Creative'}`}
-                    className="w-full h-2 bg-[var(--color-bg-elevated)] rounded-lg appearance-none cursor-pointer accent-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-2 bg-[var(--color-bg-elevated)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <div id="temperature-help" className="flex justify-between text-xs text-[var(--color-text-muted)] mt-1">
+                <div id="temperature-help" className="flex justify-between text-xs text-[var(--color-text-tertiary)] mt-1">
                     <span>Precise (0.0)</span>
                     <span>Creative (1.0)</span>
                 </div>
@@ -349,7 +349,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                     disabled={isSaving}
                     aria-describedby={validationErrors.maxSteps ? "max-steps-error" : undefined}
                     aria-invalid={!!validationErrors.maxSteps}
-                    className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 {validationErrors.maxSteps && (
                     <p id="max-steps-error" className="mt-1 text-sm text-[var(--color-danger)]" role="alert">{validationErrors.maxSteps}</p>
@@ -361,7 +361,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                 <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 px-6 py-2 bg-[var(--color-primary)] text-white rounded-lg font-medium hover:bg-[var(--color-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                    className="flex-1 px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg font-medium hover:bg-[var(--color-accent)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                 >
                     {isSaving && <Spinner size="sm" className="text-white" />}
                     {isSaving ? 'Saving...' : editingConfig ? 'Update Configuration' : 'Create Configuration'}

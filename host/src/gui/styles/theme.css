@@ -1,156 +1,20 @@
-/* Theme: AOTUI — Liquid Glass Design System
- * Inspired by macOS 26 (Tahoe) — Liquid Glass + Concentric Radius
- * Supports: dark (default) / light
- */
+/* Theme: macOS 26 Liquid Glass */
 
-/* ═══════════════════════════════════════════════════
- *  Liquid Glass Token Layer (新增，与旧tokens共存)
- * ═══════════════════════════════════════════════════ */
-:root {
-    /* ── System Font Stack ── */
-    --font-system: "SF Pro Display", "SF Pro Text", -apple-system,
-                   BlinkMacSystemFont, "Inter", sans-serif;
-
-    /* ── Spacing (8pt grid) ── */
-    --sp-1: 4px;  --sp-2: 8px;   --sp-3: 12px;
-    --sp-4: 16px; --sp-5: 20px;  --sp-6: 24px;
-    --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
-
-    /* ── Concentric Radius (macOS 26 同心圆角体系) ── */
-    --r-window:  20px;   /* 主窗口/大容器 */
-    --r-panel:   16px;   /* 面板/卡片 */
-    --r-control: 12px;   /* 按钮/输入框 */
-    --r-item:     8px;   /* 列表项/小徽章 */
-    --r-pill:  9999px;   /* 胶囊形 */
-
-    /* ── Easing (流体动画曲线) ── */
-    --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ease-out-sm:  cubic-bezier(0.16, 1, 0.3, 1);
-    --ease-inout:   cubic-bezier(0.65, 0, 0.35, 1);
-    --dur-snap:    80ms;
-    --dur-fast:   160ms;
-    --dur-normal: 280ms;
-    --dur-slow:   480ms;
-
-    /* ── Dark Mode: Liquid Glass 材质 ── */
-    /* Regular 变体: 用于导航/侧边栏/工具栏 */
-    --lg-bg:        rgba(255, 255, 255, 0.12);  /* Increased opacity for less dimness */
-    --lg-bg-alt:    rgba(255, 255, 255, 0.15);
-    --lg-bg-strong: rgba(255, 255, 255, 0.20);
-    --lg-bg-hover:  rgba(255, 255, 255, 0.18);
-    --lg-bg-active: rgba(255, 255, 255, 0.25);
-    --lg-border:    rgba(255, 255, 255, 0.15);
-    --lg-border-subtle: rgba(255, 255, 255, 0.10);
-    --lg-border-hover:  rgba(255, 255, 255, 0.25);
-    --lg-blur:      saturate(180%) blur(40px);  /* Stronger blur for depth */
-    /* 玻璃内发光(顶边高光线 — 折射感) */
-    --lg-inner-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.20),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.20);
-    --lg-outer-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.30),
-        0 2px 8px rgba(0, 0, 0, 0.20);
-    --lg-shadow-2xl:
-        0 24px 64px rgba(0, 0, 0, 0.45),
-        0 8px 24px rgba(0, 0, 0, 0.30);
-
-    /* Clear 变体: 用于嵌套在玻璃上的子控件 */
-    --lg-clear-bg:     rgba(255, 255, 255, 0.08);
-    --lg-clear-border: rgba(255, 255, 255, 0.12);
-
-    /* ── Dark Mode: 背景层 ── */
-    --bg-app:      #121216;    /* Base dark color */
-    --bg-gradient-app: radial-gradient(circle at 50% 0%, #2A2A35 0%, #121216 100%); /* Global Vibrant Gradient */
-    --bg-base:     #18181E;    /* 主内容区背景 */
-    --bg-surface:  #202026;    /* 卡片/面板 */
-    --bg-elevated: #282830;    /* 弹出/悬浮 */
-    --bg-overlay:  #303038;    /* Toast/Tooltip */
-
-    /* ── Dark Mode: 文字层级 ── */
-    --tx-primary:   rgba(255, 255, 255, 0.90);
-    --tx-secondary: rgba(255, 255, 255, 0.54);
-    --tx-tertiary:  rgba(255, 255, 255, 0.28);
-    --tx-quart:     rgba(255, 255, 255, 0.13);
-
-    /* ── Dark Mode: 强调色 (自然系，非霓虹) ── */
-    --ac-blue:          #4C9EFF;
-    --ac-blue-subtle:   rgba(76, 158, 255, 0.16);
-    --ac-blue-muted:    rgba(76, 158, 255, 0.08);
-    --ac-purple:        #BF7FFF;
-    --ac-purple-subtle: rgba(191, 127, 255, 0.16);
-    --ac-green:         #3DD68C;
-    --ac-green-subtle:  rgba(61, 214, 140, 0.16);
-    --ac-amber:         #FFB340;
-    --ac-amber-subtle:  rgba(255, 179, 64, 0.16);
-    --ac-red:           #FF6B6B;
-    --ac-red-subtle:    rgba(255, 107, 107, 0.16);
-
-    /* ── Dark Mode: 描边 ── */
-    --bd-subtle:  rgba(255, 255, 255, 0.06);
-    --bd-default: rgba(255, 255, 255, 0.10);
-    --bd-strong:  rgba(255, 255, 255, 0.18);
-}
-
-/* Light Mode 覆盖 */
-[data-theme='light'] {
-    --lg-bg:        rgba(255, 255, 255, 0.70);
-    --lg-bg-alt:    rgba(255, 255, 255, 0.80);
-    --lg-bg-strong: rgba(255, 255, 255, 0.92);
-    --lg-bg-hover:  rgba(255, 255, 255, 0.84);
-    --lg-bg-active: rgba(255, 255, 255, 0.96);
-    --lg-border:    rgba(0, 0, 0, 0.08);
-    --lg-border-subtle: rgba(0, 0, 0, 0.06);
-    --lg-border-hover:  rgba(0, 0, 0, 0.16);
-    --lg-blur:      saturate(200%) blur(28px);
-    --lg-inner-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.90),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-    --lg-outer-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.10),
-        0 2px 8px rgba(0, 0, 0, 0.06);
-    --lg-shadow-2xl:
-        0 24px 64px rgba(0, 0, 0, 0.16),
-        0 8px 24px rgba(0, 0, 0, 0.10);
-
-    --lg-clear-bg:     rgba(0, 0, 0, 0.03);
-    --lg-clear-border: rgba(0, 0, 0, 0.06);
-
-    --bg-app:      #E4E4EC;
-    --bg-base:     #EDEDF3;
-    --bg-surface:  #FFFFFF;
-    --bg-elevated: #FFFFFF;
-    --bg-overlay:  #F8F8FC;
-
-    --tx-primary:   rgba(0, 0, 0, 0.86);
-    --tx-secondary: rgba(0, 0, 0, 0.50);
-    --tx-tertiary:  rgba(0, 0, 0, 0.28);
-    --tx-quart:     rgba(0, 0, 0, 0.12);
-
-    --ac-blue:          #0A7AFF;
-    --ac-blue-subtle:   rgba(10, 122, 255, 0.10);
-    --ac-blue-muted:    rgba(10, 122, 255, 0.05);
-    --ac-purple:        #9B59FF;
-    --ac-purple-subtle: rgba(155, 89, 255, 0.10);
-    --ac-green:         #30B870;
-    --ac-green-subtle:  rgba(48, 184, 112, 0.10);
-    --ac-amber:         #F59E0B;
-    --ac-amber-subtle:  rgba(245, 158, 11, 0.10);
-    --ac-red:           #EF4444;
-    --ac-red-subtle:    rgba(239, 68, 68, 0.10);
-
-    --bd-subtle:  rgba(0, 0, 0, 0.05);
-    --bd-default: rgba(0, 0, 0, 0.10);
-    --bd-strong:  rgba(0, 0, 0, 0.18);
-}
-
-/* ══════════════════════════════════════════════════
- *  Legacy Tokens (保留兼容性)
- * ══════════════════════════════════════════════════ */
 :root {
     /* --- Typography --- */
-    --font-heading: "Inter", "Orbitron", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-    --font-body: "Inter", "Exo 2", -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-    --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    --font-system: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+    --font-display: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
+
+    /* 8pt Grid Typography */
+    --text-caption: 11px;
+    --text-footnote: 12px;
+    --text-body: 13px;
+    --text-callout: 14px;
+    --text-subhead: 15px;
+    --text-headline: 17px;
+    --text-title2: 22px;
+    --text-large: 28px;
 
     /* --- Spacing --- */
     --space-2xs: 2px;
@@ -161,7 +25,7 @@
     --space-xl: 32px;
     --space-2xl: 48px;
 
-    /* --- Radius (Superellipse-like smoothness) --- */
+    /* --- Radius --- */
     --radius-xs: 4px;
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -170,96 +34,111 @@
     --radius-2xl: 32px;
     --radius-full: 9999px;
 
-    /* --- Transitions --- */
-    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
-    --duration-fast: 200ms;
-    --duration-normal: 400ms;
+    /* --- Motion (Spring Physics) --- */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+    --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
-    /* --- Dark Mode (Immersive Dark Tech) --- */
-    /* Deepest Black / Dark Grey as requested */
-    --color-bg-base: #121216;          /* Main Background - Matches new Liquid Glass base */
-    --color-bg-surface: #1C1C24;       /* Card Background - Slightly richer dark */
-    --color-bg-elevated: #24242C;      /* Elevated Surface */
-    --color-bg-highlight: #2C2C36;     /* Highlight */
+    --dur-micro: 100ms;
+    --dur-fast: 200ms;
+    --dur-normal: 350ms;
+    --dur-slow: 500ms;
 
-    /* Text - High Contrast but not pure white */
-    --color-text-primary: #EDEDED;     /* Zinc 100 */
-    --color-text-secondary: #A1A1AA;   /* Zinc 400 */
-    --color-text-muted: #52525B;       /* Zinc 600 */
+    /* --- Dark Mode (Default) --- */
+    --color-bg-base: #141416;
+    --color-bg-surface: #1C1C1F;
+    --color-bg-elevated: #252528;
 
-    /* Accents - Neon / Cyberpunk (High Saturation) */
-    --color-primary: #3B82F6;          /* Electric Blue */
-    --color-primary-glow: rgba(59, 130, 246, 0.6);
-    --color-primary-light: #60A5FA;
-    --color-primary-dark: #2563EB;
-    
-    --color-secondary: #D946EF;        /* Cyberpunk Pink (Fuchsia) */
-    --color-secondary-glow: rgba(217, 70, 239, 0.6);
+    --color-text-primary: rgba(255, 255, 255, 0.92);
+    --color-text-secondary: rgba(255, 255, 255, 0.55);
+    --color-text-tertiary: rgba(255, 255, 255, 0.28);
 
-    --color-accent: #00FF9D;           /* Neon Green/Mint */
-    --color-accent-muted: #059669;
-    --color-accent-glow: rgba(0, 255, 157, 0.6);
-    
-    /* Glassmorphism Variables - Enhanced */
-    /* Background Blur + Translucency */
-    --glass-bg: rgba(18, 18, 18, 0.65);
-    --glass-bg-hover: rgba(30, 30, 30, 0.75);
-    /* Micro-border (1px white translucent) */
-    --glass-border: rgba(255, 255, 255, 0.08); 
-    --glass-border-highlight: rgba(255, 255, 255, 0.15);
-    --glass-blur: 40px; /* Increased blur for depth */
+    /* System Accent */
+    --color-accent: #0A84FF;
     
     /* Semantic Colors */
-    --color-danger: #FF3366;           /* Neon Red */
-    --color-danger-muted: #991B1B;
-    --color-success: #00FF9D;          /* Neon Green */
-    --color-success-muted: #065F46;
-    --color-warning: #FBBF24;          /* Amber 400 */
-    --color-warning-muted: #92400E;
+    --color-success: #30D158;
+    --color-warning: #FF9F0A;
+    --color-danger: #FF453A;
 
-    /* Mesh Gradient Stops - Aurora */
-    /* Cyan, Purple, Electric Blue mix */
-    --gradient-start: rgba(59, 130, 246, 0.15);
-    --gradient-mid: rgba(217, 70, 239, 0.10);
-    --gradient-end: rgba(0, 255, 157, 0.08);
-
-    /* Border Colors */
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-hover: rgba(255, 255, 255, 0.2);
+    /* Materials */
+    --mat-base: var(--color-bg-base);
+    --mat-lg-regular-bg: rgba(30, 30, 35, 0.72);
+    --mat-lg-clear-bg: rgba(30, 30, 35, 0.4);
+    --mat-content-card-bg: rgba(255, 255, 255, 0.04);
+    --mat-border: rgba(255, 255, 255, 0.10);
+    --mat-border-highlight: rgba(255, 255, 255, 0.15);
+    
+    /* Legacy mappings to prevent breaking existing components before Phase 2/3 */
+    --color-accent: var(--color-accent);
+    --color-accent-glow: transparent;
+    --color-accent-light: #47A1FF;
+    --color-accent-dark: #0062CC;
+    --color-text-secondary: var(--color-text-secondary);
+    --color-text-secondary-glow: transparent;
+    --color-accent-glow: transparent;
+    --color-accent-muted: rgba(10, 132, 255, 0.2);
+    --color-danger-muted: rgba(255, 69, 58, 0.2);
+    --color-success-muted: rgba(48, 209, 88, 0.2);
+    --color-warning-muted: rgba(255, 159, 10, 0.2);
+    --color-border: var(--mat-border);
+    --color-border-hover: var(--mat-border-highlight);
+    --glass-bg: var(--mat-lg-regular-bg);
+    --glass-bg-hover: rgba(40, 40, 45, 0.8);
+    --glass-border: var(--mat-border);
+    --glass-border-highlight: var(--mat-border-highlight);
+    --glass-blur: 40px;
+    --gradient-start: transparent;
+    --gradient-mid: transparent;
+    --gradient-end: transparent;
 }
 
-/* --- Light Mode (Clean & Minimal - Preserved) --- */
+/* --- Light Mode --- */
 [data-theme='light'] {
-    --color-bg-base: #FAFAFA;
+    --color-bg-base: #F5F5F7;
     --color-bg-surface: #FFFFFF;
     --color-bg-elevated: #FFFFFF;
-    --color-bg-highlight: #F4F4F5;
 
-    --color-text-primary: #18181B;
-    --color-text-secondary: #52525B;
-    --color-text-muted: #A1A1AA;
+    --color-text-primary: rgba(0, 0, 0, 0.85);
+    --color-text-secondary: rgba(0, 0, 0, 0.55);
+    --color-text-tertiary: rgba(0, 0, 0, 0.28);
 
-    --color-primary: #8B5CF6;          /* Violet 500 - More Purple */
-    --color-primary-glow: rgba(139, 92, 246, 0.5); /* Higher opacity for visibility */
-    --color-primary-light: #A78BFA;
-    --color-primary-dark: #7C3AED;
+    /* System Accent */
+    --color-accent: #007AFF;
     
-    --color-secondary: #EC4899;        /* Pink 500 */
-    --color-secondary-glow: rgba(236, 72, 153, 0.5);
+    /* Semantic Colors */
+    --color-success: #28CD41;
+    --color-warning: #FF9500;
+    --color-danger: #FF3B30;
 
-    --color-accent: #10B981;           /* Emerald 500 */
-    --color-accent-muted: #059669;
-    --color-accent-glow: rgba(16, 185, 129, 0.15);
+    /* Materials */
+    --mat-base: var(--color-bg-base);
+    --mat-lg-regular-bg: rgba(255, 255, 255, 0.72);
+    --mat-lg-clear-bg: rgba(255, 255, 255, 0.4);
+    --mat-content-card-bg: rgba(0, 0, 0, 0.04);
+    --mat-border: rgba(0, 0, 0, 0.10);
+    --mat-border-highlight: rgba(255, 255, 255, 0.5);
     
-    --glass-bg: rgba(255, 255, 255, 0.75);
+    /* Legacy mappings */
+    --color-accent: var(--color-accent);
+    --color-accent-glow: transparent;
+    --color-accent-light: #47A1FF;
+    --color-accent-dark: #0062CC;
+    --color-text-secondary: var(--color-text-secondary);
+    --color-text-secondary-glow: transparent;
+    --color-accent-glow: transparent;
+    --color-accent-muted: rgba(0, 122, 255, 0.2);
+    --color-danger-muted: rgba(255, 59, 48, 0.2);
+    --color-success-muted: rgba(40, 205, 65, 0.2);
+    --color-warning-muted: rgba(255, 149, 0, 0.2);
+    --color-border: var(--mat-border);
+    --color-border-hover: var(--mat-border-highlight);
+    --glass-bg: var(--mat-lg-regular-bg);
     --glass-bg-hover: rgba(255, 255, 255, 0.9);
-    --glass-border: rgba(0, 0, 0, 0.05);
-    --glass-border-highlight: rgba(0, 0, 0, 0.1);
-    
-    --gradient-start: rgba(79, 70, 229, 0.05);
-    --gradient-mid: rgba(236, 72, 153, 0.05);
-    --gradient-end: rgba(16, 185, 129, 0.05);
-
-    --color-border: rgba(0, 0, 0, 0.05);
-    --color-border-hover: rgba(0, 0, 0, 0.1);
+    --glass-border: var(--mat-border);
+    --glass-border-highlight: var(--mat-border-highlight);
+    --gradient-start: transparent;
+    --gradient-mid: transparent;
+    --gradient-end: transparent;
 }

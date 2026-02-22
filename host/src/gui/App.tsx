@@ -309,7 +309,7 @@ export function App() {
     }
 
     return (
-        <div className="w-screen h-screen bg-[var(--color-bg-base)] text-[var(--color-text-primary)] overflow-hidden font-sans selection:bg-primary/30 relative">
+        <div className="w-screen h-screen bg-[var(--color-bg-base)] text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative">
             {/* Background Layers */}
             <div className="aurora-bg" />
             <div className="fui-grid-bg absolute inset-0 opacity-20 pointer-events-none" />

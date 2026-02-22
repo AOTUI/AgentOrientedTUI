@@ -227,7 +227,7 @@ export const ModelTab: React.FC = () => {
             <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <div className="text-[var(--color-danger)] text-center">
                     <p className="font-medium mb-2">Failed to load providers</p>
-                    <p className="text-sm text-[var(--color-text-muted)]">{providerError.message}</p>
+                    <p className="text-sm text-[var(--color-text-tertiary)]">{providerError.message}</p>
                 </div>
             </div>
         );

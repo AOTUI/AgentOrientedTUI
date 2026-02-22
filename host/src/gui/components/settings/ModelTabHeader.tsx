@@ -63,7 +63,7 @@ export const ModelTabHeader: React.FC<ModelTabHeaderProps> = ({
                 {/* Add Provider button on right */}
                 <button
                     onClick={onAddProvider}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity duration-200 whitespace-nowrap"
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity duration-200 whitespace-nowrap"
                     aria-label="Add new provider"
                 >
                     <IconPlus aria-hidden="true" className="w-4 h-4" />

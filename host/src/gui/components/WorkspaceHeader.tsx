@@ -43,7 +43,7 @@ export function WorkspaceHeader({
                         variant="light"
                         size="sm"
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] data-[hover=true]:bg-white/5 flex items-center justify-center"
+                        className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] data-[hover=true]:bg-white/5 flex items-center justify-center"
                     >
                         <IconMenu />
                     </Button>
@@ -57,7 +57,7 @@ export function WorkspaceHeader({
                         <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-success shadow-[0_0_8px_var(--color-success)]' : 'bg-danger shadow-[0_0_8px_var(--color-danger)]'}`} />
                         {/* Topic Summary if available */}
                         {activeTopic?.summary && (
-                             <span className="text-[10px] text-[var(--color-text-muted)] border-l border-white/10 pl-2 ml-1 truncate max-w-[200px]">
+                             <span className="text-[12px] text-[var(--color-text-tertiary)] border-l border-white/10 pl-2 ml-1 truncate max-w-[200px]">
                                 {activeTopic.summary}
                              </span>
                         )}
@@ -74,7 +74,7 @@ export function WorkspaceHeader({
                                 size="sm"
                                 variant="light"
                                 onClick={() => setViewMode('chat')}
-                                className={`h-7 text-[10px] font-bold tracking-wider px-4 min-w-0 rounded-md transition-all ${viewMode === 'chat' ? 'bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'}`}
+                                className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-md transition-all ${viewMode === 'chat' ? 'bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                             >
                                 CHAT
                             </Button>
@@ -82,7 +82,7 @@ export function WorkspaceHeader({
                                 size="sm"
                                 variant="light"
                                 onClick={() => setViewMode('tui')}
-                                className={`h-7 text-[10px] font-bold tracking-wider px-4 min-w-0 rounded-md transition-all ${viewMode === 'tui' ? 'bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'}`}
+                                className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-md transition-all ${viewMode === 'tui' ? 'bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                             >
                                 TUI VIEW
                             </Button>
@@ -96,10 +96,10 @@ export function WorkspaceHeader({
                                 variant="flat"
                                 size="sm"
                                 className={`
-                                    uppercase font-bold tracking-wider text-[10px] h-7 border border-transparent
-                                    ${agentState === 'THINKING' ? 'bg-secondary/10 text-secondary border-secondary/20' : 
+                                    font-medium text-[13px] h-7 border border-transparent
+                                    ${agentState === 'THINKING' ? 'bg-[var(--mat-lg-clear-bg)] text-[var(--color-text-secondary)] border-[var(--mat-border)]' : 
                                       agentState === 'EXECUTING' ? 'bg-success/10 text-success border-success/20' : 
-                                      agentState === 'STOPPED' ? 'bg-danger/10 text-danger border-danger/20' : 'bg-[var(--color-bg-highlight)] text-[var(--color-text-muted)] border-[var(--color-border)]'}
+                                      agentState === 'STOPPED' ? 'bg-[var(--color-danger)] bg-opacity-10 text-[var(--color-danger)] border-[var(--color-danger)] border-opacity-20' : 'bg-[var(--mat-lg-clear-bg)] text-[var(--color-text-tertiary)] border-[var(--mat-border)]'}
                                 `}
                                 startContent={
                                     <div className={`w-1.5 h-1.5 rounded-full mx-1 ${agentState === 'THINKING' || agentState === 'EXECUTING' ? 'animate-pulse bg-current' : 'bg-current'}`} />

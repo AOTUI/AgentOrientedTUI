@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { IconModel, IconTheme } from '../Icons.js';
+import { IconModel, IconTheme, IconPlug } from '../Icons.js';
 import type { SettingsSidebarProps } from './types.js';
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange }) => {
@@ -29,7 +29,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
     `;
 
     return (
-        <nav 
+        <nav
             className="w-full md:w-[160px] flex flex-row md:flex-col gap-1 p-2"
             role="tablist"
             aria-label="Settings navigation"
@@ -43,9 +43,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 id="model-tab"
                 className={`${baseBtnClass} ${activeTab === 'model' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconModel 
-                    className={`w-4 h-4 ${activeTab === 'model' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`} 
-                    aria-hidden="true" 
+                <IconModel
+                    className={`w-4 h-4 ${activeTab === 'model' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`}
+                    aria-hidden="true"
                 />
                 <span className="text-[13px] font-medium tracking-wide">Model</span>
             </button>
@@ -59,11 +59,27 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 id="theme-tab"
                 className={`${baseBtnClass} ${activeTab === 'theme' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconTheme 
-                    className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`} 
-                    aria-hidden="true" 
+                <IconTheme
+                    className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`}
+                    aria-hidden="true"
                 />
                 <span className="text-[13px] font-medium tracking-wide">Theme</span>
+            </button>
+
+            {/* MCP Tab Button */}
+            <button
+                onClick={() => onTabChange('mcp')}
+                role="tab"
+                aria-selected={activeTab === 'mcp'}
+                aria-controls="mcp-tab-panel"
+                id="mcp-tab"
+                className={`${baseBtnClass} ${activeTab === 'mcp' ? activeBtnClass : inactiveBtnClass}`}
+            >
+                <IconPlug
+                    className={`w-4 h-4 ${activeTab === 'mcp' ? 'text-[var(--ac-blue)]' : 'opacity-70'}`}
+                    aria-hidden="true"
+                />
+                <span className="text-[13px] font-medium tracking-wide">MCP</span>
             </button>
         </nav>
     );

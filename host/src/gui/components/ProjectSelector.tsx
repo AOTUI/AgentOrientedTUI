@@ -128,7 +128,7 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
                     style={{ borderTop: '1px solid var(--bd-subtle)' }}
                 >
                     <span
-                        className="text-[10px] font-medium uppercase tracking-wider"
+                        className="text-[12px] font-medium text-[var(--color-text-secondary)]"
                         style={{ color: 'var(--tx-tertiary)', fontFamily: 'var(--font-system)' }}
                     >
                         {formatDate(project.lastOpenedAt)}

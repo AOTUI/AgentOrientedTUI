@@ -82,7 +82,7 @@ export class SettingsErrorBoundary extends React.Component<
                     {/* Show error details in development */}
                     {process.env.NODE_ENV === 'development' && this.state.error && (
                         <details className="mb-6 text-left max-w-2xl w-full">
-                            <summary className="cursor-pointer text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] mb-2">
+                            <summary className="cursor-pointer text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] mb-2">
                                 Error Details (Development Only)
                             </summary>
                             <pre className="text-xs text-[var(--color-danger)] bg-[var(--color-bg-elevated)] p-4 rounded-lg overflow-auto max-h-48 border border-[var(--color-border)]">
@@ -94,7 +94,7 @@ export class SettingsErrorBoundary extends React.Component<
 
                     <button
                         onClick={this.handleReset}
-                        className="px-6 py-2 bg-[var(--color-primary)] text-white rounded-lg font-medium hover:bg-[var(--color-primary)]/90 transition-all"
+                        className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg font-medium hover:bg-[var(--color-accent)]/90 transition-all"
                     >
                         Try Again
                     </button>

@@ -42,7 +42,7 @@ export const ModelList: React.FC<ModelListProps> = ({
     if (sortedModels.length === 0) {
         return (
             <div 
-                className="flex items-center justify-center py-16 text-[var(--color-text-muted)]"
+                className="flex items-center justify-center py-16 text-[var(--color-text-tertiary)]"
                 role="status"
                 aria-live="polite"
             >

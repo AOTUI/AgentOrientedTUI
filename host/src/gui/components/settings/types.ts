@@ -28,7 +28,7 @@ export interface SettingsPanelProps {
  */
 export interface SettingsPanelState {
     /** Currently active tab */
-    activeTab: 'model' | 'theme';
+    activeTab: 'model' | 'theme' | 'mcp';
 }
 
 /**
@@ -38,9 +38,9 @@ export interface SettingsPanelState {
  */
 export interface SettingsSidebarProps {
     /** Currently active tab */
-    activeTab: 'model' | 'theme';
+    activeTab: 'model' | 'theme' | 'mcp';
     /** Callback when tab changes */
-    onTabChange: (tab: 'model' | 'theme') => void;
+    onTabChange: (tab: 'model' | 'theme' | 'mcp') => void;
 }
 
 /**

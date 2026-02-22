@@ -40,7 +40,7 @@
     font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
     white-space: nowrap;
 }
 
@@ -70,7 +70,7 @@
 
 .tui-app-switcher__item.active {
     border-color: rgba(59, 130, 246, 0.35);
-    background: color-mix(in srgb, var(--color-primary) 14%, var(--glass-bg));
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--glass-bg));
     color: var(--color-text-primary);
 }
 
@@ -82,7 +82,7 @@
 .tui-app-switcher__id {
     font-size: 0.65rem;
     font-family: var(--font-mono);
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
 }
 
 /* App Card - Glass Container */
@@ -129,7 +129,7 @@
 }
 
 .tui-app-card-name {
-    font-family: var(--font-heading);
+    font-family: var(--font-display);
     font-weight: 600;
     color: var(--color-text-primary);
     letter-spacing: 0.02em;
@@ -138,7 +138,7 @@
 .tui-app-card-id {
     font-family: var(--font-mono);
     font-size: 0.7rem;
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
 }
 
 .status-badge {
@@ -161,7 +161,7 @@
 
 .status-badge--mounted {
     background: rgba(59, 130, 246, 0.1);
-    color: var(--color-primary-light);
+    color: var(--color-accent-light);
     border-color: rgba(59, 130, 246, 0.2);
 }
 
@@ -195,7 +195,7 @@
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
     margin-bottom: var(--space-sm);
     font-family: var(--font-mono);
 }
@@ -238,7 +238,7 @@
 
 .tui-view-tabs-label {
     font-size: 0.75rem;
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
 }
 
 .tui-view-tabs-list {
@@ -263,7 +263,7 @@
 }
 
 .tui-view-tab.active {
-    background: var(--color-primary-glow);
+    background: var(--color-accent-glow);
     border-color: rgba(59, 130, 246, 0.3);
 }
 
@@ -274,13 +274,13 @@
 }
 
 .tui-view-tab.active .tui-view-tab-name {
-    color: var(--color-primary-light);
+    color: var(--color-accent-light);
 }
 
 .tui-view-tab-id {
     font-size: 0.65rem;
     font-family: var(--font-mono);
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
 }
 
 /* Content */
@@ -316,7 +316,7 @@
 .tui-block__label {
     font-size: 0.6rem;
     font-weight: 700;
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
     letter-spacing: 0.05em;
     background: rgba(255, 255, 255, 0.05);
     padding: 2px 4px;
@@ -338,7 +338,7 @@
 .tui-block__id {
     font-family: var(--font-mono);
     font-size: 0.65rem;
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary);
 }
 
 .tui-markdown {
@@ -352,7 +352,7 @@
     color: var(--color-text-primary);
     margin-top: 1em;
     margin-bottom: 0.5em;
-    font-family: var(--font-heading);
+    font-family: var(--font-display);
 }
 
 .tui-markdown pre {
@@ -374,7 +374,7 @@
     width: 300px;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--color-secondary);
+    border: 1px solid var(--color-text-secondary);
     border-radius: var(--radius-lg);
     padding: var(--space-md);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
@@ -386,7 +386,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--color-secondary);
+    color: var(--color-text-secondary);
     font-size: 0.75rem;
     font-weight: 700;
     margin-bottom: var(--space-sm);

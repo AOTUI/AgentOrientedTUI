@@ -102,7 +102,7 @@ export const ConfigCard: React.FC<ConfigCardProps> = ({
     return (
         <MagicCard
             className={`cursor-pointer transition-all duration-300 ${
-                isActive ? 'border-2 border-[var(--color-primary)]' : 'border border-[var(--color-border)]'
+                isActive ? 'border-2 border-[var(--color-accent)]' : 'border border-[var(--color-border)]'
             }`}
             onClick={handleCardClick}
             onMouseEnter={() => setIsHovered(true)}
@@ -130,13 +130,13 @@ export const ConfigCard: React.FC<ConfigCardProps> = ({
                             <h3 className="text-base font-medium text-[var(--color-text-primary)]">
                                 {config.name}
                             </h3>
-                            <p className="text-xs text-[var(--color-text-muted)] font-mono">
+                            <p className="text-xs text-[var(--color-text-tertiary)] font-mono">
                                 {config.model}
                             </p>
                         </div>
                     </div>
                     {isActive && (
-                        <IconCheck className="text-[var(--color-primary)] flex-shrink-0" aria-label="Active configuration" />
+                        <IconCheck className="text-[var(--color-accent)] flex-shrink-0" aria-label="Active configuration" />
                     )}
                 </div>
 
@@ -150,7 +150,7 @@ export const ConfigCard: React.FC<ConfigCardProps> = ({
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="text-[var(--color-text-secondary)]">API Key:</span>
-                        <span className="text-[var(--color-text-muted)] font-mono text-xs">
+                        <span className="text-[var(--color-text-tertiary)] font-mono text-xs">
                             {maskApiKey(config.apiKey)}
                         </span>
                     </div>

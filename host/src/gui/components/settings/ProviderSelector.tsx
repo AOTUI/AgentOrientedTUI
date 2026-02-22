@@ -93,7 +93,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
     if (!Array.isArray(providers) || providers.length === 0) {
         return (
             <div className={`${className} p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
-                <p className="text-sm text-[var(--color-text-muted)]">
+                <p className="text-sm text-[var(--color-text-tertiary)]">
                     No providers available
                 </p>
             </div>
@@ -105,7 +105,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
             {/* Search Bar */}
             <div className="mb-2">
                 <div className="relative">
-                    <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                    <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
                     <input
                         type="text"
                         value={searchQuery}
@@ -117,8 +117,8 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                             border border-[var(--color-border)]
                             rounded-md
                             text-sm text-[var(--color-text-primary)]
-                            placeholder:text-[var(--color-text-muted)]
-                            focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]
+                            placeholder:text-[var(--color-text-tertiary)]
+                            focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]
                             transition-all duration-200
                         "
                     />
@@ -128,7 +128,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
             {/* Provider List */}
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
                 {filteredProviders.length === 0 ? (
-                    <div className="p-3 text-center text-sm text-[var(--color-text-muted)]">
+                    <div className="p-3 text-center text-sm text-[var(--color-text-tertiary)]">
                         No providers match your search
                     </div>
                 ) : (
@@ -141,8 +141,8 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                                 border transition-all duration-200
                                 text-left h-[60px]
                                 ${selectedProviderId === provider.id
-                                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
-                                    : 'border-[var(--color-border)] bg-[var(--color-bg-highlight)] hover:border-[var(--color-primary)]/50'
+                                    ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
+                                    : 'border-[var(--color-border)] bg-[var(--color-bg-highlight)] hover:border-[var(--color-accent)]/50'
                                 }
                             `}
                         >
@@ -151,7 +151,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                                     <h4 className="font-medium text-sm text-[var(--color-text-primary)] truncate">
                                         {provider.name}
                                     </h4>
-                                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">
+                                    <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5 truncate">
                                         {provider.id}
                                     </p>
                                 </div>
@@ -160,7 +160,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                                         {provider.modelCount}
                                     </span>
                                     {selectedProviderId === provider.id && (
-                                        <div className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+                                        <div className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
                                     )}
                                 </div>
                             </div>

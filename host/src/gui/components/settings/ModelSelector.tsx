@@ -170,7 +170,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     if (models.length === 0) {
         return (
             <div className={`${className} p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
-                <p className="text-sm text-[var(--color-text-muted)]">
+                <p className="text-sm text-[var(--color-text-tertiary)]">
                     Select a provider to view available models
                 </p>
             </div>
@@ -183,7 +183,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             <div className="mb-2 space-y-2">
                 {/* Search */}
                 <div className="relative">
-                    <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                    <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
                     <input
                         type="text"
                         value={filters.searchQuery}
@@ -195,8 +195,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                             border border-[var(--color-border)]
                             rounded-md
                             text-sm text-[var(--color-text-primary)]
-                            placeholder:text-[var(--color-text-muted)]
-                            focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]
+                            placeholder:text-[var(--color-text-tertiary)]
+                            focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]
                             transition-all duration-200
                         "
                     />
@@ -207,8 +207,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                             p-1 rounded
                             transition-colors duration-200
                             ${showFilters 
-                                ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10' 
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                                ? 'text-[var(--color-accent)] bg-[var(--color-accent)]/10' 
+                                : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
                             }
                         `}
                         aria-label="Toggle filters"
@@ -234,7 +234,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     border border-[var(--color-border)]
                                     rounded text-sm
                                     text-[var(--color-text-primary)]
-                                    focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]
+                                    focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]
                                 "
                             >
                                 <option value="all">All Models</option>
@@ -265,8 +265,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     border border-[var(--color-border)]
                                     rounded text-sm
                                     text-[var(--color-text-primary)]
-                                    placeholder:text-[var(--color-text-muted)]
-                                    focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]
+                                    placeholder:text-[var(--color-text-tertiary)]
+                                    focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]
                                 "
                             />
                         </div>
@@ -293,7 +293,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             {/* Model List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto">
                 {filteredModels.length === 0 ? (
-                    <div className="col-span-full p-3 text-center text-sm text-[var(--color-text-muted)]">
+                    <div className="col-span-full p-3 text-center text-sm text-[var(--color-text-tertiary)]">
                         No models match your filters
                     </div>
                 ) : (
@@ -310,8 +310,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     border transition-all duration-200
                                     text-left
                                     ${isSelected
-                                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
-                                        : 'border-[var(--color-border)] bg-[var(--color-bg-highlight)] hover:border-[var(--color-primary)]/50'
+                                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
+                                        : 'border-[var(--color-border)] bg-[var(--color-bg-highlight)] hover:border-[var(--color-accent)]/50'
                                     }
                                 `}
                             >
@@ -322,12 +322,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                             <h4 className="font-medium text-xs text-[var(--color-text-primary)] truncate">
                                                 {model.name}
                                             </h4>
-                                            <p className="text-[10px] text-[var(--color-text-muted)] truncate mt-0.5">
+                                            <p className="text-[10px] text-[var(--color-text-tertiary)] truncate mt-0.5">
                                                 {model.id}
                                             </p>
                                         </div>
                                         {isSelected && (
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] mt-0.5 flex-shrink-0" />
                                         )}
                                     </div>
 
@@ -346,7 +346,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     )}
 
                                     {/* Pricing and Context */}
-                                    <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-muted)]">
+                                    <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-tertiary)]">
                                         {model.cost && (
                                             <span className="truncate">
                                                 {formatCost(model.cost.input)} / {formatCost(model.cost.output)}
@@ -366,7 +366,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </div>
 
             {/* Results Count */}
-            <div className="mt-2 text-xs text-[var(--color-text-muted)] text-center">
+            <div className="mt-2 text-xs text-[var(--color-text-tertiary)] text-center">
                 Showing {filteredModels.length} of {models.length} models
             </div>
         </div>

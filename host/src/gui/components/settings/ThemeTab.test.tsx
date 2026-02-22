@@ -39,7 +39,7 @@ describe('ThemeTab', () => {
             const cards = container.querySelectorAll('[class*="border"]');
             // First card should be dark (active), second should be light (inactive)
             expect(cards[0]).toHaveClass('border-2');
-            expect(cards[0]).toHaveClass('border-[var(--color-primary)]');
+            expect(cards[0]).toHaveClass('border-[var(--color-accent)]');
         });
 
         it('should mark light theme as active when currentTheme is light', () => {
@@ -52,7 +52,7 @@ describe('ThemeTab', () => {
             const cards = container.querySelectorAll('[class*="border"]');
             // Second card should be light (active)
             expect(cards[1]).toHaveClass('border-2');
-            expect(cards[1]).toHaveClass('border-[var(--color-primary)]');
+            expect(cards[1]).toHaveClass('border-[var(--color-accent)]');
         });
     });
 

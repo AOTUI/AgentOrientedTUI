@@ -4,39 +4,38 @@
 
 @theme {
   /* Fonts */
-  --font-heading: var(--font-heading);
-  --font-body: var(--font-body);
+  --font-system: var(--font-system);
+  --font-display: var(--font-display);
   --font-mono: var(--font-mono);
 
   /* Colors - Base */
   --color-bg-base: var(--color-bg-base);
   --color-bg-surface: var(--color-bg-surface);
   --color-bg-elevated: var(--color-bg-elevated);
-  --color-bg-highlight: var(--color-bg-highlight);
 
   /* Colors - Text */
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
-  --color-text-muted: var(--color-text-muted);
+  --color-text-tertiary: var(--color-text-tertiary);
 
   /* Colors - Accents */
-  --color-primary: var(--color-primary);
-  --color-primary-glow: var(--color-primary-glow);
-  --color-secondary: var(--color-secondary);
-  --color-secondary-glow: var(--color-secondary-glow);
   --color-accent: var(--color-accent);
-  --color-accent-glow: var(--color-accent-glow);
-  
   --color-danger: var(--color-danger);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   
-  /* Glass */
-  --color-glass-bg: var(--glass-bg);
-  --color-glass-border: var(--glass-border);
+  /* Materials */
+  --mat-base: var(--mat-base);
+  --mat-lg-regular-bg: var(--mat-lg-regular-bg);
+  --mat-lg-clear-bg: var(--mat-lg-clear-bg);
+  --mat-content-card-bg: var(--mat-content-card-bg);
+  --mat-border: var(--mat-border);
+  --mat-border-highlight: var(--mat-border-highlight);
   
-  /* Borders */
-  --color-border-base: var(--color-border);
+  /* Legacy mappings for Tailwind */
+  --color-accent: var(--color-accent);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-border-base: var(--mat-border);
 }
 
 /* Base Layout Reset */
@@ -45,11 +44,10 @@ html, body, #root {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    font-family: var(--font-body);
+    font-family: var(--font-system);
     
     /* Global Background Design (MacOS 26 Style) */
-    background-color: var(--bg-app);
-    background-image: var(--bg-gradient-app);
+    background-color: var(--mat-base);
     background-attachment: fixed;
     background-size: cover;
     
@@ -73,7 +71,7 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-muted);
+    background: var(--color-text-tertiary);
 }
 
 /* Glassmorphism Utilities */
@@ -96,7 +94,6 @@ html, body, #root {
 .glass-card:hover {
     background: var(--glass-bg-hover);
     border-color: var(--glass-border-highlight);
-    box-shadow: 0 0 15px var(--color-primary-glow);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -271,30 +268,7 @@ html, body, #root {
     -webkit-app-region: no-drag;
 }
 
-/* FUI Elements */
-.fui-grid-bg {
-    background-image: 
-        linear-gradient(var(--glass-border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--glass-border) 1px, transparent 1px);
-    background-size: 40px 40px;
-    mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
-}
-
-.aurora-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: 
-        radial-gradient(circle at 0% 0%, var(--gradient-start) 0%, transparent 50%),
-        radial-gradient(circle at 100% 0%, var(--gradient-mid) 0%, transparent 50%),
-        radial-gradient(circle at 100% 100%, var(--gradient-end) 0%, transparent 50%);
-    filter: blur(60px);
-    opacity: 0.6;
-    z-index: -1;
-    pointer-events: none;
-}
+/* FUI Elements (Removed for macOS 26 Liquid Glass) */
 
 /* Window Controls */
 .title-drag-region {
@@ -305,21 +279,7 @@ html, body, #root {
     -webkit-app-region: no-drag;
 }
 
-/* Spotlight Animation */
-@keyframes spotlight {
-  0% {
-    opacity: 0;
-    transform: translate(-72%, -62%) scale(0.5);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%,-40%) scale(1);
-  }
-}
-
-.animate-spotlight {
-  animation: spotlight 2s ease .75s 1 forwards;
-}
+/* Spotlight Animation (Removed for macOS 26 Liquid Glass) */
 
 .chat-markdown {
     color: inherit;
@@ -406,7 +366,7 @@ html, body, #root {
 }
 
 .chat-markdown a {
-    color: var(--color-primary);
+    color: var(--color-accent);
     text-decoration: underline;
     text-underline-offset: 2px;
 }

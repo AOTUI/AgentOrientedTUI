@@ -11,6 +11,7 @@ import type { HostManagerV2 } from '../core/host-manager-v2.js';
 import type { LLMConfigService } from '../core/llm-config-service.js';
 import type { ModelRegistry } from '../services/model-registry.js';
 import { MessageServiceV2 } from '../core/message-service-v2.js';
+import { Config } from '../config/config.js';
 
 import type { GuiUpdateEvent } from '../core/host-manager-v2.js';
 
@@ -264,8 +265,8 @@ const modelRegistryRouter = router({
             return ctx.modelRegistry.getProviders();
         }),
     getProviderConfig: publicProcedure
-        .input(z.object({ 
-            providerId: z.string() 
+        .input(z.object({
+            providerId: z.string()
         }))
         .query(async ({ input, ctx }) => {
             return ctx.modelRegistry.getProviderConfig(input.providerId);
@@ -289,6 +290,188 @@ const modelRegistryRouter = router({
         }),
 });
 
+function normalizeMcpServerEntry(entry: Record<string, any>): Record<string, any> {
+    const normalized: Record<string, any> = { ...entry };
+
+    if (normalized.enabled === undefined && typeof normalized.disabled === 'boolean') {
+        normalized.enabled = !normalized.disabled;
+    }
+
+    if (typeof normalized.command === 'string') {
+        const args = Array.isArray(normalized.args)
+            ? normalized.args.filter((arg: unknown): arg is string => typeof arg === 'string')
+            : [];
+        normalized.command = [normalized.command, ...args];
+    }
+
+    if (!normalized.type && Array.isArray(normalized.command)) {
+        normalized.type = 'local';
+    }
+
+    if (!normalized.environment && normalized.env && typeof normalized.env === 'object') {
+        normalized.environment = normalized.env;
+    }
+
+    return normalized;
+}
+
+function normalizeMcpConfig(rawMcp: unknown): Record<string, any> {
+    const raw = rawMcp && typeof rawMcp === 'object' ? (rawMcp as Record<string, any>) : {};
+    const container = raw.mcpServers && typeof raw.mcpServers === 'object'
+        ? (raw.mcpServers as Record<string, any>)
+        : raw;
+
+    const entries = Object.entries(container)
+        .filter(([, value]) => value && typeof value === 'object')
+        .map(([serverName, value]) => [serverName, normalizeMcpServerEntry(value as Record<string, any>)]);
+
+    return Object.fromEntries(entries);
+}
+
+const mcpRouter = router({
+    getConfig: publicProcedure
+        .query(async () => {
+            const config = await Config.getGlobal();
+            return normalizeMcpConfig(config.mcp ?? (config as Record<string, any>).mcpServers ?? {});
+        }),
+    updateConfig: publicProcedure
+        .input(z.object({
+            mcp: z.record(z.string(), z.any())
+        }))
+        .mutation(async ({ input }) => {
+            await Config.updateGlobal({ mcp: normalizeMcpConfig(input.mcp) });
+            return { success: true };
+        }),
+
+    /**
+     * getRuntime: 返回所有已配置 MCP Server 的运行时状态和工具列表
+     * 为每个 server 合并：连接状态 + 工具列表 + 每个工具的 enabled 状态
+     */
+    getRuntime: publicProcedure
+        .query(async () => {
+            const { MCP } = await import('../mcp/index.js');
+            const config = await Config.getGlobal();
+            const mcpConfig: Record<string, any> = normalizeMcpConfig(config.mcp ?? (config as Record<string, any>).mcpServers ?? {});
+
+            // 获取运行时 status（包含所有已配置的 server）
+            const statusMap = await MCP.status();
+            // 获取已连接的 clients，以便查询工具列表
+            const clientsMap = await MCP.clients();
+
+            const result: Record<string, {
+                status: string;
+                error?: string;
+                tools: Array<{ name: string; description: string; enabled: boolean }>;
+            }> = {};
+
+            const serverNames = new Set<string>([
+                ...Object.keys(mcpConfig),
+                ...Object.keys(statusMap),
+            ]);
+
+            for (const serverName of serverNames) {
+                const serverStatus = (statusMap as Record<string, { status: string; error?: string }>)[serverName]
+                    ?? { status: mcpConfig[serverName]?.enabled === false ? 'disabled' : 'failed', error: 'Runtime status unavailable' };
+                const serverConfig = mcpConfig[serverName] || {};
+                const disabledTools: string[] = serverConfig.disabledTools || [];
+                let tools: Array<{ name: string; description: string; enabled: boolean }> = [];
+
+                // 仅对已连接的 server 查询工具列表
+                if (serverStatus.status === 'connected') {
+                    const client = clientsMap[serverName];
+                    if (client) {
+                        try {
+                            const toolsResult = await client.listTools();
+                            tools = toolsResult.tools.map((t: any) => ({
+                                name: t.name,
+                                description: t.description || '',
+                                enabled: !disabledTools.includes(t.name),
+                            }));
+                        } catch (e) {
+                            console.error(`[MCP.getRuntime] Failed to list tools for ${serverName}:`, e);
+                        }
+                    }
+                }
+
+                result[serverName] = {
+                    status: serverStatus.status,
+                    error: serverStatus.error,
+                    tools,
+                };
+            }
+
+            return result;
+        }),
+
+    /**
+     * setServerEnabled: Enable / Disable 一个 MCP Server
+     * 1. 更新 config 并持久化
+     * 2. enabled=true → MCP.connect()；enabled=false → MCP.disconnect()
+     */
+    setServerEnabled: publicProcedure
+        .input(z.object({
+            name: z.string(),
+            enabled: z.boolean(),
+        }))
+        .mutation(async ({ input }) => {
+            const { MCP } = await import('../mcp/index.js');
+            const config = await Config.getGlobal();
+            const mcpConfig: Record<string, any> = { ...normalizeMcpConfig(config.mcp ?? (config as Record<string, any>).mcpServers ?? {}) };
+
+            if (!mcpConfig[input.name]) {
+                throw new Error(`MCP server "${input.name}" not found in config`);
+            }
+
+            mcpConfig[input.name] = { ...mcpConfig[input.name], enabled: input.enabled };
+            await Config.updateGlobal({ mcp: mcpConfig });
+
+            if (input.enabled) {
+                await MCP.connect(input.name);
+            } else {
+                await MCP.disconnect(input.name);
+            }
+
+            return { success: true };
+        }),
+
+    /**
+     * setToolEnabled: Enable / Disable 某个 MCP Server 下的特定工具
+     * 通过维护 config 中该 server 的 disabledTools 数组实现。
+     */
+    setToolEnabled: publicProcedure
+        .input(z.object({
+            serverName: z.string(),
+            toolName: z.string(),
+            enabled: z.boolean(),
+        }))
+        .mutation(async ({ input }) => {
+            const config = await Config.getGlobal();
+            const mcpConfig: Record<string, any> = { ...normalizeMcpConfig(config.mcp ?? (config as Record<string, any>).mcpServers ?? {}) };
+
+            if (!mcpConfig[input.serverName]) {
+                throw new Error(`MCP server "${input.serverName}" not found in config`);
+            }
+
+            const serverConfig = { ...mcpConfig[input.serverName] };
+            const disabledTools: string[] = [...(serverConfig.disabledTools || [])];
+
+            if (input.enabled) {
+                const idx = disabledTools.indexOf(input.toolName);
+                if (idx !== -1) disabledTools.splice(idx, 1);
+            } else {
+                if (!disabledTools.includes(input.toolName)) {
+                    disabledTools.push(input.toolName);
+                }
+            }
+
+            serverConfig.disabledTools = disabledTools;
+            mcpConfig[input.serverName] = serverConfig;
+            await Config.updateGlobal({ mcp: mcpConfig });
+
+            return { success: true };
+        }),
+});
+
 export const appRouter = router({
     db: dbRouter,
     chat: chatRouter,
@@ -296,6 +479,7 @@ export const appRouter = router({
     project: projectRouter,
     llmConfig: llmConfigRouter,
     modelRegistry: modelRegistryRouter,
+    mcp: mcpRouter,
 });
 
 export type AppRouter = typeof appRouter;

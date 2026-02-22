@@ -12,7 +12,7 @@ export function ConnectionScreen({ status, onRetry }: { status: 'connecting' | '
                 {status === 'connecting' ? (
                     <>
                         <Spinner size="lg" color="primary" />
-                        <div className="mt-4 font-mono text-sm tracking-widest animate-pulse text-primary">
+                        <div className="mt-4 font-system text-[13px] font-medium text-[var(--color-text-secondary)]">
                             INITIALIZING SYSTEM...
                         </div>
                     </>
@@ -25,7 +25,7 @@ export function ConnectionScreen({ status, onRetry }: { status: 'connecting' | '
                             color="danger" 
                             variant="flat" 
                             onClick={onRetry}
-                            className="font-mono text-xs uppercase tracking-wider"
+                            className="font-system text-[13px] font-medium text-[var(--color-text-secondary)]"
                         >
                             Retry Connection
                         </Button>

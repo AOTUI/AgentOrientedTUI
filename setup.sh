@@ -73,7 +73,7 @@ echo "🔗 Linking TUI applications..."
 echo "----------------------------------------------"
 
 # Array of apps to link
-apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app")
+apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app" "lite-browser-app")
 
 for app in "${apps[@]}"; do
     if [ -d "$app" ]; then

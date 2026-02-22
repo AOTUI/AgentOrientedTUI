@@ -134,7 +134,7 @@ const CapabilityBadge: React.FC<{ label: string; enabled: boolean }> = ({ label,
         flex items-center gap-2 px-3 py-2 rounded-lg
         ${enabled 
             ? 'bg-green-500/10 text-green-600 dark:text-green-400' 
-            : 'bg-[var(--color-bg-highlight)] text-[var(--color-text-muted)]'
+            : 'bg-[var(--color-bg-highlight)] text-[var(--color-text-tertiary)]'
         }
     `}>
         {enabled ? (
@@ -159,7 +159,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
     if (!model) {
         return (
             <div className={`${className} p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
-                <div className="flex items-center gap-3 text-[var(--color-text-muted)]">
+                <div className="flex items-center gap-3 text-[var(--color-text-tertiary)]">
                     <IconInfo />
                     <p className="text-sm">
                         Select a model to view detailed information
@@ -178,11 +178,11 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
                 <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
                     {model.name}
                 </h3>
-                <p className="text-sm text-[var(--color-text-muted)]">
+                <p className="text-sm text-[var(--color-text-tertiary)]">
                     {model.id}
                 </p>
                 {model.family && (
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                    <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
                         Family: {model.family}
                     </p>
                 )}
@@ -244,9 +244,9 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
             )}
 
             {/* Recommended Configuration */}
-            <div className="p-4 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5">
+            <div className="p-4 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5">
                 <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3 flex items-center gap-2">
-                    <IconInfo className="text-[var(--color-primary)]" />
+                    <IconInfo className="text-[var(--color-accent)]" />
                     Recommended Configuration
                 </h4>
                 <div className="space-y-0">
@@ -255,7 +255,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
                         value={
                             <span>
                                 {recommendedConfig.temperature}
-                                <span className="text-xs text-[var(--color-text-muted)] ml-2">
+                                <span className="text-xs text-[var(--color-text-tertiary)] ml-2">
                                     ({model.reasoning ? 'Lower for reasoning' : 'Balanced'})
                                 </span>
                             </span>
@@ -266,7 +266,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
                         value={
                             <span>
                                 {recommendedConfig.maxSteps}
-                                <span className="text-xs text-[var(--color-text-muted)] ml-2">
+                                <span className="text-xs text-[var(--color-text-tertiary)] ml-2">
                                     ({model.reasoning ? 'More for complex tasks' : 'Standard'})
                                 </span>
                             </span>

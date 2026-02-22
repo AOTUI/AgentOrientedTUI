@@ -32,7 +32,7 @@ echo "📦 Building agent-driver-v2..."
 pnpm --filter ./agent-driver-v2 build
 
 # Build apps
-apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app")
+apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app" "lite-browser-app")
 
 for app in "${apps[@]}"; do
     if [ -d "$app" ]; then

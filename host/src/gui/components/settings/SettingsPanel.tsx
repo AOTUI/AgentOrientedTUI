@@ -9,6 +9,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SettingsSidebar } from './SettingsSidebar.js';
 import { ModelTab } from './ModelTab.js';
 import { ThemeTab } from './ThemeTab.js';
+import { McpTab } from './mcp/McpTab.js';
 import { SettingsErrorBoundary } from './SettingsErrorBoundary.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
 import type { SettingsPanelProps } from './types.js';
@@ -17,13 +18,13 @@ import type { SettingsPanelProps } from './types.js';
  * Icon component for exit button
  */
 const IconExit = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth={2} 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
         {...props}
         className={`w-5 h-5 ${props.className || ''}`}
     >
@@ -45,8 +46,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     onThemeChange,
 }) => {
     // State
-    const [activeTab, setActiveTab] = useState<'model' | 'theme'>('model');
-    
+    const [activeTab, setActiveTab] = useState<'model' | 'theme' | 'mcp'>('model');
+
     // Refs for focus trap
     const panelRef = useRef<HTMLDivElement>(null);
     const firstFocusableRef = useRef<HTMLButtonElement>(null);
@@ -233,6 +234,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                                     onThemeChange={onThemeChange}
                                 />
                             )}
+                            {activeTab === 'mcp' && <McpTab />}
                         </div>
                     </SettingsErrorBoundary>
 

@@ -23,7 +23,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 }) => {
     return (
         <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <Spinner size={size} className="text-[var(--color-primary)]" />
+            <Spinner size={size} className="text-[var(--color-accent)]" />
             <p className="text-[var(--color-text-secondary)] text-sm">
                 {message}
             </p>

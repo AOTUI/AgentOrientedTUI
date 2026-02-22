@@ -1,5 +1,6 @@
 import { defineParams, useViewTypeTool } from '@aotui/sdk';
 import type { FetchFormat, SearchQuery } from '../types.js';
+import { config } from 'process';
 
 type RootViewProps = {
     hasResults: boolean;
@@ -217,6 +218,9 @@ function PageToolSection({
                 success: true,
                 data: { message: 'Page view closed.' }
             };
+        },
+        {
+            enabled: hasPage
         }
     );
 
