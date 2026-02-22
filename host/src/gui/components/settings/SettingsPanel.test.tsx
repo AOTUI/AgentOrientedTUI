@@ -44,7 +44,7 @@ describe('SettingsPanel', () => {
 
             const backdrop = container.querySelector('[role="dialog"]');
             expect(backdrop).toHaveClass('backdrop-blur-[12px]');
-            expect(backdrop).toHaveClass('bg-black/60');
+            expect(backdrop).toHaveClass('bg-[var(--mat-overlay-bg)]');
         });
 
         it('should render close button', () => {

@@ -238,7 +238,7 @@ export const ModelTab: React.FC = () => {
             {/* Provider row */}
             <div>
                 <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-center mb-2 sm:mb-3">
-                    <h3 className="text-xs sm:text-sm font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
+                    <h3 className="text-xs sm:text-sm font-medium text-[var(--color-text-secondary)]">
                         Providers
                     </h3>
                     <div className="w-full sm:w-[220px] sm:justify-self-end">
@@ -266,7 +266,7 @@ export const ModelTab: React.FC = () => {
             {/* Model search bar */}
             <div>
                 <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-center mb-2 sm:mb-3">
-                    <h3 className="text-xs sm:text-sm font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
+                    <h3 className="text-xs sm:text-sm font-medium text-[var(--color-text-secondary)]">
                         Models Of {selectedProviderName}
                     </h3>
                     <div className="w-full sm:w-[220px] sm:justify-self-end">

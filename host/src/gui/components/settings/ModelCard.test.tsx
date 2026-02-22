@@ -180,8 +180,8 @@ describe('ModelCard', () => {
             );
 
             const toolCallBadge = screen.getByText('Tools');
-            expect(toolCallBadge).toHaveClass('bg-[var(--lg-bg-alt)]');
-            expect(toolCallBadge).toHaveClass('text-[var(--tx-secondary)]');
+            expect(toolCallBadge).toHaveClass('bg-[var(--color-bg-surface)]');
+            expect(toolCallBadge).toHaveClass('text-[var(--color-text-secondary)]');
         });
     });
 
@@ -338,7 +338,7 @@ describe('ModelCard', () => {
             
             const badge = screen.getByText('ACTIVE');
             expect(badge).toBeInTheDocument();
-            expect(badge).toHaveClass('bg-[var(--ac-green-subtle)]');
+            expect(badge).toHaveClass('bg-[var(--color-success)/15]');
         });
 
         it('should have hover visibility classes on Activate button', () => {
@@ -462,7 +462,7 @@ describe('ModelCard', () => {
             );
 
             // No blue border
-            const card = container.querySelector('[class*="border-[var(--ac-blue)]"]');
+            const card = container.querySelector('[class*="border-[var(--color-accent)]"]');
             expect(card).not.toBeInTheDocument();
         });
     });

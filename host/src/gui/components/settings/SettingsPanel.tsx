@@ -164,7 +164,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div
             className={`
                 fixed inset-0 z-50 flex items-center justify-center
-                bg-black/40 backdrop-blur-md
+                bg-[var(--mat-overlay-bg)] backdrop-blur-md
                 transition-opacity duration-300
                 ${isOpen ? 'opacity-100' : 'opacity-0'}
             `}
@@ -190,7 +190,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Sidebar - horizontal on mobile, vertical on desktop */}
-                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--mat-border)] flex flex-col gap-3 md:h-full bg-[var(--mat-lg-clear-bg)]">
+                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--mat-border)] flex flex-col gap-3 md:h-full bg-[var(--mat-content-card-bg)]">
                     <SettingsSidebar
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
@@ -198,14 +198,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <button
                         ref={exitButtonRef}
                         onClick={onClose}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] border text-[13px] font-medium transition-all duration-200 md:mt-auto"
-                        style={{
-                            backgroundColor: 'rgba(255, 69, 58, 0.15)',
-                            borderColor: 'rgba(255, 69, 58, 0.25)',
-                            color: '#FF453A'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.25)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.15)'}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] border text-[13px] font-medium transition-all duration-200 md:mt-auto bg-[var(--color-danger)]/15 border-[var(--color-danger)]/30 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/25"
                         aria-label="Exit settings panel"
                     >
                         <IconExit className="w-4 h-4" />

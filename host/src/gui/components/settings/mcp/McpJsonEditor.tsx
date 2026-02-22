@@ -45,15 +45,15 @@ export const McpJsonEditor: React.FC<McpJsonEditorProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full bg-[var(--lg-bg-alt)]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-subtle)] bg-[var(--lg-bg)]">
+        <div className="flex flex-col h-full mat-content">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-subtle)] mat-lg-clear">
                 <span className="text-sm font-medium text-[var(--color-text-secondary)]">Raw JSON Config</span>
                 <button
                     onClick={handleSave}
                     disabled={!!error || isSaving}
                     className={`
-                        px-4 py-1.5 rounded-[var(--r-control)] text-sm font-medium transition-colors
-                        ${error ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-[var(--ac-blue)] text-white hover:bg-blue-600'}
+                        px-4 py-1.5 rounded-[8px] text-sm font-medium transition-colors
+                        ${error ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-[var(--color-accent)] text-white hover:bg-blue-600'}
                     `}
                 >
                     {isSaving ? 'Saving...' : 'Save Configuration'}
@@ -67,9 +67,9 @@ export const McpJsonEditor: React.FC<McpJsonEditorProps> = ({
                     spellCheck={false}
                     className={`
                         w-full h-full font-mono text-[13px] p-4 rounded-lg resize-none outline-none
-                        bg-[#0a0a0a] text-zinc-300 border
-                        ${error ? 'border-red-500/50 focus:border-red-500' : 'border-zinc-800 focus:border-[var(--ac-blue-subtle)]'}
-                        focus:ring-1 focus:ring-[var(--ac-blue-subtle)]
+                        mat-content text-[var(--color-text-primary)] border
+                        ${error ? 'border-red-500/50 focus:border-red-500' : 'border-[var(--color-border-subtle)] focus:border-[var(--color-accent)/15]'}
+                        focus:ring-1 focus:ring-[var(--color-accent)/15]
                     `}
                     placeholder="{\n  // Enter your MCP JSON configuration here\n}"
                 />

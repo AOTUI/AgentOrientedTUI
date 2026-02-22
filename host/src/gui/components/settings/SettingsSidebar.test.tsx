@@ -60,8 +60,8 @@ describe('SettingsSidebar', () => {
             );
 
             const modelButton = screen.getByText('Model').closest('button');
-            expect(modelButton).toHaveClass('bg-[var(--ac-blue-subtle)]');
-            expect(modelButton).toHaveClass('text-[var(--ac-blue)]');
+            expect(modelButton).toHaveClass('bg-[var(--color-accent)/15]');
+            expect(modelButton).toHaveClass('text-[var(--color-accent)]');
         });
 
         it('should highlight Theme tab when activeTab is "theme"', () => {
@@ -71,8 +71,8 @@ describe('SettingsSidebar', () => {
             );
 
             const themeButton = screen.getByText('Theme').closest('button');
-            expect(themeButton).toHaveClass('bg-[var(--ac-blue-subtle)]');
-            expect(themeButton).toHaveClass('text-[var(--ac-blue)]');
+            expect(themeButton).toHaveClass('bg-[var(--color-accent)/15]');
+            expect(themeButton).toHaveClass('text-[var(--color-accent)]');
         });
 
         it('should not highlight Model tab when activeTab is "theme"', () => {
@@ -80,7 +80,7 @@ describe('SettingsSidebar', () => {
             render(<SettingsSidebar activeTab="theme" onTabChange={onTabChange} />);
 
             const modelButton = screen.getByText('Model').closest('button');
-            expect(modelButton).not.toHaveClass('bg-[var(--ac-blue-subtle)]');
+            expect(modelButton).not.toHaveClass('bg-[var(--color-accent)/15]');
             expect(modelButton).toHaveClass('bg-transparent');
         });
 
@@ -89,7 +89,7 @@ describe('SettingsSidebar', () => {
             render(<SettingsSidebar activeTab="model" onTabChange={onTabChange} />);
 
             const themeButton = screen.getByText('Theme').closest('button');
-            expect(themeButton).not.toHaveClass('bg-[var(--ac-blue-subtle)]');
+            expect(themeButton).not.toHaveClass('bg-[var(--color-accent)/15]');
             expect(themeButton).toHaveClass('bg-transparent');
         });
 
@@ -98,7 +98,7 @@ describe('SettingsSidebar', () => {
             render(<SettingsSidebar activeTab="model" onTabChange={onTabChange} />);
 
             const modelButton = screen.getByText('Model').closest('button');
-            expect(modelButton?.className).toContain('shadow-[var(--lg-inner-shadow)]');
+            expect(modelButton?.className).toContain('shadow-[inset_0_1px_0_var(--mat-inset-highlight)]');
         });
     });
 
@@ -187,7 +187,7 @@ describe('SettingsSidebar', () => {
             render(<SettingsSidebar activeTab="model" onTabChange={onTabChange} />);
 
             const themeButton = screen.getByText('Theme').closest('button');
-            expect(themeButton?.className).toContain('hover:bg-[var(--color-bg-highlight)]');
+            expect(themeButton?.className).toContain('hover:bg-[var(--mat-lg-clear-bg)]');
             expect(themeButton?.className).toContain('hover:text-[var(--color-text-primary)]');
         });
     });

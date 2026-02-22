@@ -18,14 +18,14 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
     `;
 
     const activeBtnClass = `
-        bg-[rgba(10,132,255,0.15)] border-[rgba(10,132,255,0.25)] text-[var(--color-accent)]
-        shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]
+        bg-[var(--color-accent)]/15 border-[var(--color-accent)]/25 text-[var(--color-accent)]
+        shadow-[inset_0_1px_0_var(--mat-inset-highlight)]
     `;
 
     const inactiveBtnClass = `
         bg-transparent border-transparent
         text-[var(--color-text-secondary)] 
-        hover:bg-[var(--mat-lg-clear-bg)] hover:text-[var(--color-text-primary)]
+        hover:bg-[var(--mat-content-card-hover-bg)] hover:text-[var(--color-text-primary)]
     `;
 
     return (

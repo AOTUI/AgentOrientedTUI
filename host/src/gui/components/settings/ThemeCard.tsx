@@ -54,11 +54,11 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
         <button
             className={`
                 group relative w-full text-left outline-none
-                rounded-[var(--r-panel)] border transition-all duration-300
+                rounded-[16px] border transition-all duration-300
                 flex flex-col p-4 gap-4 h-[180px]
                 ${isActive 
-                    ? 'bg-[var(--ac-blue-subtle)] border-[var(--ac-blue)] ring-2 ring-[var(--ac-blue-subtle)]' 
-                    : 'bg-[var(--lg-bg)] border-[var(--lg-border)] hover:bg-[var(--lg-bg-hover)] hover:border-[var(--lg-border-hover)]'
+                    ? 'bg-[var(--color-accent)/15] border-[var(--color-accent)] ring-2 ring-[var(--color-accent)/15]' 
+                    : 'mat-content hover:bg-[var(--mat-content-card-hover-bg)]'
                 }
             `}
             onClick={onSelect}
@@ -74,7 +74,7 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
         >
             {/* Preview Area */}
             <div 
-                className="flex-1 w-full rounded-[var(--r-control)] border shadow-sm overflow-hidden relative"
+                className="flex-1 w-full rounded-[8px] border shadow-sm overflow-hidden relative"
                 style={{ 
                     backgroundColor: colors.background,
                     borderColor: colors.border
@@ -101,11 +101,11 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
 
             {/* Label */}
             <div className="flex items-center justify-between w-full">
-                <span className={`text-[13px] font-medium ${isActive ? 'text-[var(--ac-blue)]' : 'text-[var(--tx-primary)]'}`}>
+                <span className={`text-[13px] font-medium ${isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-primary)]'}`}>
                     {themeName}
                 </span>
                 {isActive && (
-                    <div className="text-[var(--ac-blue)]">
+                    <div className="text-[var(--color-accent)]">
                         <IconCheck />
                     </div>
                 )}

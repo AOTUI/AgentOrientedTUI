@@ -375,26 +375,26 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
 
     return (
         <div 
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--mat-overlay-bg)] backdrop-blur-sm p-4"
             onClick={handleBackdropClick}
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-provider-modal-title"
         >
-            <div className="w-full max-w-[560px] border border-[var(--lg-border)] bg-[var(--lg-bg-strong)] backdrop-blur-[var(--lg-blur)] rounded-[var(--r-window)] shadow-[var(--lg-outer-shadow)] flex flex-col overflow-hidden max-h-[90vh]">
+            <div className="w-full max-w-[560px] mat-lg-regular rounded-[20px] flex flex-col overflow-hidden max-h-[90vh]">
                 <div className="flex flex-col gap-5 p-6 sm:p-7 overflow-y-auto custom-scrollbar">
 
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <h2 
                             id="add-provider-modal-title"
-                            className="text-[17px] font-semibold text-[var(--tx-primary)]"
+                            className="text-[17px] font-semibold text-[var(--color-text-primary)]"
                         >
                             Add New Provider
                         </h2>
                         <button
                             onClick={onClose}
-                            className="lg-icon-btn lg-clear text-[var(--tx-secondary)] hover:text-[var(--tx-primary)]"
+                            className="p-2 rounded-full hover:bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                             aria-label="Close modal"
                         >
                             <IconClose />
@@ -405,7 +405,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                     <div className="flex flex-col gap-2" ref={providerDropdownRef}>
                         <label 
                             htmlFor="provider-select"
-                            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]"
+                            className="text-xs font-medium text-[var(--color-text-secondary)]"
                         >
                             Provider *
                         </label>
@@ -416,9 +416,9 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                 disabled={isLoading || isSaving}
                                 className={`lg-input flex items-center justify-between gap-3 h-auto min-h-[44px] ${
                                     validationErrors.providerId 
-                                        ? 'border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]' 
+                                        ? 'border-[var(--color-danger)] ring-1 ring-[var(--color-danger)/15]' 
                                         : ''
-                                } disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--lg-bg-hover)] cursor-pointer`}
+                                } disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--mat-content-card-hover-bg)] cursor-pointer`}
 
                                 aria-haspopup="listbox"
                                 aria-expanded={showProviderDropdown}
@@ -443,7 +443,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                             {/* Dropdown Menu */}
                             {showProviderDropdown && !isLoading && (
                                 <div 
-                                    className="absolute top-full left-0 right-0 mt-2 rounded-[var(--r-panel)] border border-[var(--lg-border)] bg-[var(--lg-bg)] backdrop-blur-xl shadow-xl z-[70] overflow-hidden"
+                                    className="absolute top-full left-0 right-0 mt-2 rounded-[16px] mat-lg-clear shadow-xl z-[70] overflow-hidden"
 
                                     role="listbox"
                                 >
@@ -453,7 +453,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                             value={providerSearchQuery}
                                             onChange={(e) => setProviderSearchQuery(e.target.value)}
                                             placeholder="Search provider..."
-                                            className="w-full h-8 px-3 rounded-md bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)]"
+                                            className="w-full h-8 px-3 rounded-md mat-content text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)]"
                                         />
                                     </div>
                                     <div className="max-h-[168px] overflow-y-auto">
@@ -498,7 +498,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                     <div className="flex flex-col gap-2">
                         <label 
                             htmlFor="custom-name-input"
-                            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]"
+                            className="text-xs font-medium text-[var(--color-text-secondary)]"
                         >
                             Custom Name *
                         </label>
@@ -511,7 +511,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                             placeholder="e.g., My OpenAI Account"
                             className={`lg-input h-[44px] ${
                                 validationErrors.customName 
-                                    ? 'border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]' 
+                                    ? 'border-[var(--color-danger)] ring-1 ring-[var(--color-danger)/15]' 
                                     : ''
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
 
@@ -529,7 +529,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                     <div className="flex flex-col gap-2">
                         <label 
                             htmlFor="api-key-input"
-                            className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]"
+                            className="text-xs font-medium text-[var(--color-text-secondary)]"
                         >
                             API Key *
                         </label>
@@ -542,7 +542,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                             placeholder="sk-..."
                             className={`lg-input h-[44px] font-mono text-sm ${
                                 validationErrors.apiKey 
-                                    ? 'border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]' 
+                                    ? 'border-[var(--color-danger)] ring-1 ring-[var(--color-danger)/15]' 
                                     : ''
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
 
@@ -561,7 +561,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                         <div className="flex flex-col gap-2" ref={modelDropdownRef}>
                             <label 
                                 htmlFor="model-input"
-                                className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]"
+                                className="text-xs font-medium text-[var(--color-text-secondary)]"
                             >
                                 Model (Optional)
                             </label>
@@ -575,7 +575,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                         id="model-input"
                                         onClick={() => setShowModelDropdown(!showModelDropdown)}
                                         disabled={isSaving}
-                                        className="lg-input flex items-center justify-between gap-3 h-[44px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[var(--lg-bg-hover)]"
+                                        className="lg-input flex items-center justify-between gap-3 h-[44px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[var(--mat-content-card-hover-bg)]"
 
                                         aria-haspopup="listbox"
                                         aria-expanded={showModelDropdown}
@@ -586,7 +586,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                         <IconChevronDown className={`transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {showModelDropdown && (
-                                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[var(--r-panel)] border border-[var(--lg-border)] bg-[var(--lg-bg)] backdrop-blur-xl shadow-xl z-[70] overflow-hidden">
+                                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[16px] mat-lg-clear shadow-xl z-[70] overflow-hidden">
 
                                             <div className="p-2 border-b border-[var(--color-border)]">
                                                 <input
@@ -594,7 +594,7 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                                                     value={modelSearchQuery}
                                                     onChange={(e) => setModelSearchQuery(e.target.value)}
                                                     placeholder="Search model..."
-                                                    className="w-full h-8 px-3 rounded-md bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)]"
+                                                    className="w-full h-8 px-3 rounded-md mat-content text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-accent)]"
                                                 />
                                             </div>
                                             <div className="max-h-[168px] overflow-y-auto">
@@ -643,14 +643,14 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
                         <button 
                             onClick={handleCancel}
                             disabled={isSaving}
-                            className="lg-btn hover:bg-[var(--lg-bg-hover)] disabled:opacity-50"
+                            className="lg-btn hover:bg-[var(--mat-content-card-hover-bg)] disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button 
                             onClick={handleSave}
                             disabled={isSaveDisabled}
-                            className="lg-btn lg-btn-accent rounded-[var(--r-control)] px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="lg-btn bg-[var(--color-accent)] text-white border-transparent hover:bg-[var(--color-accent)]/90 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? 'Saving...' : 'Save'}
                         </button>

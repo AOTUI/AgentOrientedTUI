@@ -96,7 +96,7 @@ export const McpTab: React.FC = () => {
         <div className="relative flex flex-col h-full min-h-0 gap-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
                 <div>
-                    <h3 className="text-xs sm:text-sm font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
+                    <h3 className="text-xs sm:text-sm font-medium text-[var(--color-text-secondary)]">
                         Model Context Protocol Nodes
                     </h3>
                     <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
@@ -105,23 +105,23 @@ export const McpTab: React.FC = () => {
                 </div>
 
                 {/* View Mode Toggle */}
-                <div className="flex rounded-lg bg-[var(--lg-bg-alt)] border border-[var(--color-border-subtle)] p-1 overflow-hidden">
+                <div className="flex rounded-lg mat-lg-clear p-1 overflow-hidden">
                     <button
                         onClick={() => setViewMode('visual')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'visual' ? 'bg-[var(--ac-blue-subtle)] text-[var(--ac-blue)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'visual' ? 'bg-[var(--color-accent)]/15 text-[var(--color-accent)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Visual Form
                     </button>
                     <button
                         onClick={() => setViewMode('json')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-[var(--ac-blue-subtle)] text-[var(--ac-blue)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-[var(--color-accent)]/15 text-[var(--color-accent)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Raw JSON
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 relative border border-[var(--color-border-subtle)] rounded-[var(--r-window)] overflow-hidden bg-[var(--lg-bg)]">
+            <div className="flex-1 min-h-0 relative mat-content rounded-[16px] overflow-hidden">
                 {viewMode === 'visual' ? (
                     <McpVisualEditor
                         config={mcpConfig}

@@ -19,13 +19,13 @@ const ActionButton: React.FC<{
     <button
         onClick={onClick}
         className={`
-            p-1.5 rounded-[var(--r-item)] transition-all duration-200
-            bg-[var(--lg-clear-bg)] border border-[var(--lg-clear-border)] backdrop-blur-sm
+            p-1.5 rounded-[6px] transition-all duration-200
+            mat-lg-clear
             ${variant === 'danger' 
-                ? 'hover:bg-[var(--ac-red-subtle)] hover:text-[var(--ac-red)]' 
-                : 'hover:bg-[var(--lg-bg-hover)] hover:text-[var(--tx-primary)]'
+                ? 'hover:bg-[var(--color-danger)/15] hover:text-[var(--color-danger)]' 
+                : 'hover:bg-[var(--mat-content-card-hover-bg)] hover:text-[var(--color-text-primary)]'
             }
-            text-[var(--tx-secondary)] shadow-[var(--lg-inner-shadow)]
+            text-[var(--color-text-secondary)]
         `}
         aria-label={ariaLabel ?? label}
         title={label}
@@ -51,9 +51,9 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 className={`
                     group relative flex items-center justify-center
                     w-[120px] h-[120px]
-                    rounded-[var(--r-panel)] border transition-all duration-250
+                    rounded-[16px] border transition-all duration-250
                     cursor-pointer overflow-hidden
-                    bg-[var(--lg-bg-alt)] border-[var(--lg-border)] hover:bg-[var(--lg-bg-hover)] hover:border-[var(--lg-border-hover)] hover:shadow-sm
+                    mat-content hover:bg-[var(--mat-content-card-hover-bg)]
                 `}
                 onClick={onSelect}
                 role="radio"
@@ -70,7 +70,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 {/* Active indicator — label top-right */}
                 {isActive && (
                     <div className="absolute top-1 right-1.5 z-20">
-                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide bg-[var(--ac-green-subtle)] text-[var(--ac-green)] border border-[var(--ac-green-subtle)] shadow-sm">
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide bg-[var(--color-success)/15] text-[var(--color-success)] border border-[var(--color-success)/15] shadow-sm">
                             Active
                         </span>
                     </div>
@@ -86,7 +86,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 
                 {/* Hover overlay with action buttons */}
                 <div
-                    className="absolute inset-0 flex items-end justify-end p-1.5 gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30 pointer-events-none group-hover:pointer-events-auto rounded-[calc(var(--r-panel)-1px)]"
+                    className="absolute inset-0 flex items-end justify-end p-1.5 gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30 pointer-events-none group-hover:pointer-events-auto rounded-[calc(16px-1px)]"
                 >
                     <ActionButton
                         icon={
@@ -117,7 +117,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
             <span className={`
                 text-[11px] font-medium text-center leading-tight
                 max-w-[96px] truncate
-                ${isSelected ? 'text-[var(--ac-blue)]' : 'text-[var(--tx-secondary)]'}
+                ${isSelected ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}
             `}>
                 {provider.customName}
             </span>

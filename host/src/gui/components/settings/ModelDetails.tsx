@@ -134,7 +134,7 @@ const CapabilityBadge: React.FC<{ label: string; enabled: boolean }> = ({ label,
         flex items-center gap-2 px-3 py-2 rounded-lg
         ${enabled 
             ? 'bg-green-500/10 text-green-600 dark:text-green-400' 
-            : 'bg-[var(--color-bg-highlight)] text-[var(--color-text-tertiary)]'
+            : 'mat-content text-[var(--color-text-tertiary)]'
         }
     `}>
         {enabled ? (
@@ -158,7 +158,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
     // Handle no model selected
     if (!model) {
         return (
-            <div className={`${className} p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
+            <div className={`${className} p-6 rounded-lg mat-content`}>
                 <div className="flex items-center gap-3 text-[var(--color-text-tertiary)]">
                     <IconInfo />
                     <p className="text-sm">
@@ -174,7 +174,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
     return (
         <div className={`${className} space-y-4`}>
             {/* Model Header */}
-            <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]">
+            <div className="p-4 rounded-lg mat-content">
                 <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
                     {model.name}
                 </h3>
@@ -189,7 +189,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
             </div>
 
             {/* Capabilities */}
-            <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]">
+            <div className="p-4 rounded-lg mat-content">
                 <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
                     Capabilities
                 </h4>
@@ -209,7 +209,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
 
             {/* Pricing */}
             {model.cost && (
-                <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]">
+                <div className="p-4 rounded-lg mat-content">
                     <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
                         Pricing
                     </h4>
@@ -228,7 +228,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
 
             {/* Context Limits */}
             {model.limit && (
-                <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]">
+                <div className="p-4 rounded-lg mat-content">
                     <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
                         Context Limits
                     </h4>
@@ -277,7 +277,7 @@ export const ModelDetails: React.FC<ModelDetailsProps> = ({
 
             {/* Additional Info */}
             {(model.release_date || model.last_updated || model.open_weights !== undefined) && (
-                <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]">
+                <div className="p-4 rounded-lg mat-content">
                     <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
                         Additional Information
                     </h4>

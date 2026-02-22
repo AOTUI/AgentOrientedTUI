@@ -30,14 +30,14 @@ const AddProviderButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
     <div className="flex flex-col items-center gap-1.5 select-none">
         <button
             onClick={onClick}
-            className="shrink-0 w-[120px] h-[120px] border border-dashed border-[var(--lg-border)] rounded-[var(--r-panel)] bg-[var(--lg-bg-strong)] hover:bg-[var(--lg-bg-active)] transition-all duration-200 flex items-center justify-center text-[var(--tx-secondary)] hover:text-[var(--ac-blue)] hover:border-[var(--ac-blue-subtle)] active:scale-[0.98] backdrop-blur-[var(--lg-blur)] shadow-[var(--lg-inner-shadow)]"
+            className="shrink-0 w-[120px] h-[120px] mat-lg-regular rounded-[16px] hover:bg-[var(--mat-lg-clear-bg)] transition-all duration-200 flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] active:scale-[0.98]"
             aria-label="Add new provider"
         >
-            <div className="p-3 rounded-full bg-[var(--lg-clear-bg)] border border-[var(--lg-clear-border)] shadow-[var(--lg-inner-shadow)]">
+            <div className="p-3 rounded-full mat-lg-clear">
                 <IconPlus aria-hidden="true" className="w-5 h-5" />
             </div>
         </button>
-        <span className="text-[11px] font-medium text-[var(--tx-secondary)] text-center">Add Provider</span>
+        <span className="text-[11px] font-medium text-[var(--color-text-secondary)] text-center">Add Provider</span>
     </div>
 );
 

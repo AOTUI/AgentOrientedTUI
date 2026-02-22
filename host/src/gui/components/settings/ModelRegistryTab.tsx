@@ -118,7 +118,7 @@ export const ModelRegistryTab: React.FC = () => {
             </div>
 
             {/* Info Footer */}
-            <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]">
+            <div className="p-4 rounded-lg mat-content">
                 <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
                     <strong className="text-[var(--color-text-secondary)]">Note:</strong> This is a read-only view of available models from models.dev. 
                     To configure and use these models, go to the "Model" tab to create provider configurations with your API keys.

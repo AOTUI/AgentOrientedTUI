@@ -67,10 +67,10 @@ describe('ProviderCard', () => {
             );
 
             const badge = screen.getByText('Active');
-            expect(badge).toHaveClass('bg-[var(--ac-green-subtle)]');
-            expect(badge).toHaveClass('text-[var(--ac-green)]');
+            expect(badge).toHaveClass('bg-[var(--color-success)/15]');
+            expect(badge).toHaveClass('text-[var(--color-success)]');
             expect(badge).toHaveClass('border');
-            expect(badge).toHaveClass('border-[var(--ac-green-subtle)]');
+            expect(badge).toHaveClass('border-[var(--color-success)/15]');
         });
     });
 
@@ -87,7 +87,7 @@ describe('ProviderCard', () => {
 
             const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
             // Selection style is removed as per new design
-            expect(card).toHaveClass('border-[var(--lg-border)]');
+            expect(card).toHaveClass('border-[var(--color-border)]');
         });
 
         it('should apply default border when not selected', () => {
@@ -101,7 +101,7 @@ describe('ProviderCard', () => {
             );
 
             const card = screen.getByRole('radio', { name: /My OpenAI provider/ });
-            expect(card).toHaveClass('border-[var(--lg-border)]');
+            expect(card).toHaveClass('border-[var(--color-border)]');
         });
 
         it('should include selected state in aria-label', () => {
@@ -234,7 +234,7 @@ describe('ProviderCard', () => {
             fireEvent.mouseEnter(card);
 
             const editButton = screen.getByLabelText('Edit My OpenAI provider');
-            expect(editButton).toHaveClass('bg-[var(--lg-clear-bg)]');
+            expect(editButton).toHaveClass('mat-lg-clear');
         });
 
         it('should display delete button with danger styling', () => {
@@ -251,7 +251,7 @@ describe('ProviderCard', () => {
             fireEvent.mouseEnter(card);
 
             const deleteButton = screen.getByLabelText('Delete My OpenAI provider');
-            expect(deleteButton).toHaveClass('hover:bg-[var(--ac-red-subtle)]');
+            expect(deleteButton).toHaveClass('hover:bg-[var(--color-danger)/15]');
         });
     });
 

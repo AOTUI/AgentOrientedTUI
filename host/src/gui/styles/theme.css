@@ -67,11 +67,13 @@
     --mat-lg-regular-bg: rgba(30, 30, 35, 0.45);
     --mat-lg-clear-bg: rgba(30, 30, 35, 0.25);
     --mat-content-card-bg: rgba(255, 255, 255, 0.04);
+    --mat-content-card-hover-bg: rgba(255, 255, 255, 0.08);
     --mat-border: rgba(255, 255, 255, 0.10);
     --mat-border-highlight: rgba(255, 255, 255, 0.15);
     --mat-inset-highlight: rgba(255, 255, 255, 0.05);
     --mat-shadow-color: rgba(0, 0, 0, 0.30);
     --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.08);
+    --mat-overlay-bg: rgba(0, 0, 0, 0.40);
     
     /* Legacy mappings to prevent breaking existing components before Phase 2/3 */
     --color-accent: var(--color-accent);
@@ -118,14 +120,16 @@
 
     /* Materials */
     --mat-base: var(--color-bg-base);
-    --mat-lg-regular-bg: rgba(255, 255, 255, 0.45);
-    --mat-lg-clear-bg: rgba(255, 255, 255, 0.25);
+    --mat-lg-regular-bg: rgba(255, 255, 255, 0.75);
+    --mat-lg-clear-bg: rgba(255, 255, 255, 0.45);
     --mat-content-card-bg: rgba(0, 0, 0, 0.04);
+    --mat-content-card-hover-bg: rgba(0, 0, 0, 0.08);
     --mat-border: rgba(0, 0, 0, 0.10);
     --mat-border-highlight: rgba(255, 255, 255, 0.5);
     --mat-inset-highlight: rgba(255, 255, 255, 0.5);
     --mat-shadow-color: rgba(0, 0, 0, 0.10);
     --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.4);
+    --mat-overlay-bg: rgba(0, 0, 0, 0.15);
     
     /* Legacy mappings */
     --color-accent: var(--color-accent);

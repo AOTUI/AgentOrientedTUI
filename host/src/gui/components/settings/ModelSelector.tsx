@@ -169,7 +169,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     // Handle empty state
     if (models.length === 0) {
         return (
-            <div className={`${className} p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
+            <div className={`${className} p-4 rounded-lg mat-content`}>
                 <p className="text-sm text-[var(--color-text-tertiary)]">
                     Select a provider to view available models
                 </p>
@@ -191,7 +191,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         placeholder="Search models..."
                         className="
                             w-full pl-8 pr-10 py-1.5
-                            bg-[var(--color-bg-highlight)]
+                            mat-content
                             border border-[var(--color-border)]
                             rounded-md
                             text-sm text-[var(--color-text-primary)]
@@ -219,7 +219,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
                 {/* Filters */}
                 {showFilters && (
-                    <div className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)] space-y-3">
+                    <div className="p-3 rounded-lg mat-content space-y-3">
                         {/* Capability Filter */}
                         <div>
                             <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1.5">
@@ -311,7 +311,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     text-left
                                     ${isSelected
                                         ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
-                                        : 'border-[var(--color-border)] bg-[var(--color-bg-highlight)] hover:border-[var(--color-accent)]/50'
+                                        : 'border-[var(--color-border)] mat-content hover:border-[var(--color-accent)]/50'
                                     }
                                 `}
                             >

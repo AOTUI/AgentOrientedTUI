@@ -92,7 +92,7 @@ export const ModelSearchBar: React.FC<ModelSearchBarProps> = ({
     return (
         <div className="relative group">
             <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${
-                disabled ? 'text-[var(--tx-disabled)]' : 'text-[var(--tx-tertiary)] group-focus-within:text-[var(--ac-blue)]'
+                disabled ? 'text-[var(--color-text-tertiary)]' : 'text-[var(--color-text-tertiary)] group-focus-within:text-[var(--color-accent)]'
             }`}>
                 <IconSearch aria-hidden="true" />
             </div>
@@ -104,7 +104,7 @@ export const ModelSearchBar: React.FC<ModelSearchBarProps> = ({
                 placeholder={disabled ? "Select a provider to search models..." : "Search models..."}
                 className={`lg-input w-full !h-9 !py-0 !pl-11 !pr-3 text-[13px] ${
                     disabled 
-                        ? 'opacity-50 cursor-not-allowed bg-[var(--lg-bg-alt)] border-dashed' 
+                        ? 'opacity-50 cursor-not-allowed bg-[var(--color-bg-surface)] border-dashed' 
                         : ''
                 }`}
                 aria-label="Search models"

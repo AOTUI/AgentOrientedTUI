@@ -81,9 +81,9 @@ export const ModelCard: React.FC<ModelCardProps> = ({
         <div
             className={`
                 group relative w-full text-left outline-none
-                p-3 rounded-[var(--r-panel)] border transition-all duration-200 min-h-[160px]
+                p-3 rounded-[16px] border transition-all duration-200 min-h-[160px]
                 flex flex-col gap-2.5 overflow-hidden
-                bg-[var(--lg-bg)] border-[var(--lg-border)] hover:bg-[var(--lg-bg-hover)] hover:border-[var(--lg-border-hover)]
+                mat-content hover:bg-[var(--mat-content-card-hover-bg)]
             `}
             role="listitem"
             aria-label={`${model.name} model${isActive ? ' (active)' : ''}`}
@@ -91,11 +91,11 @@ export const ModelCard: React.FC<ModelCardProps> = ({
             <div className="flex flex-col gap-1 w-full">
                 {/* Header: Model Name and Active Badge/Activate Button */}
                 <div className="flex items-start justify-between gap-2 w-full">
-                    <h3 className={`text-[13px] font-medium leading-tight line-clamp-2 text-[var(--tx-primary)]`}>
+                    <h3 className={`text-[13px] font-medium leading-tight line-clamp-2 text-[var(--color-text-primary)]`}>
                         {model.name}
                     </h3>
                     {isActive ? (
-                        <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--ac-green-subtle)] text-[var(--ac-green)] border border-[var(--ac-green-subtle)]">
+                        <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-success)/15] text-[var(--color-success)] border border-[var(--color-success)/15]">
                             ACTIVE
                         </span>
                     ) : (
@@ -106,8 +106,8 @@ export const ModelCard: React.FC<ModelCardProps> = ({
                             }}
                             className="
                                 shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200
-                                bg-[var(--lg-bg-alt)] hover:bg-[var(--ac-blue-subtle)] text-[var(--tx-secondary)] hover:text-[var(--ac-blue)]
-                                border border-[var(--lg-border)] hover:border-[var(--ac-blue-muted)]
+                                bg-[var(--color-bg-surface)] hover:bg-[var(--color-accent)]/15 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]
+                                border border-[var(--color-border)] hover:border-[var(--color-accent)]/30
                                 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto
                                 focus:opacity-100 focus:pointer-events-auto
                             "
@@ -119,36 +119,36 @@ export const ModelCard: React.FC<ModelCardProps> = ({
 
                 {/* Family */}
                 {model.family && (
-                    <div className="text-[11px] text-[var(--tx-tertiary)] truncate">
+                    <div className="text-[11px] text-[var(--color-text-tertiary)] truncate">
                         {model.family}
                     </div>
                 )}
 
                 {!model.family && (
-                    <div className="text-[11px] text-[var(--tx-tertiary)] truncate opacity-80">
+                    <div className="text-[11px] text-[var(--color-text-tertiary)] truncate opacity-80">
                         {model.id}
                     </div>
                 )}
             </div>
 
             {/* Separator */}
-            <div className="h-px w-full bg-[var(--lg-border)]" />
+            <div className="h-px w-full bg-[var(--color-border)]" />
 
             {/* Capability Badges */}
             {(hasToolCall || hasReasoning || hasVision) && (
                 <div className="flex flex-wrap gap-1.5">
                     {hasToolCall && (
-                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--lg-bg-alt)] border-[var(--lg-border-subtle)] text-[var(--tx-secondary)]">
+                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--color-bg-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]">
                             Tools
                         </span>
                     )}
                     {hasReasoning && (
-                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--lg-bg-alt)] border-[var(--lg-border-subtle)] text-[var(--tx-secondary)]">
+                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--color-bg-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]">
                             Reasoning
                         </span>
                     )}
                     {hasVision && (
-                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--lg-bg-alt)] border-[var(--lg-border-subtle)] text-[var(--tx-secondary)]">
+                        <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium border bg-[var(--color-bg-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]">
                             Vision
                         </span>
                     )}
@@ -156,38 +156,38 @@ export const ModelCard: React.FC<ModelCardProps> = ({
             )}
 
             {/* Context Length and Pricing */}
-            <div className="flex flex-col gap-0.5 text-[10px] text-[var(--tx-tertiary)] mt-auto pt-1">
+            <div className="flex flex-col gap-0.5 text-[10px] text-[var(--color-text-tertiary)] mt-auto pt-1">
                 {/* Context Length */}
                 <div className="flex items-center gap-1.5">
                     <span className="opacity-70">Context:</span>
-                    <span className="text-[var(--tx-secondary)]">{formatContextLength(model.limit?.context)}</span>
+                    <span className="text-[var(--color-text-secondary)]">{formatContextLength(model.limit?.context)}</span>
                 </div>
 
                 {/* Pricing */}
                 <div className="flex gap-3">
                     <span className="flex gap-1">
                         <span className="opacity-70">In:</span> 
-                        <span className="text-[var(--tx-secondary)]">{formatPricing(model.cost?.input)}</span>
+                        <span className="text-[var(--color-text-secondary)]">{formatPricing(model.cost?.input)}</span>
                     </span>
                     <span className="flex gap-1">
                         <span className="opacity-70">Out:</span>
-                        <span className="text-[var(--tx-secondary)]">{formatPricing(model.cost?.output)}</span>
+                        <span className="text-[var(--color-text-secondary)]">{formatPricing(model.cost?.output)}</span>
                     </span>
                 </div>
             </div>
 
             {/* Activate Button - Only visible when not active */}
             {/* {!isActive && (
-                <div className="mt-2 pt-2 border-t border-[var(--lg-border)] flex justify-end">
+                <div className="mt-2 pt-2 border-t border-[var(--color-border)] flex justify-end">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onSelect();
                         }}
                         className="
-                            px-3 py-1.5 rounded-[var(--r-control)] text-xs font-medium transition-all duration-200
-                            bg-[var(--lg-bg-alt)] hover:bg-[var(--ac-blue-subtle)] text-[var(--tx-secondary)] hover:text-[var(--ac-blue)]
-                            border border-[var(--lg-border)] hover:border-[var(--ac-blue-muted)]
+                            px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all duration-200
+                            bg-[var(--color-bg-surface)] hover:bg-[var(--color-accent)]/15 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]
+                            border border-[var(--color-border)] hover:border-[var(--color-accent)]/30
                         "
                     >
                         Activate

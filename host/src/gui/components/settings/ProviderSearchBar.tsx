@@ -86,7 +86,7 @@ export const ProviderSearchBar: React.FC<ProviderSearchBarProps> = ({
 
     return (
         <div className="relative group">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--tx-tertiary)] group-focus-within:text-[var(--ac-blue)] transition-colors pointer-events-none">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)] group-focus-within:text-[var(--color-accent)] transition-colors pointer-events-none">
                 <IconSearch aria-hidden="true" />
             </div>
             <input

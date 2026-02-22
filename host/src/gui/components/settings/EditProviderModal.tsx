@@ -203,26 +203,26 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--mat-overlay-bg)] backdrop-blur-sm p-4"
             onClick={handleBackdropClick}
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-provider-modal-title"
         >
-            <div className="w-full max-w-[500px] border border-[var(--lg-border)] bg-[var(--lg-bg-strong)] backdrop-blur-[var(--lg-blur)] rounded-[var(--r-window)] shadow-[var(--lg-outer-shadow)] flex flex-col overflow-hidden">
+            <div className="w-full max-w-[500px] mat-lg-regular rounded-[20px] flex flex-col overflow-hidden">
                 <div className="flex flex-col gap-5 p-6 overflow-y-auto custom-scrollbar">
 
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <h2
                             id="edit-provider-modal-title"
-                            className="text-[17px] font-semibold text-[var(--tx-primary)]"
+                            className="text-[17px] font-semibold text-[var(--color-text-primary)]"
                         >
                             Edit Provider
                         </h2>
                         <button
                             onClick={onClose}
-                            className="lg-icon-btn lg-clear text-[var(--tx-secondary)] hover:text-[var(--tx-primary)]"
+                            className="p-2 rounded-full hover:bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                             aria-label="Close modal"
                         >
                             <IconClose />
@@ -231,20 +231,20 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
 
                     {/* Provider Display (Read-only) */}
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-medium uppercase tracking-wide text-[var(--tx-tertiary)]">
+                        <label className="text-xs font-medium text-[var(--color-text-tertiary)]">
                             Provider
                         </label>
-                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--r-control)] border border-[var(--lg-clear-border)] bg-[var(--lg-clear-bg)]">
+                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
                             <ProviderLogo
                                 providerId={provider.providerId}
                                 providerName={provider.customName}
                                 size="sm"
                             />
-                            <span className="text-[13px] text-[var(--tx-primary)] capitalize">
+                            <span className="text-[13px] text-[var(--color-text-primary)] capitalize">
                                 {provider.providerId}
                             </span>
                         </div>
-                        <p className="text-[11px] text-[var(--tx-tertiary)]">
+                        <p className="text-[11px] text-[var(--color-text-tertiary)]">
                             Provider cannot be changed
                         </p>
                     </div>
@@ -253,7 +253,7 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                     <div className="flex flex-col gap-1.5">
                         <label
                             htmlFor="edit-custom-name-input"
-                            className="text-[11px] font-medium uppercase tracking-wide text-[var(--tx-tertiary)]"
+                            className="text-xs font-medium text-[var(--color-text-tertiary)]"
                         >
                             Custom Name *
                         </label>
@@ -266,14 +266,14 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                             placeholder="e.g., My OpenAI Account"
                             className={`lg-input !h-[44px] !py-0 ${
                                 validationErrors.customName
-                                    ? '!border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]'
+                                    ? '!border-[var(--color-danger)] ring-1 ring-[var(--color-danger)/15]'
                                     : ''
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                             aria-invalid={!!validationErrors.customName}
                             aria-describedby={validationErrors.customName ? 'edit-custom-name-error' : undefined}
                         />
                         {validationErrors.customName && (
-                            <p id="edit-custom-name-error" className="text-[11px] text-[var(--ac-red)]" role="alert">
+                            <p id="edit-custom-name-error" className="text-[11px] text-[var(--color-danger)]" role="alert">
                                 {validationErrors.customName}
                             </p>
                         )}
@@ -283,7 +283,7 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                     <div className="flex flex-col gap-1.5">
                         <label
                             htmlFor="edit-api-key-input"
-                            className="text-[11px] font-medium uppercase tracking-wide text-[var(--tx-tertiary)]"
+                            className="text-xs font-medium text-[var(--color-text-tertiary)]"
                         >
                             API Key *
                         </label>
@@ -296,18 +296,18 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                             placeholder="sk-..."
                             className={`lg-input !h-[44px] !py-0 font-mono text-sm ${
                                 validationErrors.apiKey
-                                    ? '!border-[var(--ac-red)] ring-1 ring-[var(--ac-red-subtle)]'
+                                    ? '!border-[var(--color-danger)] ring-1 ring-[var(--color-danger)/15]'
                                     : ''
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                             aria-invalid={!!validationErrors.apiKey}
                             aria-describedby={validationErrors.apiKey ? 'edit-api-key-error' : undefined}
                         />
                         {validationErrors.apiKey && (
-                            <p id="edit-api-key-error" className="text-[11px] text-[var(--ac-red)]" role="alert">
+                            <p id="edit-api-key-error" className="text-[11px] text-[var(--color-danger)]" role="alert">
                                 {validationErrors.apiKey}
                             </p>
                         )}
-                        <p className="text-[11px] text-[var(--tx-tertiary)]">
+                        <p className="text-[11px] text-[var(--color-text-tertiary)]">
                             Enter new API key or leave as-is to keep current key
                         </p>
                     </div>
@@ -317,14 +317,14 @@ export const EditProviderModal: React.FC<EditProviderModalProps> = ({
                         <button
                             onClick={handleCancel}
                             disabled={isSaving}
-                            className="lg-btn hover:bg-[var(--lg-bg-hover)] disabled:opacity-50"
+                            className="lg-btn hover:bg-[var(--mat-content-card-hover-bg)] disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={isSaveDisabled}
-                            className="lg-btn lg-btn-accent rounded-[var(--r-control)] px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="lg-btn bg-[var(--color-accent)] text-white border-transparent hover:bg-[var(--color-accent)]/90 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? 'Saving...' : 'Save'}
                         </button>

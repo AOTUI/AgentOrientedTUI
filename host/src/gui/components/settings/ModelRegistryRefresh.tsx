@@ -147,7 +147,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
     // Handle loading state
     if (isLoadingStatus) {
         return (
-            <div className={`${className} p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
+            <div className={`${className} p-4 rounded-lg mat-content`}>
                 <div className="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
                     <Spinner size="sm" />
                     <span>Loading cache status...</span>
@@ -180,7 +180,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                 p-4 rounded-lg border
                 ${cacheStatus.isStale 
                     ? 'border-yellow-500/30 bg-yellow-500/5' 
-                    : 'border-[var(--color-border)] bg-[var(--color-bg-highlight)]'
+                    : 'border-[var(--color-border)] mat-content'
                 }
             `}>
                 <div className="flex items-start justify-between gap-4 mb-3">
@@ -247,7 +247,7 @@ export const ModelRegistryRefresh: React.FC<ModelRegistryRefreshProps> = ({
                     transition-all duration-200
                     flex items-center justify-center gap-2
                     ${isRefreshing
-                        ? 'bg-[var(--color-bg-highlight)] text-[var(--color-text-tertiary)] cursor-not-allowed'
+                        ? 'mat-content text-[var(--color-text-tertiary)] cursor-not-allowed'
                         : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 active:scale-95'
                     }
                 `}

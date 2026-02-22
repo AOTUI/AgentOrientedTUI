@@ -92,7 +92,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
     // Handle empty state
     if (!Array.isArray(providers) || providers.length === 0) {
         return (
-            <div className={`${className} p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-highlight)]`}>
+            <div className={`${className} p-4 rounded-lg mat-content`}>
                 <p className="text-sm text-[var(--color-text-tertiary)]">
                     No providers available
                 </p>
@@ -113,7 +113,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                         placeholder="Search providers..."
                         className="
                             w-full pl-8 pr-3 py-1.5
-                            bg-[var(--color-bg-highlight)]
+                            mat-content
                             border border-[var(--color-border)]
                             rounded-md
                             text-sm text-[var(--color-text-primary)]
@@ -142,7 +142,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                                 text-left h-[60px]
                                 ${selectedProviderId === provider.id
                                     ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
-                                    : 'border-[var(--color-border)] bg-[var(--color-bg-highlight)] hover:border-[var(--color-accent)]/50'
+                                    : 'border-[var(--color-border)] mat-content hover:border-[var(--color-accent)]/50'
                                 }
                             `}
                         >

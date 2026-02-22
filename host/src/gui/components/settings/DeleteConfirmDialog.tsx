@@ -76,21 +76,21 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
     return (
         <div 
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--mat-overlay-bg)] backdrop-blur-sm p-4"
             onClick={handleBackdropClick}
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-confirm-dialog-title"
             aria-describedby="delete-confirm-dialog-description"
         >
-            <div className="w-full max-w-[450px] border border-[var(--lg-border)] bg-[var(--lg-bg-strong)] backdrop-blur-[var(--lg-blur)] rounded-[var(--r-window)] shadow-[var(--lg-outer-shadow)] flex flex-col overflow-hidden">
+            <div className="w-full max-w-[450px] mat-lg-regular rounded-[20px] flex flex-col overflow-hidden">
                 <div className="flex flex-col gap-6 p-6">
                     {/* Header */}
                     <div className="flex items-start gap-4">
                         <div className="flex-1">
                             <h2 
                                 id="delete-confirm-dialog-title"
-                                className="text-[17px] font-semibold text-[var(--tx-primary)]"
+                                className="text-[17px] font-semibold text-[var(--color-text-primary)]"
                             >
                                 Delete Provider
                             </h2>
@@ -109,8 +109,8 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
                         {/* Special Warning for Active Provider */}
                         {isActive && (
-                            <div className="p-3 rounded-lg bg-[var(--ac-red-subtle)] border border-[var(--ac-red-subtle)]">
-                                <p className="text-sm font-medium text-[var(--ac-red)]">
+                            <div className="p-3 rounded-lg bg-[var(--color-danger)/15] border border-[var(--color-danger)/15]">
+                                <p className="text-sm font-medium text-[var(--color-danger)]">
                                     ⚠️ Warning: This is your active provider
                                 </p>
                                 <p className="text-xs text-[var(--color-text-secondary)] mt-1">
@@ -124,13 +124,13 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
                     <div className="flex justify-end gap-3 mt-2">
                         <button
                             onClick={onClose}
-                            className="lg-btn hover:bg-[var(--lg-bg-hover)]"
+                            className="lg-btn hover:bg-[var(--mat-lg-clear-bg)]"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleConfirm}
-                            className="lg-btn border border-[var(--ac-red)] bg-[var(--ac-red)] text-white hover:bg-[var(--ac-red-active)]"
+                            className="lg-btn border border-[var(--color-danger)] bg-[var(--color-danger)] text-white hover:bg-[var(--color-danger)/90]"
                         >
                             Delete Provider
                         </button>
