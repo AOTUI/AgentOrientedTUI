@@ -190,7 +190,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Sidebar - horizontal on mobile, vertical on desktop */}
-                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--mat-border)] flex flex-col gap-3 md:h-full bg-[var(--mat-content-card-bg)]">
+                <div className="flex-shrink-0 p-3 md:p-3 border-b md:border-b-0 md:border-r border-[var(--mat-border)] flex flex-col gap-3 md:h-full bg-transparent">
                     <SettingsSidebar
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
@@ -198,7 +198,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <button
                         ref={exitButtonRef}
                         onClick={onClose}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] border text-[13px] font-medium transition-all duration-200 md:mt-auto bg-[var(--color-danger)]/15 border-[var(--color-danger)]/30 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/25"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] text-[13px] font-medium transition-all duration-200 md:mt-auto bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-transparent"
                         aria-label="Exit settings panel"
                     >
                         <IconExit className="w-4 h-4" />

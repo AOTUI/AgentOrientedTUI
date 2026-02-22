@@ -51,9 +51,10 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 className={`
                     group relative flex items-center justify-center
                     w-[120px] h-[120px]
-                    rounded-[16px] border transition-all duration-250
+                    rounded-[16px] border transition-all duration-200 ease-[var(--ease-spring)]
                     cursor-pointer overflow-hidden
                     mat-content hover:bg-[var(--mat-content-card-hover-bg)]
+                    ${isSelected ? 'border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-accent)]' : 'border-[var(--mat-border)]'}
                 `}
                 onClick={onSelect}
                 role="radio"
@@ -70,7 +71,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 {/* Active indicator — label top-right */}
                 {isActive && (
                     <div className="absolute top-1 right-1.5 z-20">
-                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide bg-[var(--color-success)/15] text-[var(--color-success)] border border-[var(--color-success)/15] shadow-sm">
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.05em] bg-[var(--color-success)/15] text-[var(--color-success)] border border-[var(--color-success)/15] shadow-sm">
                             Active
                         </span>
                     </div>

@@ -30,7 +30,7 @@ const AddProviderButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
     <div className="flex flex-col items-center gap-1.5 select-none">
         <button
             onClick={onClick}
-            className="shrink-0 w-[120px] h-[120px] mat-lg-regular rounded-[16px] hover:bg-[var(--mat-lg-clear-bg)] transition-all duration-200 flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] active:scale-[0.98]"
+            className="shrink-0 w-[120px] h-[120px] mat-lg-regular rounded-[16px] hover:bg-[var(--mat-lg-clear-bg)] transition-all duration-200 ease-[var(--ease-spring)] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] active:scale-[0.94]"
             aria-label="Add new provider"
         >
             <div className="p-3 rounded-full mat-lg-clear">

@@ -88,24 +88,23 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({
     const style = typeStyles[type];
 
     return (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="fixed top-8 right-8 z-[100] animate-in slide-in-from-top-5 fade-in duration-300">
             <div
                 className={`
-                    ${style.bg} ${style.border} ${style.text}
-                    backdrop-blur-xl border px-6 py-3 rounded-lg shadow-2xl
-                    flex items-center gap-3 min-w-[300px]
+                    mat-lg-clear border-[var(--mat-border)] px-4 py-3 rounded-[12px] shadow-lg
+                    flex items-center gap-3 min-w-[280px] max-w-[400px]
                 `}
             >
-                <div className="flex-shrink-0">
+                <div className={`flex-shrink-0 ${style.text}`}>
                     {style.icon}
                 </div>
-                <span className="text-sm font-medium tracking-wide flex-1">
+                <span className="text-[13px] font-medium text-[var(--color-text-primary)] flex-1">
                     {message}
                 </span>
                 {onClose && (
                     <button
                         onClick={onClose}
-                        className="flex-shrink-0 hover:opacity-70 transition-opacity"
+                        className="flex-shrink-0 p-1 rounded-md hover:bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
                         aria-label="Close notification"
                     >
                         <IconX className="w-4 h-4" />

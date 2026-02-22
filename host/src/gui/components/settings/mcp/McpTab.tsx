@@ -108,13 +108,13 @@ export const McpTab: React.FC = () => {
                 <div className="flex rounded-lg mat-lg-clear p-1 overflow-hidden">
                     <button
                         onClick={() => setViewMode('visual')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'visual' ? 'bg-[var(--color-accent)]/15 text-[var(--color-accent)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'visual' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Visual Form
                     </button>
                     <button
                         onClick={() => setViewMode('json')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-[var(--color-accent)]/15 text-[var(--color-accent)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}
                     >
                         Raw JSON
                     </button>

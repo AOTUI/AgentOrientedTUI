@@ -81,9 +81,10 @@ export const ModelCard: React.FC<ModelCardProps> = ({
         <div
             className={`
                 group relative w-full text-left outline-none
-                p-3 rounded-[16px] border transition-all duration-200 min-h-[160px]
+                p-3 rounded-[16px] border transition-all duration-200 ease-[var(--ease-spring)] min-h-[160px]
                 flex flex-col gap-2.5 overflow-hidden
                 mat-content hover:bg-[var(--mat-content-card-hover-bg)]
+                ${isActive ? 'border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-accent)]' : 'border-[var(--mat-border)]'}
             `}
             role="listitem"
             aria-label={`${model.name} model${isActive ? ' (active)' : ''}`}
@@ -95,8 +96,8 @@ export const ModelCard: React.FC<ModelCardProps> = ({
                         {model.name}
                     </h3>
                     {isActive ? (
-                        <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-success)/15] text-[var(--color-success)] border border-[var(--color-success)/15]">
-                            ACTIVE
+                        <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium tracking-[0.05em] uppercase bg-[var(--color-success)/15] text-[var(--color-success)] border border-[var(--color-success)/15]">
+                            Active
                         </span>
                     ) : (
                          <button

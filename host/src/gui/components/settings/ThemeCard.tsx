@@ -54,11 +54,11 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isActive, onSelect 
         <button
             className={`
                 group relative w-full text-left outline-none
-                rounded-[16px] border transition-all duration-300
+                rounded-[16px] border transition-all duration-200 ease-[var(--ease-spring)]
                 flex flex-col p-4 gap-4 h-[180px]
                 ${isActive 
-                    ? 'bg-[var(--color-accent)/15] border-[var(--color-accent)] ring-2 ring-[var(--color-accent)/15]' 
-                    : 'mat-content hover:bg-[var(--mat-content-card-hover-bg)]'
+                    ? 'border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-accent)]' 
+                    : 'mat-content hover:bg-[var(--mat-content-card-hover-bg)] border-[var(--mat-border)]'
                 }
             `}
             onClick={onSelect}

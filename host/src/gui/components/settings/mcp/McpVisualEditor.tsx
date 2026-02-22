@@ -288,7 +288,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                     <button
                         onClick={() => onSave(config)}
                         disabled={isSaving}
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-[var(--color-accent)] text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                         {isSaving ? 'Saving...' : 'Save Config'}
                     </button>
@@ -299,7 +299,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                 {/* ── 左侧 Server 列表 ─────────────────────────────────────────────── */}
                 <div className="w-[200px] shrink-0 border-r border-[var(--color-border-subtle)] mat-lg-clear flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border-subtle)]">
-                        <span className="text-[10px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-widest">Servers</span>
+                        <span className="text-[10px] font-semibold text-[var(--color-text-tertiary)] tracking-[0.05em]">Servers</span>
                         <button
                             onClick={handleAddServer}
                             className="p-1 hover:bg-[var(--mat-content-card-hover-bg)] rounded text-[var(--color-accent)] transition-colors"

@@ -53,7 +53,7 @@ export const McpJsonEditor: React.FC<McpJsonEditorProps> = ({
                     disabled={!!error || isSaving}
                     className={`
                         px-4 py-1.5 rounded-[8px] text-sm font-medium transition-colors
-                        ${error ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-[var(--color-accent)] text-white hover:bg-blue-600'}
+                        ${error ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90'}
                     `}
                 >
                     {isSaving ? 'Saving...' : 'Save Configuration'}
