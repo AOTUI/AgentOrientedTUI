@@ -74,183 +74,100 @@ html, body, #root {
     background: var(--color-text-tertiary);
 }
 
-/* Glassmorphism Utilities */
-.glass-panel {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
-}
-
-.glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    transition: all var(--duration-fast) var(--ease-out-expo);
-}
-
-.glass-card:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--glass-border-highlight);
-}
-
 /* ═══════════════════════════════════════════════════════════
-   Liquid Glass Utility Classes (macOS 26 \u98ce\u683c)
+   Liquid Glass Utility Classes (macOS 26 Style)
    ═══════════════════════════════════════════════════════════ */
 
-/* lg \u2014 Regular \u53d8\u4f53\uff1a\u5bfc\u822a/\u63a7\u4ef6\u5c42 */
-.lg {
-    background: var(--lg-bg);
-    backdrop-filter: var(--lg-blur);
-    -webkit-backdrop-filter: var(--lg-blur);
-    border: 1px solid var(--lg-border);
-    box-shadow: var(--lg-outer-shadow), var(--lg-inner-shadow);
-    transition:
-        background var(--dur-fast) var(--ease-out-sm),
-        box-shadow var(--dur-fast) var(--ease-out-sm),
-        border-color var(--dur-fast) var(--ease-out-sm);
-}
-.lg:hover {
-    background: var(--lg-bg-hover);
-}
-.lg.active, .lg[data-active='true'] {
-    background: var(--lg-bg-active);
+/* mat-lg-regular — Navigation/Control Layer */
+.mat-lg-regular {
+    background: var(--mat-lg-regular-bg);
+    backdrop-filter: blur(40px) saturate(180%) brightness(1.1);
+    -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(1.1);
+    border: 1px solid var(--mat-border);
+    border-bottom-color: transparent;
+    border-right-color: transparent;
+    box-shadow: inset 0 1px 0 var(--mat-border-highlight), 0 8px 32px rgba(0, 0, 0, 0.30);
+    position: relative;
 }
 
-/* lg-card \u2014 \u9762\u677f\u7ea7\u5361\u7247 */
-.lg-card {
-    background: var(--lg-bg);
-    backdrop-filter: var(--lg-blur);
-    -webkit-backdrop-filter: var(--lg-blur);
-    border: 1px solid var(--lg-border);
-    border-radius: var(--r-panel);
-    box-shadow: var(--lg-outer-shadow), var(--lg-inner-shadow);
-    transition:
-        background var(--dur-fast) var(--ease-out-sm),
-        transform var(--dur-fast) var(--ease-out-sm),
-        box-shadow var(--dur-fast) var(--ease-out-sm);
-}
-.lg-card:hover {
-    background: var(--lg-bg-hover);
-    box-shadow: var(--lg-outer-shadow),
-                var(--lg-inner-shadow),
-                0 0 0 1px var(--bd-default);
-    transform: translateY(-1px);
-}
-.lg-card:active {
-    transform: scale(0.98) translateY(0);
-    transition-duration: var(--dur-snap);
+.mat-lg-regular::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 33%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), transparent);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
 }
 
-/* lg-clear \u2014 Clear \u53d8\u4f53\uff1a\u5d4c\u5957\u5728\u73bb\u7483\u4e0a\u7684\u5b50\u5143\u7d20 */
-.lg-clear {
-    background: var(--lg-clear-bg);
-    border: 1px solid var(--lg-clear-border);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+/* mat-lg-clear — Nested elements on glass */
+.mat-lg-clear {
+    background: var(--mat-lg-clear-bg);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid var(--mat-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* lg-sidebar \u2014 \u4fa7\u8fb9\u680f\u7279\u6b8a\u5904\u7406\uff08\u8d34\u5de6\u8fb9\u7f18\u4e0d\u52a0\u5706\u89d2\uff09 */
-.lg-sidebar {
-    background: var(--lg-bg);
-    backdrop-filter: var(--lg-blur);
-    -webkit-backdrop-filter: var(--lg-blur);
-    border-right: 1px solid var(--lg-border);
-    box-shadow: var(--lg-inner-shadow), 4px 0 24px rgba(0, 0, 0, 0.12);
+/* mat-content — Content Layer Cards (No backdrop-filter) */
+.mat-content {
+    background: var(--mat-content-card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* lg-btn \u2014 \u73bb\u7483\u6309\u94ae */
+/* lg-btn — Glass Button */
 .lg-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-4);
-    border-radius: var(--r-control);
-    background: var(--lg-clear-bg);
-    border: 1px solid var(--lg-border);
-    color: var(--tx-primary);
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--mat-lg-clear-bg);
+    border: 1px solid var(--mat-border);
+    color: var(--color-text-primary);
     font-family: var(--font-system);
-    font-size: 13px;
+    font-size: var(--text-body);
     font-weight: 500;
-    letter-spacing: -0.01em;
     cursor: pointer;
-    box-shadow: var(--lg-inner-shadow);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
     transition:
-        background var(--dur-fast) var(--ease-out-sm),
-        transform var(--dur-snap) var(--ease-spring),
-        box-shadow var(--dur-fast) var(--ease-out-sm);
+        background var(--dur-fast) var(--ease-standard),
+        transform var(--dur-micro) var(--ease-spring),
+        box-shadow var(--dur-fast) var(--ease-standard);
     user-select: none;
     white-space: nowrap;
 }
 .lg-btn:hover {
-    background: var(--lg-bg-hover);
-    box-shadow: var(--lg-inner-shadow), 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: var(--mat-lg-regular-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 .lg-btn:active {
-    transform: scale(0.96);
-    transition-duration: var(--dur-snap);
+    transform: scale(0.94);
 }
 
-/* lg-btn-accent \u2014 \u5f3a\u8c03\u6309\u94ae */
-.lg-btn-accent {
-    background: var(--ac-blue-subtle);
-    border-color: color-mix(in srgb, var(--ac-blue) 30%, transparent);
-    color: var(--ac-blue);
-}
-.lg-btn-accent:hover {
-    background: color-mix(in srgb, var(--ac-blue) 22%, transparent);
-    border-color: color-mix(in srgb, var(--ac-blue) 40%, transparent);
-}
-
-/* lg-icon-btn \u2014 \u56fe\u6807\u6309\u94ae */
-.lg-icon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: var(--r-item);
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--tx-secondary);
-    cursor: pointer;
-    transition:
-        background var(--dur-fast) var(--ease-out-sm),
-        color var(--dur-fast) var(--ease-out-sm),
-        border-color var(--dur-fast) var(--ease-out-sm);
-    user-select: none;
-}
-.lg-icon-btn:hover {
-    background: var(--lg-clear-bg);
-    border-color: var(--lg-clear-border);
-    color: var(--tx-primary);
-}
-.lg-icon-btn:active {
-    transform: scale(0.92);
-}
-
-/* lg-input \u2014 \u8f93\u5165\u6846 */
+/* lg-input — Input Field */
 .lg-input {
     width: 100%;
-    padding: var(--sp-3) var(--sp-4);
-    border-radius: var(--r-control);
-    background: var(--lg-clear-bg);
-    border: 1px solid var(--bd-default);
-    color: var(--tx-primary);
-    font-size: 14px;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-full);
+    background: var(--mat-lg-clear-bg);
+    border: 1px solid var(--mat-border);
+    color: var(--color-text-primary);
+    font-size: var(--text-callout);
     font-family: var(--font-system);
     outline: none;
-    box-shadow: var(--lg-inner-shadow);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
     transition:
-        border-color var(--dur-fast) var(--ease-out-sm),
-        box-shadow var(--dur-fast) var(--ease-out-sm);
+        border-color var(--dur-fast) var(--ease-standard),
+        box-shadow var(--dur-fast) var(--ease-standard);
 }
 .lg-input:focus {
-    border-color: var(--ac-blue);
-    box-shadow: 0 0 0 3px var(--ac-blue-subtle), var(--lg-inner-shadow);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* project-card-icon \u2014 \u9879\u76ee\u56fe\u6807\u989c\u8272\u6620\u5c04\u8868 */

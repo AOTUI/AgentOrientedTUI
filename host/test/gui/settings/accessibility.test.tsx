@@ -9,21 +9,21 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SettingsPanel } from '../../../src/gui/components/settings/SettingsPanel.js';
 import { ModelTab } from '../../../src/gui/components/settings/ModelTab.js';
 import { ThemeTab } from '../../../src/gui/components/settings/ThemeTab.js';
-import { ConfigForm } from '../../../src/gui/components/settings/ConfigForm.js';
+import { AddProviderModal } from '../../../src/gui/components/settings/AddProviderModal.js';
 import { ConfigCard } from '../../../src/gui/components/settings/ConfigCard.js';
 import { ThemeCard } from '../../../src/gui/components/settings/ThemeCard.js';
 import { SettingsSidebar } from '../../../src/gui/components/settings/SettingsSidebar.js';
 
 // Mock dependencies
-vi.mock('../../../src/gui/components/settings/hooks/useModelConfigs.js', () => ({
-    useModelConfigs: () => ({
-        configs: [
+vi.mock('../../../src/gui/hooks/useProviderConfigs.js', () => ({
+    useProviderConfigs: () => ({
+        providers: [
             {
                 id: 1,
-                name: 'Test Config',
-                model: 'gpt-4',
                 providerId: 'openai',
+                customName: 'Test Config',
                 apiKey: 'sk-test1234',
+                model: 'gpt-4',
                 temperature: 0.7,
                 maxSteps: 10,
                 isActive: true,
@@ -31,29 +31,28 @@ vi.mock('../../../src/gui/components/settings/hooks/useModelConfigs.js', () => (
                 updatedAt: Date.now(),
             },
         ],
-        activeConfigId: 1,
-        loading: false,
+        activeProviderId: 'openai',
+        isLoading: false,
         error: null,
-        createConfig: vi.fn(),
-        updateConfig: vi.fn(),
-        deleteConfig: vi.fn(),
-        setActiveConfig: vi.fn(),
+        addProvider: vi.fn(),
+        updateProvider: vi.fn(),
+        deleteProvider: vi.fn(),
+        setActiveProvider: vi.fn(),
     }),
+    sortProviders: (providers: any[]) => providers,
 }));
 
-vi.mock('../../../src/gui/components/settings/hooks/useProviders.js', () => ({
-    useProviders: () => ({
-        providers: [
-            { id: 'openai', name: 'OpenAI', requiresApiKey: true },
-            { id: 'anthropic', name: 'Anthropic', requiresApiKey: true },
+vi.mock('../../../src/gui/hooks/useModels.js', () => ({
+    useModels: () => ({
+        models: [
+            { id: 'openai/gpt-4', name: 'GPT-4', family: 'GPT-4 Family' },
+            { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo', family: 'GPT-3.5 Family' },
         ],
-        loading: false,
+        activeModelId: 'openai/gpt-4',
+        isLoading: false,
         error: null,
-        fetchModelsForProvider: vi.fn().mockResolvedValue([
-            { id: 'gpt-4', name: 'GPT-4' },
-            { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-        ]),
     }),
+    sortModels: (models: any[]) => models,
 }));
 
 vi.mock('../../../src/gui/components/settings/hooks/useToast.js', () => ({
@@ -69,6 +68,7 @@ vi.mock('../../../src/gui/components/settings/hooks/useToast.js', () => ({
 vi.mock('../../../src/gui/components/Icons.js', () => ({
     IconModel: () => <div>Model Icon</div>,
     IconTheme: () => <div>Theme Icon</div>,
+    IconPlug: () => <div>Plug Icon</div>,
 }));
 
 describe('Accessibility Tests', () => {
@@ -91,7 +91,7 @@ describe('Accessibility Tests', () => {
             expect(tabs.length).toBeGreaterThan(0);
 
             // Close button should be present
-            const closeButton = screen.getByLabelText(/close settings/i);
+            const closeButton = screen.getByLabelText(/exit settings/i);
             expect(closeButton).toBeInTheDocument();
         });
 
@@ -112,28 +112,34 @@ describe('Accessibility Tests', () => {
             expect(onClose).toHaveBeenCalled();
         });
 
-        it('should submit form on Enter key in ConfigForm', async () => {
+        it('should submit form on Enter key in AddProviderModal', async () => {
             const onSave = vi.fn();
-            const onCancel = vi.fn();
+            const onClose = vi.fn();
 
             render(
-                <ConfigForm
-                    editingConfig={null}
-                    providers={[
-                        { id: 'openai', name: 'OpenAI', requiresApiKey: true },
-                    ]}
+                <AddProviderModal
+                    isOpen={true}
+                    onClose={onClose}
                     onSave={onSave}
-                    onCancel={onCancel}
                 />
             );
 
-            const nameInput = screen.getByLabelText(/configuration name/i);
-            fireEvent.change(nameInput, { target: { value: 'Test Config' } });
-            fireEvent.keyDown(nameInput, { key: 'Enter' });
+            // Select provider
+            const providerSelect = screen.getByRole('button', { name: /provider \*/i });
+            fireEvent.click(providerSelect);
+            const option = screen.getByRole('option', { name: /openai/i });
+            fireEvent.click(option);
 
-            // Form should attempt validation (will fail due to missing fields)
+            const nameInput = screen.getByLabelText(/custom name/i);
+            fireEvent.change(nameInput, { target: { value: 'Test Config' } });
+            
+            const apiKeyInput = screen.getByLabelText(/api key/i);
+            fireEvent.change(apiKeyInput, { target: { value: 'sk-1234567890' } });
+
+            fireEvent.keyDown(apiKeyInput, { key: 'Enter' });
+
             await waitFor(() => {
-                expect(screen.getByRole('alert')).toBeInTheDocument();
+                expect(onSave).toHaveBeenCalled();
             });
         });
 
@@ -217,6 +223,8 @@ describe('Accessibility Tests', () => {
                 />
             );
 
+            await new Promise(resolve => setTimeout(resolve, 150));
+
             await waitFor(() => {
                 const focusedElement = document.activeElement;
                 expect(focusedElement?.getAttribute('role')).toBe('tab');
@@ -261,52 +269,55 @@ describe('Accessibility Tests', () => {
 
         it('should have proper ARIA labels on form inputs', () => {
             const onSave = vi.fn();
-            const onCancel = vi.fn();
+            const onClose = vi.fn();
 
             render(
-                <ConfigForm
-                    editingConfig={null}
-                    providers={[
-                        { id: 'openai', name: 'OpenAI', requiresApiKey: true },
-                    ]}
+                <AddProviderModal
+                    isOpen={true}
+                    onClose={onClose}
                     onSave={onSave}
-                    onCancel={onCancel}
                 />
             );
 
-            const nameInput = screen.getByLabelText(/configuration name/i);
-            expect(nameInput).toHaveAttribute('id', 'config-name');
+            const nameInput = screen.getByLabelText(/custom name/i);
+            expect(nameInput).toHaveAttribute('id', 'custom-name-input');
 
-            const providerSelect = screen.getByLabelText(/provider/i);
-            expect(providerSelect).toHaveAttribute('id', 'provider');
-
-            const temperatureSlider = screen.getByLabelText(/temperature/i);
-            expect(temperatureSlider).toHaveAttribute('aria-valuemin', '0');
-            expect(temperatureSlider).toHaveAttribute('aria-valuemax', '1');
+            const providerSelect = screen.getByRole('button', { name: /provider \*/i });
+            expect(providerSelect).toHaveAttribute('id', 'provider-select');
         });
 
         it('should have aria-describedby on form fields with errors', async () => {
             const onSave = vi.fn();
-            const onCancel = vi.fn();
+            const onClose = vi.fn();
 
             render(
-                <ConfigForm
-                    editingConfig={null}
-                    providers={[
-                        { id: 'openai', name: 'OpenAI', requiresApiKey: true },
-                    ]}
+                <AddProviderModal
+                    isOpen={true}
+                    onClose={onClose}
                     onSave={onSave}
-                    onCancel={onCancel}
                 />
             );
 
-            const submitButton = screen.getByRole('button', { name: /create configuration/i });
+            // Select provider
+            const providerSelect = screen.getByRole('button', { name: /provider \*/i });
+            fireEvent.click(providerSelect);
+            const option = screen.getByRole('option', { name: /openai/i });
+            fireEvent.click(option);
+
+            // Enter invalid custom name (too short)
+            const nameInput = screen.getByLabelText(/custom name/i);
+            fireEvent.change(nameInput, { target: { value: 'ab' } });
+
+            // Enter valid API key
+            const apiKeyInput = screen.getByLabelText(/api key/i);
+            fireEvent.change(apiKeyInput, { target: { value: 'sk-1234567890' } });
+
+            const submitButton = screen.getByRole('button', { name: /save/i });
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                const nameInput = screen.getByLabelText(/configuration name/i);
                 expect(nameInput).toHaveAttribute('aria-invalid', 'true');
-                expect(nameInput).toHaveAttribute('aria-describedby', 'config-name-error');
+                expect(nameInput).toHaveAttribute('aria-describedby', 'custom-name-error');
             });
         });
 
@@ -323,7 +334,7 @@ describe('Accessibility Tests', () => {
                 />
             );
 
-            const closeButton = screen.getByLabelText(/close settings panel/i);
+            const closeButton = screen.getByLabelText(/exit settings panel/i);
             expect(closeButton).toBeInTheDocument();
 
             const addButton = screen.getByLabelText(/add new provider/i);
@@ -356,7 +367,7 @@ describe('Accessibility Tests', () => {
         it('should have role="list" on configuration list', () => {
             render(<ModelTab />);
 
-            const list = screen.getByRole('list', { name: /model configurations/i });
+            const list = screen.getByRole('list', { name: /provider list/i });
             expect(list).toBeInTheDocument();
         });
 
@@ -364,8 +375,8 @@ describe('Accessibility Tests', () => {
             render(<ModelTab />);
 
             // Hover over config card to show delete button
-            const configCard = screen.getByRole('listitem');
-            fireEvent.mouseEnter(configCard);
+            const configCards = screen.getAllByRole('listitem');
+            fireEvent.mouseEnter(configCards[0]);
 
             const deleteButton = screen.getByLabelText(/delete test config/i);
             fireEvent.click(deleteButton);
@@ -373,8 +384,8 @@ describe('Accessibility Tests', () => {
             await waitFor(() => {
                 const dialog = screen.getByRole('dialog');
                 expect(dialog).toHaveAttribute('aria-modal', 'true');
-                expect(dialog).toHaveAttribute('aria-labelledby', 'delete-dialog-title');
-                expect(dialog).toHaveAttribute('aria-describedby', 'delete-dialog-description');
+                expect(dialog).toHaveAttribute('aria-labelledby', 'delete-confirm-dialog-title');
+                expect(dialog).toHaveAttribute('aria-describedby', 'delete-confirm-dialog-description');
             });
         });
     });
@@ -411,20 +422,31 @@ describe('Accessibility Tests', () => {
 
         it('should announce validation errors', async () => {
             const onSave = vi.fn();
-            const onCancel = vi.fn();
+            const onClose = vi.fn();
 
             render(
-                <ConfigForm
-                    editingConfig={null}
-                    providers={[
-                        { id: 'openai', name: 'OpenAI', requiresApiKey: true },
-                    ]}
+                <AddProviderModal
+                    isOpen={true}
+                    onClose={onClose}
                     onSave={onSave}
-                    onCancel={onCancel}
                 />
             );
 
-            const submitButton = screen.getByRole('button', { name: /create configuration/i });
+            // Select provider
+            const providerSelect = screen.getByRole('button', { name: /provider \*/i });
+            fireEvent.click(providerSelect);
+            const option = screen.getByRole('option', { name: /openai/i });
+            fireEvent.click(option);
+
+            // Enter invalid custom name (too short)
+            const nameInput = screen.getByLabelText(/custom name/i);
+            fireEvent.change(nameInput, { target: { value: 'ab' } });
+
+            // Enter valid API key
+            const apiKeyInput = screen.getByLabelText(/api key/i);
+            fireEvent.change(apiKeyInput, { target: { value: 'sk-1234567890' } });
+
+            const submitButton = screen.getByRole('button', { name: /save/i });
             fireEvent.click(submitButton);
 
             await waitFor(() => {
@@ -435,25 +457,36 @@ describe('Accessibility Tests', () => {
 
         it('should have role="alert" on validation error messages', async () => {
             const onSave = vi.fn();
-            const onCancel = vi.fn();
+            const onClose = vi.fn();
 
             render(
-                <ConfigForm
-                    editingConfig={null}
-                    providers={[
-                        { id: 'openai', name: 'OpenAI', requiresApiKey: true },
-                    ]}
+                <AddProviderModal
+                    isOpen={true}
+                    onClose={onClose}
                     onSave={onSave}
-                    onCancel={onCancel}
                 />
             );
 
-            const submitButton = screen.getByRole('button', { name: /create configuration/i });
+            // Select provider
+            const providerSelect = screen.getByRole('button', { name: /provider \*/i });
+            fireEvent.click(providerSelect);
+            const option = screen.getByRole('option', { name: /openai/i });
+            fireEvent.click(option);
+
+            // Enter invalid custom name (too short)
+            const nameInput = screen.getByLabelText(/custom name/i);
+            fireEvent.change(nameInput, { target: { value: 'ab' } });
+
+            // Enter valid API key
+            const apiKeyInput = screen.getByLabelText(/api key/i);
+            fireEvent.change(apiKeyInput, { target: { value: 'sk-1234567890' } });
+
+            const submitButton = screen.getByRole('button', { name: /save/i });
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                const errorMessage = screen.getByRole('alert');
-                expect(errorMessage).toBeInTheDocument();
+                const alerts = screen.getAllByRole('alert');
+                expect(alerts.length).toBeGreaterThan(0);
             });
         });
     });

@@ -25,20 +25,20 @@ describe('SettingsSidebar', () => {
                 <SettingsSidebar activeTab="model" onTabChange={onTabChange} />
             );
 
-            // Check that SVG icons are present (both tabs should have icons)
+            // Check that SVG icons are present (all tabs should have icons)
             const svgIcons = container.querySelectorAll('svg');
-            expect(svgIcons.length).toBe(2);
+            expect(svgIcons.length).toBe(4); // Model, Theme, MCP, Exit
         });
 
-        it('should render sidebar with glass panel styling', () => {
+        it('should render sidebar with correct styling', () => {
             const onTabChange = vi.fn();
             const { container } = render(
                 <SettingsSidebar activeTab="model" onTabChange={onTabChange} />
             );
 
             const sidebar = container.firstChild;
-            expect(sidebar).toHaveClass('glass-panel');
-            expect(sidebar).toHaveClass('rounded-[var(--radius-lg)]');
+            expect(sidebar).toHaveClass('w-full');
+            expect(sidebar).toHaveClass('md:w-[160px]');
         });
 
         it('should render sidebar with correct width', () => {
@@ -48,7 +48,7 @@ describe('SettingsSidebar', () => {
             );
 
             const sidebar = container.firstChild;
-            expect(sidebar).toHaveClass('md:w-[200px]');
+            expect(sidebar).toHaveClass('md:w-[160px]');
         });
     });
 
@@ -60,9 +60,8 @@ describe('SettingsSidebar', () => {
             );
 
             const modelButton = screen.getByText('Model').closest('button');
-            expect(modelButton).toHaveClass('bg-primary/10');
-            expect(modelButton).toHaveClass('border-primary/30');
-            expect(modelButton).toHaveClass('text-primary');
+            expect(modelButton).toHaveClass('bg-[var(--ac-blue-subtle)]');
+            expect(modelButton).toHaveClass('text-[var(--ac-blue)]');
         });
 
         it('should highlight Theme tab when activeTab is "theme"', () => {
@@ -72,9 +71,8 @@ describe('SettingsSidebar', () => {
             );
 
             const themeButton = screen.getByText('Theme').closest('button');
-            expect(themeButton).toHaveClass('bg-primary/10');
-            expect(themeButton).toHaveClass('border-primary/30');
-            expect(themeButton).toHaveClass('text-primary');
+            expect(themeButton).toHaveClass('bg-[var(--ac-blue-subtle)]');
+            expect(themeButton).toHaveClass('text-[var(--ac-blue)]');
         });
 
         it('should not highlight Model tab when activeTab is "theme"', () => {
@@ -82,7 +80,7 @@ describe('SettingsSidebar', () => {
             render(<SettingsSidebar activeTab="theme" onTabChange={onTabChange} />);
 
             const modelButton = screen.getByText('Model').closest('button');
-            expect(modelButton).not.toHaveClass('bg-primary/10');
+            expect(modelButton).not.toHaveClass('bg-[var(--ac-blue-subtle)]');
             expect(modelButton).toHaveClass('bg-transparent');
         });
 
@@ -91,7 +89,7 @@ describe('SettingsSidebar', () => {
             render(<SettingsSidebar activeTab="model" onTabChange={onTabChange} />);
 
             const themeButton = screen.getByText('Theme').closest('button');
-            expect(themeButton).not.toHaveClass('bg-primary/10');
+            expect(themeButton).not.toHaveClass('bg-[var(--ac-blue-subtle)]');
             expect(themeButton).toHaveClass('bg-transparent');
         });
 
@@ -100,7 +98,7 @@ describe('SettingsSidebar', () => {
             render(<SettingsSidebar activeTab="model" onTabChange={onTabChange} />);
 
             const modelButton = screen.getByText('Model').closest('button');
-            expect(modelButton?.className).toContain('shadow-[0_0_15px_rgba(59,130,246,0.15)]');
+            expect(modelButton?.className).toContain('shadow-[var(--lg-inner-shadow)]');
         });
     });
 

@@ -6,7 +6,6 @@
  */
 
 import React, { useState } from 'react';
-import { MagicCard } from '../ui/MagicCard.js';
 import { ProviderLogo } from './ProviderLogo.js';
 import type { ConfigCardProps } from './types.js';
 
@@ -100,9 +99,9 @@ export const ConfigCard: React.FC<ConfigCardProps> = ({
     };
 
     return (
-        <MagicCard
-            className={`cursor-pointer transition-all duration-300 ${
-                isActive ? 'border-2 border-[var(--color-accent)]' : 'border border-[var(--color-border)]'
+        <div
+            className={`relative w-full rounded-xl px-6 py-5 cursor-pointer transition-all duration-300 ${
+                isActive ? 'border-2 border-[var(--color-accent)] bg-[var(--mat-lg-clear-bg)]' : 'border border-[var(--mat-border)] bg-[var(--mat-content-card-bg)] hover:border-[var(--mat-border-highlight)]'
             }`}
             onClick={handleCardClick}
             onMouseEnter={() => setIsHovered(true)}
@@ -184,6 +183,6 @@ export const ConfigCard: React.FC<ConfigCardProps> = ({
                     </div>
                 )}
             </div>
-        </MagicCard>
+        </div>
     );
 };

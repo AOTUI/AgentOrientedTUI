@@ -45,7 +45,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
     const ariaLabel = `${provider.customName} provider${isActive ? ' (active)' : ''}${isSelected ? ' (selected)' : ''}`;
     return (
         /* Outer wrapper: card box + name label below */
-        <div className="flex flex-col items-center gap-1.5 select-none">
+        <div className="flex flex-col items-center gap-1.5 select-none" role="listitem">
             {/* Card Box — logo fills the interior */}
             <div
                 className={`

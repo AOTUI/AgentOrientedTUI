@@ -134,10 +134,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
      * Focus first element when panel opens
      */
     useEffect(() => {
-        if (isOpen && firstFocusableRef.current) {
+        if (isOpen) {
             // Small delay to ensure animation starts
             setTimeout(() => {
-                firstFocusableRef.current?.focus();
+                const firstFocusable = panelRef.current?.querySelector<HTMLElement>(
+                    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                );
+                firstFocusable?.focus();
             }, 100);
         }
     }, [isOpen]);

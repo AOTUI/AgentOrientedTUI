@@ -35,7 +35,7 @@ export function WorkspaceHeader({
     onShowDeleteConfirm
 }: WorkspaceHeaderProps) {
     return (
-        <header className="h-16 flex items-center justify-between px-6 shrink-0 glass-card rounded-[var(--radius-lg)]">
+        <header className="h-16 flex items-center justify-between px-6 shrink-0 mat-content rounded-[var(--radius-lg)]">
             <div className="flex items-center gap-4 overflow-hidden">
                 <Tooltip content="Toggle Sidebar">
                     <Button

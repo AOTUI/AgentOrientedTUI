@@ -72,7 +72,7 @@ describe('ConfigCard', () => {
                 />
             );
 
-            // The MagicCard should have border-2 and border-primary classes when active
+            // The div should have border-2 and border-primary classes when active
             const card = container.querySelector('[class*="border-2"]');
             expect(card).toBeInTheDocument();
         });
@@ -86,7 +86,7 @@ describe('ConfigCard', () => {
                 />
             );
 
-            // The MagicCard should have border class when inactive
+            // The div should have border class when inactive
             const card = container.querySelector('[class*="border"]');
             expect(card).toBeInTheDocument();
         });

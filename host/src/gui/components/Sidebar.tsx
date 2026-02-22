@@ -64,7 +64,7 @@ export function Sidebar({
 
     return (
         <aside className={`
-            glass-card relative flex flex-col overflow-hidden min-h-0 h-full
+            mat-content relative flex flex-col overflow-hidden min-h-0 h-full
             transition-all duration-400 ease-[var(--ease-out-expo)]
             rounded-[var(--radius-xl)]
             ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10 border-0 p-0 pointer-events-none'}

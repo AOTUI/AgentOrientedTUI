@@ -345,6 +345,9 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
         }
     };
 
+    const selectedProvider = availableProviders.find(p => p.id === selectedProviderId);
+    const isSaveDisabled = !selectedProviderId || !customName.trim() || !apiKey.trim() || isSaving;
+
     /**
      * Handle Escape key and Enter key
      */
@@ -366,12 +369,9 @@ export const AddProviderModal: React.FC<AddProviderModalProps> = ({
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, isSaveDisabled, handleSave]);
 
     if (!isOpen) return null;
-
-    const selectedProvider = availableProviders.find(p => p.id === selectedProviderId);
-    const isSaveDisabled = !selectedProviderId || !customName.trim() || !apiKey.trim() || isSaving;
 
     return (
         <div 

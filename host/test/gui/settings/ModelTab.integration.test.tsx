@@ -46,7 +46,7 @@ const mockModels: ModelsDevModel[] = [
     {
         id: 'openai/gpt-4',
         name: 'GPT-4',
-        family: 'GPT-4',
+        family: 'GPT-4 Family',
         tool_call: true,
         reasoning: true,
         modalities: { input: ['text'], output: ['text'] },
@@ -56,7 +56,7 @@ const mockModels: ModelsDevModel[] = [
     {
         id: 'openai/gpt-3.5-turbo',
         name: 'GPT-3.5 Turbo',
-        family: 'GPT-3.5',
+        family: 'GPT-3.5 Family',
         tool_call: true,
         modalities: { input: ['text'], output: ['text'] },
         cost: { input: 0.001, output: 0.002 },
@@ -141,12 +141,9 @@ describe('ModelTab - Integration Tests', () => {
             render(<ModelTab />);
 
             await waitFor(() => {
-                // Header
-                expect(screen.getByText('Model Configuration')).toBeInTheDocument();
-                
                 // Sections
                 expect(screen.getByText('Providers')).toBeInTheDocument();
-                expect(screen.getByText('Models')).toBeInTheDocument();
+                expect(screen.getByText(/Models Of/i)).toBeInTheDocument();
                 
                 // Add Provider button
                 expect(screen.getByRole('button', { name: /add new provider/i })).toBeInTheDocument();
@@ -180,11 +177,12 @@ describe('ModelTab - Integration Tests', () => {
         });
 
         it('should show error state when provider loading fails', async () => {
-            mockUseProviderConfigs.error = new Error('Failed to load providers');
+            mockUseProviderConfigs.error = new Error('Network error');
 
             render(<ModelTab />);
 
             expect(screen.getByText(/failed to load providers/i)).toBeInTheDocument();
+            expect(screen.getByText('Network error')).toBeInTheDocument();
         });
     });
 
@@ -207,8 +205,8 @@ describe('ModelTab - Integration Tests', () => {
             });
 
             // Click on Anthropic provider
-            const anthropicCard = screen.getByText('My Anthropic');
-            fireEvent.click(anthropicCard);
+            const anthropicCard = screen.getByText('My Anthropic').closest('[role="listitem"]')?.querySelector('[role="radio"]');
+            fireEvent.click(anthropicCard!);
 
             // Model search should be cleared
             await waitFor(() => {
@@ -228,14 +226,17 @@ describe('ModelTab - Integration Tests', () => {
             const modelSearchInput = screen.getByPlaceholderText(/search models/i) as HTMLInputElement;
             fireEvent.change(modelSearchInput, { target: { value: 'GPT-4' } });
 
+            // Wait for debounce to complete
+            await new Promise(resolve => setTimeout(resolve, 350));
+
             // Wait for local state to update
             await waitFor(() => {
                 expect(modelSearchInput.value).toBe('GPT-4');
             });
 
             // Select different provider
-            const anthropicCard = screen.getByText('My Anthropic');
-            fireEvent.click(anthropicCard);
+            const anthropicCard = screen.getByText('My Anthropic').closest('[role="listitem"]')?.querySelector('[role="radio"]');
+            fireEvent.click(anthropicCard!);
 
             // Model search should be cleared - the prop changes immediately, useEffect syncs the local state
             await waitFor(() => {
@@ -561,8 +562,8 @@ describe('ModelTab - Integration Tests', () => {
             });
 
             // Select OpenAI provider
-            const openaiCard = screen.getByText('My OpenAI');
-            fireEvent.click(openaiCard);
+            const openaiCard = screen.getByText('My OpenAI').closest('[role="listitem"]')?.querySelector('[role="radio"]');
+            fireEvent.click(openaiCard!);
 
             // Delete OpenAI provider
             const providerCard = screen.getByText('My OpenAI').closest('[role="listitem"]');
@@ -596,9 +597,10 @@ describe('ModelTab - Integration Tests', () => {
                 expect(screen.getByText('GPT-3.5 Turbo')).toBeInTheDocument();
             });
 
-            // Click on GPT-3.5 Turbo model
-            const modelCard = screen.getByText('GPT-3.5 Turbo');
-            fireEvent.click(modelCard);
+            // Click on GPT-3.5 Turbo model's Activate button
+            const modelCard = screen.getByText('GPT-3.5 Turbo').closest('[role="listitem"]');
+            const activateButton = modelCard?.querySelector('button');
+            fireEvent.click(activateButton!);
 
             // Should update provider with new model and set as active
             await waitFor(() => {

@@ -13,6 +13,9 @@ interface ChatAreaProps {
     agentThinking: string;
     agentReasoning: string;
     onSendMessage: (content: string) => void;
+    canSendMessage?: boolean;
+    sendBlockedReason?: string | null;
+    onOpenSettings?: () => void;
 }
 
 type ToolTraceStep = {
@@ -44,7 +47,7 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage }: ChatAreaProps) {
+export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);

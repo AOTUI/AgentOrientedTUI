@@ -286,8 +286,6 @@ export function App() {
     if (!currentProjectId) {
         return (
             <>
-                <div className="aurora-bg" />
-                <div className="fui-grid-bg absolute inset-0 opacity-20 pointer-events-none" />
                 <FUIOverlay />
                 <ProjectSelector
                     onSelectProject={(projectId) => {
@@ -309,10 +307,8 @@ export function App() {
     }
 
     return (
-        <div className="w-screen h-screen bg-[var(--color-bg-base)] text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative">
+        <div className="w-screen h-screen bg-[var(--mat-base)] text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative">
             {/* Background Layers */}
-            <div className="aurora-bg" />
-            <div className="fui-grid-bg absolute inset-0 opacity-20 pointer-events-none" />
 
             {/* FUI Overlay */}
             <FUIOverlay />
@@ -357,7 +353,7 @@ export function App() {
                     />
 
                     {/* Area 2.2: Content (Chat / TUI) */}
-                    <main className="flex-1 glass-card rounded-[var(--radius-lg)] overflow-hidden relative flex flex-col">
+                    <main className="flex-1 mat-content rounded-[var(--radius-lg)] overflow-hidden relative flex flex-col">
                         <div className="flex-1 overflow-hidden relative">
                             {viewMode === 'chat' ? (
                                 <ChatArea

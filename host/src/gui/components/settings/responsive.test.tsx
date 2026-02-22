@@ -74,7 +74,7 @@ describe('Responsive Behavior', () => {
                 <SettingsSidebar activeTab="model" onTabChange={vi.fn()} />
             );
 
-            const sidebar = container.querySelector('.glass-panel');
+            const sidebar = container.querySelector('nav');
             expect(sidebar?.className).toContain('flex-row');
         });
 
@@ -83,7 +83,7 @@ describe('Responsive Behavior', () => {
                 <SettingsSidebar activeTab="model" onTabChange={vi.fn()} />
             );
 
-            const sidebar = container.querySelector('.glass-panel');
+            const sidebar = container.querySelector('nav');
             expect(sidebar?.className).toContain('md:flex-col');
         });
 
@@ -92,7 +92,7 @@ describe('Responsive Behavior', () => {
                 <SettingsSidebar activeTab="model" onTabChange={vi.fn()} />
             );
 
-            const sidebar = container.querySelector('.glass-panel');
+            const sidebar = container.querySelector('nav');
             expect(sidebar?.className).toContain('w-full');
         });
 
@@ -101,7 +101,7 @@ describe('Responsive Behavior', () => {
                 <SettingsSidebar activeTab="model" onTabChange={vi.fn()} />
             );
 
-            const sidebar = container.querySelector('.glass-panel');
+            const sidebar = container.querySelector('nav');
             expect(sidebar?.className).toContain('md:w-[200px]');
         });
 
@@ -110,7 +110,7 @@ describe('Responsive Behavior', () => {
                 <SettingsSidebar activeTab="model" onTabChange={vi.fn()} />
             );
 
-            const sidebar = container.querySelector('.glass-panel');
+            const sidebar = container.querySelector('nav');
             expect(sidebar?.className).toContain('p-3');
             expect(sidebar?.className).toContain('md:p-4');
         });
@@ -488,7 +488,7 @@ describe('Responsive Behavior', () => {
         it('should have sidebar and content area', () => {
             const { container } = render(<SettingsPanel {...defaultProps} />);
 
-            const sidebar = container.querySelector('.glass-panel');
+            const sidebar = container.querySelector('nav');
             const contentArea = container.querySelector('.overflow-y-auto');
 
             expect(sidebar).toBeTruthy();

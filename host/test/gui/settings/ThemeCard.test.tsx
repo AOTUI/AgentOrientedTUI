@@ -35,10 +35,10 @@ describe('ThemeCard', () => {
                 <ThemeCard theme="dark" isActive={true} onSelect={() => {}} />
             );
             
-            // Find the MagicCard wrapper (first div child)
-            const magicCard = container.firstChild as HTMLElement;
-            expect(magicCard.className).toContain('border-2');
-            expect(magicCard.className).toContain('border-[var(--color-primary)]');
+            // Find the button wrapper (first child)
+            const button = container.firstChild as HTMLElement;
+            expect(button.className).toContain('ring-2');
+            expect(button.className).toContain('border-[var(--ac-blue)]');
         });
 
         it('should apply default border when inactive', () => {
@@ -46,11 +46,11 @@ describe('ThemeCard', () => {
                 <ThemeCard theme="dark" isActive={false} onSelect={() => {}} />
             );
             
-            // Find the MagicCard wrapper (first div child)
-            const magicCard = container.firstChild as HTMLElement;
-            expect(magicCard.className).toContain('border');
-            expect(magicCard.className).toContain('border-[var(--color-border)]');
-            expect(magicCard.className).not.toContain('border-2');
+            // Find the button wrapper (first child)
+            const button = container.firstChild as HTMLElement;
+            expect(button.className).toContain('border');
+            expect(button.className).toContain('border-[var(--lg-border)]');
+            expect(button.className).not.toContain('ring-2');
         });
     });
 
@@ -61,8 +61,8 @@ describe('ThemeCard', () => {
                 <ThemeCard theme="dark" isActive={false} onSelect={onSelect} />
             );
             
-            const magicCard = container.firstChild as HTMLElement;
-            magicCard.click();
+            const button = container.firstChild as HTMLElement;
+            button.click();
             
             expect(onSelect).toHaveBeenCalledTimes(1);
         });
@@ -73,8 +73,8 @@ describe('ThemeCard', () => {
                 <ThemeCard theme="dark" isActive={true} onSelect={onSelect} />
             );
             
-            const magicCard = container.firstChild as HTMLElement;
-            magicCard.click();
+            const button = container.firstChild as HTMLElement;
+            button.click();
             
             expect(onSelect).toHaveBeenCalledTimes(1);
         });

@@ -335,7 +335,7 @@ describe('SettingsPanel', () => {
             const { container } = render(<SettingsPanel {...defaultProps} />);
 
             // Sidebar should exist
-            const sidebar = container.querySelector('.glass-panel');
+            const sidebar = container.querySelector('nav');
             expect(sidebar).toBeInTheDocument();
 
             // Content area should exist
