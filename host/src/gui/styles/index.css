@@ -43,17 +43,20 @@
 }
 
 /* Base Layout Reset */
-html, body, #root {
+html, body {
     height: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;
+    background: transparent; /* transparent for Electron rounded window */
+}
+
+#root {
+    height: 100%;
+    overflow: hidden;
     font-family: var(--font-system);
-    
-    /* Global Background Design (MacOS 26 Style) */
-    background-color: var(--mat-base);
-    
     color: var(--color-text-primary);
+    background: transparent; /* App div carries bg-color + border-radius */
 }
 
 /* Scrollbar Styling */
@@ -99,22 +102,6 @@ html, body, #root {
     .mat-lg-regular {
         background: var(--mat-lg-regular-bg-fallback);
     }
-    .mat-lg-regular::before {
-        display: none;
-    }
-}
-
-.mat-lg-regular::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 33%;
-    background: linear-gradient(to bottom, var(--mat-lg-highlight-gradient), transparent);
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
 }
 
 /* mat-lg-clear — Nested elements on glass */

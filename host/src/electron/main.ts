@@ -58,7 +58,7 @@ function createWindow() {
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
-        backgroundColor: '#000000', // Matches TUI theme
+        transparent: true,          // macOS 26: transparent window for rounded corners
         titleBarStyle: 'hidden',
         trafficLightPosition: { x: 20, y: 18 },
         webPreferences: {

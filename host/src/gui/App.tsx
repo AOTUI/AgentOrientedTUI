@@ -323,7 +323,7 @@ export function App() {
     }
 
     return (
-        <div className="w-screen h-screen bg-transparent text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative flex box-border">
+        <div className="w-screen h-screen bg-[var(--mat-base)] rounded-[24px] overflow-hidden text-[var(--color-text-primary)] font-system selection:bg-[var(--color-accent)] selection:text-white relative flex box-border">
             {/* Background Layers */}
 
             {/* Window Drag Region */}
@@ -342,8 +342,6 @@ export function App() {
                 onOpenSettings={openSettings}
                 getTopicState={(topicId) => bridge.getAgentState(topicId)}
                 getTopicPaused={(topicId) => bridge.isAgentPaused(topicId)}
-                onDeleteTopic={handleDeleteTopicById}
-                onRenameTopic={handleRenameTopicById}
             />
 
             {/* ======== Area 2: Main Workspace (Layer 1) ======== */}
@@ -356,6 +354,10 @@ export function App() {
                     setSidebarOpen={setSidebarOpen}
                     viewMode={viewMode}
                     setViewMode={setViewMode}
+                    onDeleteActiveTopic={() => setShowDeleteConfirm(true)}
+                    onRenameActiveTopic={(title) => {
+                        if (activeTopicId) void handleRenameTopicById(activeTopicId, title);
+                    }}
                 />
 
                 {/* Area 2.2: Content (Chat / TUI) */}

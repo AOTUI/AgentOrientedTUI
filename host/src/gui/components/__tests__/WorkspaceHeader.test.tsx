@@ -6,6 +6,11 @@ import type { Topic } from '../../../types.js';
 
 vi.mock('../Icons', () => ({
     IconMenu: () => <div data-testid="icon-menu" />,
+    IconEllipsis: () => <div data-testid="icon-ellipsis" />,
+    IconPencil: () => <div data-testid="icon-pencil" />,
+    IconDelete: () => <div data-testid="icon-delete" />,
+    IconChat: () => <div data-testid="icon-chat" />,
+    IconTerminal: () => <div data-testid="icon-terminal" />,
 }));
 
 describe('WorkspaceHeader Component', () => {
@@ -18,6 +23,8 @@ describe('WorkspaceHeader Component', () => {
         setSidebarOpen: vi.fn(),
         viewMode: 'chat' as const,
         setViewMode: vi.fn(),
+        onDeleteActiveTopic: vi.fn(),
+        onRenameActiveTopic: vi.fn(),
     };
 
     it('renders topic title', () => {
@@ -62,19 +69,19 @@ describe('WorkspaceHeader Component', () => {
 
     it('handles view mode switching to tui', () => {
         render(<WorkspaceHeader {...defaultProps} />);
-        fireEvent.click(screen.getByText('TUI View'));
+        fireEvent.click(screen.getByLabelText('TUI view'));
         expect(defaultProps.setViewMode).toHaveBeenCalledWith('tui');
     });
 
     it('handles view mode switching to chat', () => {
         render(<WorkspaceHeader {...defaultProps} viewMode="tui" />);
-        fireEvent.click(screen.getByText('Chat'));
+        fireEvent.click(screen.getByLabelText('Chat view'));
         expect(defaultProps.setViewMode).toHaveBeenCalledWith('chat');
     });
 
     it('hides view toggle when no active topic', () => {
         render(<WorkspaceHeader {...defaultProps} activeTopic={null} />);
-        expect(screen.queryByText('Chat')).not.toBeInTheDocument();
-        expect(screen.queryByText('TUI View')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Chat view')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('TUI view')).not.toBeInTheDocument();
     });
 });

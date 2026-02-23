@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconMenu } from './Icons.js';
+import { IconMenu, IconEllipsis, IconPencil, IconDelete, IconChat, IconTerminal } from './Icons.js';
 import type { Topic } from '../../types.js';
 
 interface WorkspaceHeaderProps {
@@ -9,6 +9,8 @@ interface WorkspaceHeaderProps {
     setSidebarOpen: (open: boolean) => void;
     viewMode: 'chat' | 'tui';
     setViewMode: (mode: 'chat' | 'tui') => void;
+    onDeleteActiveTopic?: () => void;
+    onRenameActiveTopic?: (newTitle: string) => void;
 }
 
 export function WorkspaceHeader({
@@ -18,16 +20,46 @@ export function WorkspaceHeader({
     setSidebarOpen,
     viewMode,
     setViewMode,
+    onDeleteActiveTopic,
+    onRenameActiveTopic,
 }: WorkspaceHeaderProps) {
+    const [menuOpen, setMenuOpen] = React.useState(false);
+    const [isRenaming, setIsRenaming] = React.useState(false);
+    const [renameValue, setRenameValue] = React.useState('');
+    const menuRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const handleRenameStart = () => {
+        setRenameValue(activeTopic?.title ?? '');
+        setIsRenaming(true);
+        setMenuOpen(false);
+    };
+
+    const handleRenameCommit = () => {
+        const trimmed = renameValue.trim();
+        if (trimmed && onRenameActiveTopic) onRenameActiveTopic(trimmed);
+        setIsRenaming(false);
+    };
+
     return (
         <header className="absolute top-0 left-0 right-0 z-30 pointer-events-none">
             <div className="flex items-center justify-between px-3 pt-2">
 
-                {/* ── Left Island: Context Pill (Hamburger + Divider + Title) ── */}
+                {/* ── Left Island: Context Pill (Hamburger | Dot + Title | Ellipsis) ── */}
                 <div
                     data-testid="header-left-island"
+                    ref={menuRef}
                     className={`
-                        pointer-events-auto flex items-center h-10
+                        pointer-events-auto relative flex items-center h-10 min-w-[300px]
                         mat-lg-regular rounded-full shadow-sm
                         transition-all duration-300 ease-[var(--ease-standard)]
                         ${sidebarOpen ? 'ml-0 -translate-x-2' : 'ml-[80px] translate-x-0'}
@@ -37,7 +69,7 @@ export function WorkspaceHeader({
                     <button
                         data-testid="hamburger-btn"
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="w-10 h-10 flex items-center justify-center rounded-full
+                        className="w-10 h-10 flex items-center justify-center rounded-full shrink-0
                                    text-[var(--color-text-secondary)]
                                    hover:text-[var(--color-text-primary)]
                                    hover:bg-white/5 transition-all
@@ -50,20 +82,88 @@ export function WorkspaceHeader({
                     {/* Vertical separator */}
                     <span className="w-px h-4 bg-white/10 shrink-0" />
 
-                    {/* Connection dot + Title */}
-                    <div className="flex items-center gap-2 px-3">
-                        <span
-                            className={`w-2 h-2 rounded-full shrink-0 ${
-                                connected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'
-                            }`}
+                    {/* Status dot */}
+                    <span className={`w-2 h-2 rounded-full shrink-0 ml-3 ${
+                        connected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'
+                    }`} />
+
+                    {/* Title or rename input */}
+                    {isRenaming ? (
+                        <input
+                            autoFocus
+                            data-testid="rename-input"
+                            className="text-[15px] font-semibold bg-transparent border-none outline-none
+                                       text-[var(--color-text-primary)] tracking-tight
+                                       flex-1 min-w-0 ml-2 mr-1"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') { handleRenameCommit(); e.stopPropagation(); }
+                                if (e.key === 'Escape') { setIsRenaming(false); e.stopPropagation(); }
+                            }}
+                            onBlur={handleRenameCommit}
                         />
-                        <span className="text-[15px] font-semibold text-[var(--color-text-primary)] max-w-[200px] truncate leading-none tracking-tight">
+                    ) : (
+                        <span className="text-[15px] font-semibold text-[var(--color-text-primary)]
+                                         flex-1 min-w-0 truncate leading-none tracking-tight ml-2 mr-1">
                             {activeTopic?.title || 'System Chat'}
                         </span>
-                    </div>
+                    )}
+
+                    {/* "|" divider + Ellipsis — only when a topic exists and not renaming */}
+                    {activeTopic && !isRenaming && (
+                        <>
+                            <span className="w-px h-4 bg-white/10 shrink-0 mx-1" />
+                            <button
+                                data-testid="topic-more-btn"
+                                onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+                                className="w-8 h-8 rounded-full flex items-center justify-center mr-1 shrink-0
+                                           text-[var(--color-text-tertiary)]
+                                           hover:text-[var(--color-text-primary)]
+                                           hover:bg-white/[0.08] transition-all"
+                                aria-label="Topic options"
+                            >
+                                <IconEllipsis />
+                            </button>
+                        </>
+                    )}
+
+                    {/* Context menu dropdown — absolute child of island, zero impact on pill size */}
+                    {menuOpen && (
+                        <div
+                            className="absolute top-full left-0 mt-2 z-50 min-w-[160px]
+                                       mat-lg-regular rounded-xl overflow-hidden
+                                       shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {onRenameActiveTopic && (
+                                <button
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5
+                                               text-[13px] text-[var(--color-text-secondary)]
+                                               hover:bg-[var(--mat-content-card-hover-bg)]
+                                               hover:text-[var(--color-text-primary)] transition-colors"
+                                    onClick={handleRenameStart}
+                                >
+                                    <IconPencil />
+                                    <span>Rename</span>
+                                </button>
+                            )}
+                            {onDeleteActiveTopic && (
+                                <button
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5
+                                               text-[13px] text-[var(--color-danger)]
+                                               hover:bg-[var(--color-danger)]/10 transition-colors"
+                                    onClick={() => { onDeleteActiveTopic(); setMenuOpen(false); }}
+                                >
+                                    <IconDelete />
+                                    <span>Delete</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {/* ── Right Island: Mode Pill (Chat / TUI View) with spring slider ── */}
+                {/* ── Right Island: Mode Pill (Chat / TUI) with icons ── */}
                 {activeTopic && (
                     <div className="
                         pointer-events-auto relative flex items-center
@@ -80,22 +180,34 @@ export function WorkspaceHeader({
                                 width: 'calc(50% - 6px)',
                             }}
                         />
-                        {(['chat', 'tui'] as const).map((mode) => (
-                            <button
-                                key={mode}
-                                onClick={() => setViewMode(mode)}
-                                className={`
-                                    relative z-10 h-8 px-5 rounded-full
-                                    text-[12px] font-bold uppercase tracking-[0.05em]
-                                    transition-colors duration-200 select-none
-                                    ${viewMode === mode
-                                        ? 'text-[var(--color-text-primary)]'
-                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}
-                                `}
-                            >
-                                {mode === 'chat' ? 'Chat' : 'TUI View'}
-                            </button>
-                        ))}
+                        <button
+                            onClick={() => setViewMode('chat')}
+                            aria-label="Chat view"
+                            className={`
+                                relative z-10 h-8 w-10 rounded-full
+                                flex items-center justify-center
+                                transition-colors duration-200 select-none
+                                ${viewMode === 'chat'
+                                    ? 'text-[var(--color-text-primary)]'
+                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}
+                            `}
+                        >
+                            <IconChat />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('tui')}
+                            aria-label="TUI view"
+                            className={`
+                                relative z-10 h-8 w-10 rounded-full
+                                flex items-center justify-center
+                                transition-colors duration-200 select-none
+                                ${viewMode === 'tui'
+                                    ? 'text-[var(--color-text-primary)]'
+                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}
+                            `}
+                        >
+                            <IconTerminal />
+                        </button>
                     </div>
                 )}
 

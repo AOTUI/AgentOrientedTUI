@@ -21,12 +21,6 @@ interface ProjectSelectorProps {
 }
 
 // \u786e\u5b9a\u6027\u9879\u76ee\u989c\u8272\uff0c\u57fa\u4e8e\u9879\u76ee\u540d\u5b57\u9996\u5b57\u6bcd charCode
-const ICON_COLOR_COUNT = 5;
-function getIconColorIndex(name: string): number {
-    if (!name) return 0;
-    return name.charCodeAt(0) % ICON_COLOR_COUNT;
-}
-
 function formatDate(ts: number | undefined): string {
     if (!ts) return 'NEW';
     const d = new Date(ts);
@@ -42,8 +36,6 @@ interface ProjectCardProps {
 }
 
 function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
-    const colorIdx = getIconColorIndex(project.name);
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault(); // Prevent page scroll on Space
@@ -62,36 +54,23 @@ function ProjectCard({ project, onSelect, onDelete }: ProjectCardProps) {
         >
             {/* Card body — Liquid Glass Regular */}
             <div
-                className="mat-content relative flex items-center gap-4 p-4 overflow-hidden cursor-pointer rounded-[var(--radius-lg)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
+                className="mat-content relative flex items-center gap-2 px-4 py-3 overflow-hidden cursor-pointer rounded-[var(--radius-lg)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
             >
-                {/* 项目图标 — 同心圆角小方块 */}
-                <div
-                    className={`proj-icon-${colorIdx} shrink-0 w-10 h-10 rounded-[var(--radius-sm)] border flex items-center justify-center`}
-                >
-                    <span
-                        className="text-[15px] font-semibold leading-none font-system"
-                    >
-                        {project.name.charAt(0).toUpperCase()}
-                    </span>
-                </div>
-
-                {/* 内容区 */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-3">
                         <h3
-                            className="text-[15px] font-semibold truncate text-[var(--color-text-primary)] font-system"
+                            className="text-[14px] font-semibold truncate text-[var(--color-text-primary)] font-system"
                         >
                             {project.name}
                         </h3>
                         <span
-                            className="text-[12px] font-medium text-[var(--color-text-tertiary)] font-system shrink-0"
+                            className="text-[11px] text-[var(--color-text-tertiary)] font-system shrink-0"
                         >
                             {formatDate(project.lastOpenedAt)}
                         </span>
                     </div>
                     <p
-                        className="mt-1 mb-0 text-[12px] truncate leading-none text-[var(--color-text-tertiary)] font-system"
-                        style={{ letterSpacing: '0.01em' }}
+                        className="mt-0.5 text-[12px] truncate text-[var(--color-text-tertiary)] font-system"
                         title={project.path}
                     >
                         {project.path}
@@ -172,12 +151,13 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
     return (
         <div
-            className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-transparent text-[var(--color-text-primary)] font-system"
+            className="drag-region fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-[var(--mat-base)] text-[var(--color-text-primary)] font-system"
         >
             {/* 真实的 macOS 壁纸模糊效果 */}
             <div 
-                className="absolute inset-0 z-0 bg-[var(--mat-overlay-bg)]"
+                className="absolute inset-0 z-0"
                 style={{
+                    background: isDark ? 'rgba(0,0,0,0.70)' : 'rgba(0,0,0,0.30)',
                     backdropFilter: overlayFilter,
                     WebkitBackdropFilter: overlayFilter
                 }}
@@ -185,53 +165,26 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
 
             {/* 居中对话框 */}
             <div
-                className="mat-lg-regular flex flex-col w-full max-w-[480px] max-h-[80vh] rounded-[20px] shadow-2xl overflow-hidden relative z-10"
+                className="no-drag mat-lg-regular flex flex-col w-full max-w-[480px] max-h-[80vh] rounded-[20px] shadow-2xl overflow-hidden relative z-10"
                 style={{
-                    background: isDark ? 'rgba(24, 24, 28, 0.78)' : 'var(--mat-lg-regular-bg)',
+                    background: isDark ? 'rgba(24, 24, 28, 0.92)' : 'rgba(255,255,255,0.88)',
                     backdropFilter: panelBackdropFilter,
                     WebkitBackdropFilter: panelBackdropFilter,
                 }}
             >
-                {/* Traffic Light 拖动区域 */}
-                <div
-                    className="drag-region shrink-0 w-full"
-                    style={{ height: 40 }}
-                />
 
                 {/* 内容区域 */}
-                <div className="no-drag relative z-10 flex-1 flex flex-col overflow-hidden px-8 pb-8">
+                <div className="no-drag relative z-10 flex-1 flex flex-col overflow-hidden px-8 pt-8 pb-8">
 
                 {/* 头部: title + 操作按钮 */}
-                <header className="shrink-0 flex items-center justify-between mb-8">
+                <header className="shrink-0 flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        {/* 微型 AOTUI Logomark */}
-                        <div
-                            className={`w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center border ${
-                                theme === 'light'
-                                    ? 'bg-[var(--mat-content-card-hover-bg)] border-[var(--mat-border-highlight)]'
-                                    : 'bg-[var(--color-accent-muted)] border-[var(--color-accent-ring)]'
-                            }`}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className="text-[var(--color-accent)]">
-                                <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                                <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                                <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                                <path d="M17.5 14v6M14 17h7" />
-                            </svg>
-                        </div>
                         <h1
-                            className="text-[17px] font-semibold  text-[var(--color-text-primary)]"
+                            className="text-[17px] font-semibold text-[var(--color-text-primary)]"
                             style={{ letterSpacing: '-0.02em' }}
                         >
                             Projects
                         </h1>
-                        {projects.length > 0 && (
-                            <span
-                                className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] text-[var(--color-text-tertiary)]"
-                            >
-                                {projects.length}
-                            </span>
-                        )}
                     </div>
 
                     {/* 操作按钮组 */}

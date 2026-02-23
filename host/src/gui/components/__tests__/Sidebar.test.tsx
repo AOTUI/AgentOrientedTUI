@@ -10,10 +10,6 @@ vi.mock('../Icons', () => ({
     IconMoon: () => <div data-testid="icon-moon" />,
     IconFolder: () => <div data-testid="icon-folder" />,
     IconSettings: () => <div data-testid="icon-settings" />,
-    IconEllipsis: () => <div data-testid="icon-ellipsis" />,
-    IconPin: () => <div data-testid="icon-pin" />,
-    IconPencil: () => <div data-testid="icon-pencil" />,
-    IconDelete: () => <div data-testid="icon-delete" />,
 }));
 
 describe('Sidebar Component', () => {
@@ -30,6 +26,7 @@ describe('Sidebar Component', () => {
         onNewChat: vi.fn(),
         onSelectTopic: vi.fn(),
         toggleTheme: vi.fn(),
+        onSwitchProject: vi.fn(),
         getTopicState: vi.fn(() => 'IDLE'),
         getTopicPaused: vi.fn(() => false)
     };
@@ -53,11 +50,10 @@ describe('Sidebar Component', () => {
         expect(defaultProps.onSelectTopic).toHaveBeenCalledWith('2');
     });
 
-    it('displays correct status and stage', () => {
+    it('calls getTopicState for each topic', () => {
         render(<Sidebar {...defaultProps} />);
-        // Each topic card renders a more-options button
-        expect(screen.getByTestId('more-btn-1')).toBeInTheDocument();
-        expect(screen.getByTestId('more-btn-2')).toBeInTheDocument();
+        expect(defaultProps.getTopicState).toHaveBeenCalledWith('1');
+        expect(defaultProps.getTopicState).toHaveBeenCalledWith('2');
     });
 
     it('hides content when closed', () => {
