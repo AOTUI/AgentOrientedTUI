@@ -46,6 +46,7 @@ export function App() {
     const [agentReasoning, setAgentReasoning] = useState('');
     const [agentState, setAgentState] = useState('IDLE');
     const [agentPaused, setAgentPaused] = useState(false);
+    const [displayAgentState, setDisplayAgentState] = useState<'sleeping' | 'idle' | 'working' | 'paused'>('sleeping');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [canSendMessage, setCanSendMessage] = useState(false);
@@ -172,6 +173,7 @@ export function App() {
                         setAgentReasoning('');
                         setAgentState('IDLE');
                         setAgentPaused(false);
+                        setDisplayAgentState('sleeping');
                         setViewMode('chat');
                     }
                 }
@@ -184,6 +186,7 @@ export function App() {
                 setAgentReasoning('');
                 setAgentState('IDLE');
                 setAgentPaused(false);
+                setDisplayAgentState('sleeping');
                 setViewMode('chat');
             }
         };
@@ -200,6 +203,7 @@ export function App() {
                 setAgentReasoning(bridge.getAgentReasoning(active));
                 setAgentState(bridge.getAgentState(active));
                 setAgentPaused(bridge.isAgentPaused(active));
+                setDisplayAgentState(bridge.getDisplayAgentState(active));
             }
         });
 
@@ -340,6 +344,7 @@ export function App() {
                         setAgentReasoning('');
                         setAgentState('IDLE');
                         setAgentPaused(false);
+                        setDisplayAgentState('sleeping');
                         setViewMode('chat');
                         setCurrentProjectId(projectId);
                     }}
@@ -385,6 +390,7 @@ export function App() {
                     setAgentReasoning('');
                     setAgentState('IDLE');
                     setAgentPaused(false);
+                    setDisplayAgentState('sleeping');
                     setViewMode('chat');
                 }}
                 onOpenSettings={openSettings}
@@ -421,8 +427,7 @@ export function App() {
                                 canSendMessage={canSendMessage}
                                 sendBlockedReason={sendBlockedReason}
                                 onOpenSettings={openSettings}
-                                agentState={agentState}
-                                agentPaused={agentPaused}
+                                displayAgentState={displayAgentState}
                                 onPauseAgent={handlePauseAgent}
                                 onResumeAgent={handleResumeAgent}
                             />

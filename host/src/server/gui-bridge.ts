@@ -41,13 +41,18 @@ export class GUIBridge extends EventEmitter {
     private setupListeners(): void {
         // 监听 HostManager V2 的 GUI 更新事件
         this.unsubscribe = this.hostManager.onGuiUpdate((event: GuiUpdateEvent) => {
-            if (event.type === 'agent_state' || !event.message) {
+            if (
+                event.type === 'agent_state' ||
+                event.type === 'agent_paused' ||
+                event.type === 'agent_resumed' ||
+                !event.message
+            ) {
                 return;
             }
             // 转换为 GUI 事件格式
             const guiEvent: GUIMessageEvent = {
                 topicId: event.topicId,
-                type: event.type,
+                type: event.type as GUIMessageEvent['type'],
                 message: event.message,
             };
 

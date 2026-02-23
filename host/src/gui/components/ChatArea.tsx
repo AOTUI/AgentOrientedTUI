@@ -2,10 +2,12 @@ import React, { useRef, useEffect } from 'react';
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
-import { IconSend, IconPlay, IconPause } from './Icons.js';
+import { IconSend, IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import type { Message } from '../../types.js';
+
+export type DisplayAgentState = 'sleeping' | 'idle' | 'working' | 'paused';
 
 interface ChatAreaProps {
     messages: Message[];
@@ -15,8 +17,7 @@ interface ChatAreaProps {
     canSendMessage?: boolean;
     sendBlockedReason?: string | null;
     onOpenSettings?: () => void;
-    agentState?: string;
-    agentPaused?: boolean;
+    displayAgentState?: DisplayAgentState;
     onPauseAgent?: () => void;
     onResumeAgent?: () => void;
 }
@@ -50,7 +51,7 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, agentState = 'IDLE', agentPaused = false, onPauseAgent, onResumeAgent }: ChatAreaProps) {
+export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -493,55 +494,52 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         focus-within:shadow-[0_0_0_4px_rgba(10,132,255,0.15),0_8px_32px_var(--mat-shadow-color)]
                     ">
                         {/* ── Agent Controls Section ── */}
-                        {(onPauseAgent || onResumeAgent) && (
-                            <>
-                                <div
-                                    data-testid="agent-control-pill"
-                                    className="shrink-0 flex items-center gap-2 pl-4 pr-3 py-3"
-                                >
-                                    {/* State dot */}
-                                    <span
-                                        data-testid="agent-status-dot"
-                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
-                                            agentPaused
-                                                ? 'bg-[var(--color-warning)]'
-                                                : agentState === 'IDLE'
-                                                    ? 'bg-[var(--color-text-tertiary)]'
-                                                    : 'bg-[var(--color-success)] animate-pulse-dot'
-                                        }`}
-                                    />
-                                    {/* Status label */}
-                                    <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-[0.05em] select-none whitespace-nowrap">
-                                        {agentPaused ? 'Paused' : (agentState ?? 'Idle')}
-                                    </span>
-                                    {/* Play / Pause button */}
-                                    {agentPaused ? (
-                                        <Button
-                                            isIconOnly size="sm" variant="light"
-                                            onClick={onResumeAgent}
-                                            className="min-w-7 w-7 h-7 rounded-full text-[var(--color-success)] hover:bg-[var(--color-success)]/10 hover:scale-110 transition-all"
-                                            aria-label="Resume Agent"
-                                        >
-                                            <IconPlay />
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            isIconOnly size="sm" variant="light"
-                                            onClick={onPauseAgent}
-                                            className={`
-                                                min-w-7 w-7 h-7 rounded-full transition-all
-                                                text-[var(--color-text-tertiary)] hover:bg-white/5
-                                                hover:text-[var(--color-text-secondary)] hover:scale-110
-                                                ${agentState === 'IDLE' ? 'opacity-30 pointer-events-none' : 'opacity-100'}
-                                            `}
-                                            aria-label="Pause Agent"
-                                        >
-                                            <IconPause />
-                                        </Button>
-                                    )}
-                                </div>
-                            </>
-                        )}
+                        <div
+                            data-testid="agent-control-pill"
+                            className="shrink-0 flex items-center gap-2 pl-4 pr-3 py-3"
+                        >
+                            {/* State icon */}
+                            {displayAgentState === 'sleeping' && (
+                                <IconAgentSleeping className="w-7 h-7 text-[var(--color-text-tertiary)]" />
+                            )}
+                            {displayAgentState === 'idle' && (
+                                <IconAgentIdle className="w-7 h-7" />
+                            )}
+                            {displayAgentState === 'working' && (
+                                <IconAgentWorking className="w-7 h-7" />
+                            )}
+                            {displayAgentState === 'paused' && (
+                                <IconAgentPaused className="w-7 h-7 text-[var(--color-warning,#FF9F0A)]" />
+                            )}
+
+                            {/* Pause / Resume — hidden while sleeping */}
+                            {displayAgentState !== 'sleeping' && (
+                                displayAgentState === 'paused' ? (
+                                    <Button
+                                        isIconOnly size="sm" variant="light"
+                                        onClick={onResumeAgent}
+                                        className="min-w-7 w-7 h-7 rounded-full text-[var(--color-success)] hover:bg-[var(--color-success)]/10 hover:scale-110 transition-all"
+                                        aria-label="Resume Agent"
+                                    >
+                                        <IconPlay />
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        isIconOnly size="sm" variant="light"
+                                        onClick={onPauseAgent}
+                                        className={`
+                                            min-w-7 w-7 h-7 rounded-full transition-all
+                                            text-[var(--color-text-tertiary)] hover:bg-white/5
+                                            hover:text-[var(--color-text-secondary)] hover:scale-110
+                                            ${displayAgentState === 'idle' ? 'opacity-30 pointer-events-none' : 'opacity-100'}
+                                        `}
+                                        aria-label="Pause Agent"
+                                    >
+                                        <IconPause />
+                                    </Button>
+                                )
+                            )}
+                        </div>
 
                         {/* ── Input Section ── */}
                         <textarea
@@ -556,9 +554,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 resize-none overflow-y-auto scrollbar-hide
                             "
                             placeholder={
-                                agentPaused
+                                displayAgentState === 'paused'
                                     ? 'Agent paused — resume to continue…'
-                                    : agentState && agentState !== 'IDLE'
+                                    : displayAgentState === 'working'
                                         ? 'Agent is working…'
                                         : 'Message the agent…'
                             }

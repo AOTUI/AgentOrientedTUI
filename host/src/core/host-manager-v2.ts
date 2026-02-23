@@ -138,6 +138,22 @@ export class HostManagerV2 {
     }
 
     /**
+     * 暂停指定 Topic 的 AgentDriver
+     */
+    pauseAgent(topicId: string): void {
+        if (!this.sessionManager) return;
+        this.sessionManager.pauseSession(topicId);
+    }
+
+    /**
+     * 恢复指定 Topic 的 AgentDriver
+     */
+    resumeAgent(topicId: string): void {
+        if (!this.sessionManager) return;
+        this.sessionManager.resumeSession(topicId);
+    }
+
+    /**
      * Gracefully shutdown a Session without deleting data
      */
     async shutdownSession(topicId: string): Promise<void> {

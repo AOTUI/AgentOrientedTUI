@@ -55,6 +55,12 @@ export class McpDrivenSource {
                 toolCallId,
                 messages: []
             });
+            
+            // ✅ 关键修复: 工具执行完成后，主动触发更新信号
+            // 这样 AgentDriver 会进入下一个循环，看到工具执行结果
+            log.info(`MCP tool ${toolName} executed successfully, triggering update signal`);
+            this.triggerUpdate();
+            
             return {
                 toolCallId,
                 toolName,
@@ -62,6 +68,12 @@ export class McpDrivenSource {
             };
         } catch (e: any) {
             log.error(`Error executing MCP tool ${toolName}`, e);
+            
+            // ✅ 即使工具执行失败，也需要触发更新信号
+            // 这样 AgentDriver 能看到错误结果并继续处理
+            log.info(`MCP tool ${toolName} execution failed, triggering update signal with error`);
+            this.triggerUpdate();
+            
             return {
                 toolCallId,
                 toolName,

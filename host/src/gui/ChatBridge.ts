@@ -415,6 +415,22 @@ export class ChatBridge {
         return this.agentStates.get(topicId) || 'IDLE';
     }
 
+    /**
+     * 计算用于 UI 展示的 Agent 显示状态
+     * 
+     * - sleeping: Session 未激活（不封驱 Desktop）
+     * - paused:   Session 已激活且用户点击了暂停
+     * - working:  AgentDriver 处于 thinking / executing
+     * - idle:     Session 已激活，AgentDriver 空闲等待
+     */
+    getDisplayAgentState(topicId: string): 'sleeping' | 'idle' | 'working' | 'paused' {
+        if (!this.agentStates.has(topicId)) return 'sleeping';
+        if (this.agentPaused.get(topicId)) return 'paused';
+        const state = this.agentStates.get(topicId) || 'IDLE';
+        if (state === 'THINKING' || state === 'EXECUTING') return 'working';
+        return 'idle';
+    }
+
     // ============ Topic Management ============
 
     getTopics(): Topic[] {
@@ -883,6 +899,18 @@ export class ChatBridge {
                 this.agentStates.set(topicId, state.toUpperCase());
                 this.notify({ type: 'agent_state', topicId, data: state.toUpperCase() });
             }
+            return;
+        }
+
+        if (eventType === 'agent_paused' && topicId) {
+            this.agentPaused.set(topicId, true);
+            this.notify({ type: 'agent_paused', topicId, data: true });
+            return;
+        }
+
+        if (eventType === 'agent_resumed' && topicId) {
+            this.agentPaused.set(topicId, false);
+            this.notify({ type: 'agent_resumed', topicId, data: false });
             return;
         }
 

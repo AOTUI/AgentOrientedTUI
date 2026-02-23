@@ -50,6 +50,7 @@ export class AgentDriverV2 {
     private toolToSourceMap = new Map<string, IDrivenSource>();
 
     private running = false;
+    private paused = false;
 
     constructor(config: AgentDriverV2Config) {
         this.config = config;
@@ -429,6 +430,13 @@ private async collectMessages(): Promise<ModelMessage[]> {
         }
 
         this.pending = true;
+
+        // When paused, keep the pending flag but don't drain —
+        // resume() will kick off drainPendingRuns()
+        if (this.paused) {
+            return;
+        }
+
         void this.drainPendingRuns();
     }
 
@@ -661,6 +669,39 @@ private async collectMessages(): Promise<ModelMessage[]> {
         }
 
         this.requestRun();
+    }
+
+    /**
+     * 暂停 AgentDriver
+     * 
+     * 不停止运行，只阻止新的 LLM 调用触发。
+     * 当前正在进行的 run() 会完成，之后进入 idle 并不再 drain。
+     */
+    pause(): void {
+        if (this.paused) return;
+        this.paused = true;
+        this.logger.info('AgentDriver paused');
+    }
+
+    /**
+     * 恢复 AgentDriver
+     * 
+     * 如果暂停期间有 pending 更新，立即触发一次 run。
+     */
+    resume(): void {
+        if (!this.paused) return;
+        this.paused = false;
+        this.logger.info('AgentDriver resumed');
+        if (this.pending && this.running) {
+            void this.drainPendingRuns();
+        }
+    }
+
+    /**
+     * 是否处于暂停状态
+     */
+    isPaused(): boolean {
+        return this.paused;
     }
 
     /**

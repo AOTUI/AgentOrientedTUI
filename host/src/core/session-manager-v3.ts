@@ -269,6 +269,15 @@ export class SessionManagerV3 extends EventEmitter {
         // 5. 启动 AgentDriver
         agentDriver.start();
 
+        // 向 GUI 发消息：会话创建完成，Agent 进入 idle
+        // 这样 ChatBridge 能知道该 Topic 已有活跃 Session（不再显示 sleeping）
+        const initEvent: GuiUpdateEvent = {
+            topicId,
+            type: 'agent_state',
+            state: 'idle',
+        };
+        this.emit('message', initEvent);
+
         this.logger.info('Session components initialized', {
             topicId,
             desktopId,
@@ -403,6 +412,36 @@ export class SessionManagerV3 extends EventEmitter {
             this.sessions.delete(topicId);
             this.inFlightSessions.delete(topicId);
         }
+    }
+
+    /**
+     * 暂停 Session的 AgentDriver
+     */
+    pauseSession(topicId: string): void {
+        const session = this.sessions.get(topicId);
+        if (!session) {
+            this.logger.warn('pauseSession: session not found', { topicId });
+            return;
+        }
+        session.agentDriver.pause();
+        session.state = 'paused';
+        this.logger.info('Session paused', { topicId });
+        this.emit('message', { topicId, type: 'agent_paused' } as GuiUpdateEvent);
+    }
+
+    /**
+     * 恢复 Session的 AgentDriver
+     */
+    resumeSession(topicId: string): void {
+        const session = this.sessions.get(topicId);
+        if (!session) {
+            this.logger.warn('resumeSession: session not found', { topicId });
+            return;
+        }
+        session.agentDriver.resume();
+        session.state = 'active';
+        this.logger.info('Session resumed', { topicId });
+        this.emit('message', { topicId, type: 'agent_resumed' } as GuiUpdateEvent);
     }
 
     /**

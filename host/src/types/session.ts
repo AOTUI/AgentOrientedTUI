@@ -81,7 +81,7 @@ export interface GuiUpdateEvent {
     topicId: string;
 
     /** 事件类型 */
-    type: 'assistant' | 'tool' | 'user' | 'agent_state';
+    type: 'assistant' | 'tool' | 'user' | 'agent_state' | 'agent_paused' | 'agent_resumed';
 
     /** 消息内容 (AI SDK v6 ModelMessage) */
     message?: ModelMessage;

@@ -116,14 +116,14 @@ const chatRouter = router({
     pause: publicProcedure
         .input(z.object({ id: z.string() }))
         .mutation(async ({ input, ctx }) => {
-            // ✅ V2: pause 功能暂未实现
             console.log('[TRPC] chat.pause called:', input.id);
+            ctx.hostManager.pauseAgent(input.id);
         }),
     resume: publicProcedure
         .input(z.object({ id: z.string() }))
         .mutation(async ({ input, ctx }) => {
-            // ✅ V2: resume 功能暂未实现
             console.log('[TRPC] chat.resume called:', input.id);
+            ctx.hostManager.resumeAgent(input.id);
         }),
 });
 
