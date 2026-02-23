@@ -362,8 +362,8 @@ export function App() {
             {/* Background Layers */}
 
             {/* Window Drag Regions (segmented to avoid pills) */}
-            <div className="fixed top-0 left-0 w-[280px] h-10 title-drag-region z-10" />
-            <div className="fixed top-0 left-[460px] right-[140px] h-10 title-drag-region z-10" />
+            <div className={`fixed top-0 left-0 h-10 title-drag-region z-10 ${sidebarOpen ? 'w-[280px]' : 'w-[56px]'}`} />
+            <div className={`fixed top-0 h-10 title-drag-region z-10 ${sidebarOpen ? 'left-[700px]' : 'left-[540px]'} right-[140px]`} />
             <div className="fixed top-0 right-0 w-3 h-10 title-drag-region z-10" />
 
             {/* ======== Area 1: Sidebar (Layer 2) ======== */}
