@@ -86,6 +86,12 @@ const dbRouter = router({
         .mutation(async ({ input }) => {
             db.deleteTopic(input.id);
         }),
+    renameTopic: publicProcedure
+        .input(z.object({ id: z.string(), title: z.string().min(1).max(200) }))
+        .mutation(async ({ input }) => {
+            db.updateTopic(input.id, { title: input.title, updatedAt: Date.now() });
+            return { success: true };
+        }),
 });
 
 const chatRouter = router({
@@ -290,6 +296,40 @@ const modelRegistryRouter = router({
         }),
 });
 
+const appsRouter = router({
+    getConfig: publicProcedure
+        .query(async () => {
+            return Config.getAppsConfig();
+        }),
+
+    setEnabled: publicProcedure
+        .input(z.object({
+            name: z.string(),
+            enabled: z.boolean(),
+        }))
+        .mutation(async ({ input }) => {
+            await Config.setGlobalAppEnabled(input.name, input.enabled);
+            return { success: true };
+        }),
+
+    getDetail: publicProcedure
+        .input(z.object({
+            name: z.string(),
+        }))
+        .query(async ({ input }) => {
+            const apps = await Config.getAppsConfig();
+            const app = apps[input.name];
+            if (!app) {
+                throw new Error(`App \"${input.name}\" not found`);
+            }
+
+            return {
+                source: app.source,
+                installedAt: app.installedAt,
+            };
+        }),
+});
+
 function normalizeMcpServerEntry(entry: Record<string, any>): Record<string, any> {
     const normalized: Record<string, any> = { ...entry };
 
@@ -483,6 +523,7 @@ export const appRouter = router({
     project: projectRouter,
     llmConfig: llmConfigRouter,
     modelRegistry: modelRegistryRouter,
+    apps: appsRouter,
     mcp: mcpRouter,
 });
 

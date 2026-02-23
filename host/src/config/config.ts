@@ -74,11 +74,30 @@ export interface Info {
   [key: string]: unknown
 }
 
+export interface TuiAppConfigEntry {
+  source: string
+  enabled: boolean
+  installedAt?: string
+  [key: string]: unknown
+}
+
+export interface TuiInfo {
+  version?: number
+  runtime?: Record<string, unknown>
+  apps?: Record<string, TuiAppConfigEntry>
+  [key: string]: unknown
+}
+
 // ─── 配置文件路径 ─────────────────────────────────────────────────────────────
 
 /** 全局 MCP 配置文件路径 (~/.tui/mcp.json) */
 function getGlobalConfigPath(): string {
   return path.join(os.homedir(), ".tui", "mcp.json")
+}
+
+/** 全局 TUI 配置文件路径 (~/.tui/config.json) */
+function getTuiConfigPath(): string {
+  return path.join(os.homedir(), ".tui", "config.json")
 }
 
 // ─── JSONC 预处理器（单遍字符级状态机）────────────────────────────────────────
@@ -183,12 +202,24 @@ async function readConfigFile(filepath: string): Promise<Info> {
   }
 }
 
+async function readTuiConfigFile(filepath: string): Promise<TuiInfo> {
+  try {
+    const text = await fs.readFile(filepath, "utf8")
+    return JSON.parse(preprocessJsonc(text)) as TuiInfo
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return {}
+    throw err
+  }
+}
+
 // ─── Config namespace ─────────────────────────────────────────────────────────
 
 export namespace Config {
   export type McpType = Mcp
   export type McpOAuthType = McpOAuth
   export type InfoType = Info
+  export type TuiInfoType = TuiInfo
+  export type TuiAppConfigEntryType = TuiAppConfigEntry
 
   /** 获取全局配置（从 ~/.tui/mcp.json 读取） */
   export async function getGlobal(): Promise<Info> {
@@ -256,5 +287,52 @@ export namespace Config {
 
     await fs.writeFile(filepath, JSON.stringify(merged, null, 2), "utf8")
     return merged
+  }
+
+  export async function getAppsConfig(): Promise<Record<string, TuiAppConfigEntry>> {
+    const config = await readTuiConfigFile(getTuiConfigPath())
+    const apps = config.apps
+    if (!apps || typeof apps !== "object") {
+      return {}
+    }
+    return apps
+  }
+
+  export async function getTuiConfig(): Promise<TuiInfo> {
+    return readTuiConfigFile(getTuiConfigPath())
+  }
+
+  export async function replaceGlobalApps(apps: Record<string, TuiAppConfigEntry>): Promise<TuiInfo> {
+    const filepath = getTuiConfigPath()
+    await fs.mkdir(path.dirname(filepath), { recursive: true })
+
+    const existing = await readTuiConfigFile(filepath)
+    const merged: TuiInfo = {
+      ...existing,
+      version: typeof existing.version === "number" ? existing.version : 2,
+      runtime: existing.runtime ?? { workerScript: "" },
+      apps,
+    }
+
+    await fs.writeFile(filepath, JSON.stringify(merged, null, 2), "utf8")
+    return merged
+  }
+
+  export async function setGlobalAppEnabled(name: string, enabled: boolean): Promise<TuiInfo> {
+    const existing = await getTuiConfig()
+    const currentApps = existing.apps ?? {}
+    const current = currentApps[name]
+
+    if (!current) {
+      throw new Error(`App \"${name}\" not found in ~/.tui/config.json`)
+    }
+
+    return replaceGlobalApps({
+      ...currentApps,
+      [name]: {
+        ...current,
+        enabled,
+      },
+    })
   }
 }

@@ -1,151 +1,104 @@
 import React from 'react';
-import { Button } from "@heroui/button";
-import { Chip } from "@heroui/chip";
-import { Tooltip } from "@heroui/tooltip";
-import { IconMenu, IconPlay, IconPause, IconDelete } from './Icons.js';
+import { IconMenu } from './Icons.js';
 import type { Topic } from '../../types.js';
 
 interface WorkspaceHeaderProps {
     activeTopic: Topic | null;
-    activeTopicId: string | null;
     connected: boolean;
     sidebarOpen: boolean;
     setSidebarOpen: (open: boolean) => void;
     viewMode: 'chat' | 'tui';
     setViewMode: (mode: 'chat' | 'tui') => void;
-    agentState: string;
-    agentPaused: boolean;
-    onResumeAgent: () => void;
-    onPauseAgent: () => void;
-    onShowDeleteConfirm: () => void;
 }
 
 export function WorkspaceHeader({
     activeTopic,
-    activeTopicId,
     connected,
     sidebarOpen,
     setSidebarOpen,
     viewMode,
     setViewMode,
-    agentState,
-    agentPaused,
-    onResumeAgent,
-    onPauseAgent,
-    onShowDeleteConfirm
 }: WorkspaceHeaderProps) {
     return (
-        <header className="absolute top-0 left-0 right-0 z-30 flex items-start justify-between pointer-events-none">
-            {/* Left Side: Menu + Project Name + View Mode Switcher */}
-            <div className="flex items-center gap-3 pointer-events-auto">
-                <div
-                    className="flex items-center gap-3 mat-lg-regular rounded-full px-2 py-1.5 shadow-sm"
-                    style={{ background: 'color-mix(in srgb, var(--mat-lg-regular-bg) 55%, transparent)' }}
-                >
-                    <Tooltip content="Toggle Sidebar">
-                        <Button
-                            isIconOnly
-                            variant="light"
-                            size="sm"
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-full min-w-8 w-8 h-8 flex items-center justify-center"
-                        >
-                            <IconMenu />
-                        </Button>
-                    </Tooltip>
+        <header className="absolute top-0 left-0 right-0 z-30 pointer-events-none">
+            <div className="flex items-center justify-between px-3 pt-2">
 
-                    <div className="flex items-center gap-2 pr-3 border-l border-[var(--mat-border)] pl-3">
-                        <div className={`w-2 h-2 rounded-full ${connected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'}`} />
-                        <h2 className="font-medium text-[13px] leading-tight truncate max-w-[150px] text-[var(--color-text-primary)]">
+                {/* ── Left Island: Context Pill (Hamburger + Divider + Title) ── */}
+                <div
+                    data-testid="header-left-island"
+                    className={`
+                        pointer-events-auto flex items-center h-10
+                        mat-lg-regular rounded-full shadow-sm
+                        transition-all duration-300 ease-[var(--ease-standard)]
+                        ${sidebarOpen ? 'ml-0 -translate-x-2' : 'ml-[80px] translate-x-0'}
+                    `}
+                >
+                    {/* Hamburger */}
+                    <button
+                        data-testid="hamburger-btn"
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="w-10 h-10 flex items-center justify-center rounded-full
+                                   text-[var(--color-text-secondary)]
+                                   hover:text-[var(--color-text-primary)]
+                                   hover:bg-white/5 transition-all
+                                   active:scale-95 motion-reduce:active:scale-100"
+                        aria-label="Toggle Sidebar"
+                    >
+                        <IconMenu />
+                    </button>
+
+                    {/* Vertical separator */}
+                    <span className="w-px h-4 bg-white/10 shrink-0" />
+
+                    {/* Connection dot + Title */}
+                    <div className="flex items-center gap-2 px-3">
+                        <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                                connected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'
+                            }`}
+                        />
+                        <span className="text-[15px] font-semibold text-[var(--color-text-primary)] max-w-[200px] truncate leading-none tracking-tight">
                             {activeTopic?.title || 'System Chat'}
-                        </h2>
+                        </span>
                     </div>
                 </div>
 
-                {/* Center Island: View Mode Switcher */}
+                {/* ── Right Island: Mode Pill (Chat / TUI View) with spring slider ── */}
                 {activeTopic && (
-                    <div
-                        className="flex items-center mat-lg-regular rounded-full p-1 shadow-sm"
-                        style={{ background: 'color-mix(in srgb, var(--mat-lg-regular-bg) 55%, transparent)' }}
-                    >
-                        <Button
-                            size="sm"
-                            variant="light"
-                            onClick={() => setViewMode('chat')}
-                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'chat' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-                        >
-                            Chat
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="light"
-                            onClick={() => setViewMode('tui')}
-                            className={`h-7 text-[12px] font-medium px-4 min-w-0 rounded-full transition-all ${viewMode === 'tui' ? 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] shadow-sm border border-[var(--mat-border)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-                        >
-                            TUI View
-                        </Button>
+                    <div className="
+                        pointer-events-auto relative flex items-center
+                        h-10 p-1 rounded-full mat-lg-regular shadow-sm mr-0 translate-x-1
+                    ">
+                        {/* Spring-animated background slider */}
+                        <span
+                            className="absolute top-1 bottom-1 rounded-full
+                                       bg-white/15 border border-white/10
+                                       transition-all duration-300
+                                       ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                            style={{
+                                left: viewMode === 'chat' ? '4px' : 'calc(50% + 2px)',
+                                width: 'calc(50% - 6px)',
+                            }}
+                        />
+                        {(['chat', 'tui'] as const).map((mode) => (
+                            <button
+                                key={mode}
+                                onClick={() => setViewMode(mode)}
+                                className={`
+                                    relative z-10 h-8 px-5 rounded-full
+                                    text-[12px] font-bold uppercase tracking-[0.05em]
+                                    transition-colors duration-200 select-none
+                                    ${viewMode === mode
+                                        ? 'text-[var(--color-text-primary)]'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}
+                                `}
+                            >
+                                {mode === 'chat' ? 'Chat' : 'TUI View'}
+                            </button>
+                        ))}
                     </div>
                 )}
-            </div>
 
-            {/* Right Island: Agent Status & Controls */}
-            <div className="flex items-center gap-2 pointer-events-auto">
-                {activeTopic && (
-                    <div
-                        className="flex items-center gap-2 mat-lg-regular rounded-full px-3 py-1.5 shadow-sm"
-                        style={{ background: 'color-mix(in srgb, var(--mat-lg-regular-bg) 55%, transparent)' }}
-                    >
-                        <div className="flex items-center gap-2 pr-2">
-                            <span className={`text-[12px] font-medium ${
-                                agentState === 'THINKING' ? 'text-[var(--color-text-secondary)]' : 
-                                agentState === 'EXECUTING' ? 'text-[var(--color-success)]' : 
-                                agentState === 'STOPPED' ? 'text-[var(--color-danger)]' : 
-                                'text-[var(--color-text-tertiary)]'
-                            }`}>
-                                {agentPaused ? 'Paused' : (agentState === 'IDLE' ? 'Idle' : agentState.charAt(0) + agentState.slice(1).toLowerCase())}
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 border-l border-[var(--mat-border)] pl-2">
-                            {agentPaused ? (
-                                <Tooltip content="Resume Agent">
-                                    <Button
-                                        isIconOnly
-                                        size="sm"
-                                        variant="light"
-                                        onClick={onResumeAgent}
-                                        className="text-[var(--color-success)] hover:bg-[var(--color-success)]/10 rounded-full min-w-8 w-8 h-8"
-                                    >
-                                        <IconPlay />
-                                    </Button>
-                                </Tooltip>
-                            ) : (
-                                <Tooltip content="Pause Agent">
-                                    <Button
-                                        isIconOnly
-                                        size="sm"
-                                        variant="light"
-                                        onClick={onPauseAgent}
-                                        className="text-[var(--color-warning)] hover:bg-[var(--color-warning)]/10 rounded-full min-w-8 w-8 h-8"
-                                    >
-                                        <IconPause />
-                                    </Button>
-                                </Tooltip>
-                            )}
-                            <Tooltip content="Delete Session" color="danger">
-                                <Button
-                                    isIconOnly
-                                    size="sm"
-                                    variant="light"
-                                    onClick={onShowDeleteConfirm}
-                                    className="text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 rounded-full min-w-8 w-8 h-8"
-                                >
-                                    <IconDelete />
-                                </Button>
-                            </Tooltip>
-                        </div>
-                    </div>
-                )}
             </div>
         </header>
     );

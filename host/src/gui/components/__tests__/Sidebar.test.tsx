@@ -8,6 +8,12 @@ vi.mock('../Icons', () => ({
     IconNewChat: () => <div data-testid="icon-new-chat" />,
     IconSun: () => <div data-testid="icon-sun" />,
     IconMoon: () => <div data-testid="icon-moon" />,
+    IconFolder: () => <div data-testid="icon-folder" />,
+    IconSettings: () => <div data-testid="icon-settings" />,
+    IconEllipsis: () => <div data-testid="icon-ellipsis" />,
+    IconPin: () => <div data-testid="icon-pin" />,
+    IconPencil: () => <div data-testid="icon-pencil" />,
+    IconDelete: () => <div data-testid="icon-delete" />,
 }));
 
 describe('Sidebar Component', () => {
@@ -30,7 +36,7 @@ describe('Sidebar Component', () => {
 
     it('renders correctly when open', () => {
         render(<Sidebar {...defaultProps} />);
-        expect(screen.getByText('AOTUI')).toBeInTheDocument();
+        expect(screen.getByText('Sessions')).toBeInTheDocument();
         expect(screen.getByText('Topic 1')).toBeInTheDocument();
         expect(screen.getByText('Topic 2')).toBeInTheDocument();
     });
@@ -49,8 +55,9 @@ describe('Sidebar Component', () => {
 
     it('displays correct status and stage', () => {
         render(<Sidebar {...defaultProps} />);
-        expect(screen.getByText('hot')).toBeInTheDocument();
-        expect(screen.getByText('Stage 1')).toBeInTheDocument();
+        // Each topic card renders a more-options button
+        expect(screen.getByTestId('more-btn-1')).toBeInTheDocument();
+        expect(screen.getByTestId('more-btn-2')).toBeInTheDocument();
     });
 
     it('hides content when closed', () => {

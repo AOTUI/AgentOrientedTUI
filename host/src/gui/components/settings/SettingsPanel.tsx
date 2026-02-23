@@ -10,6 +10,7 @@ import { SettingsSidebar } from './SettingsSidebar.js';
 import { ModelTab } from './ModelTab.js';
 import { ThemeTab } from './ThemeTab.js';
 import { McpTab } from './mcp/McpTab.js';
+import { AppsTab } from './apps/AppsTab.js';
 import { SettingsErrorBoundary } from './SettingsErrorBoundary.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
 import type { SettingsPanelProps } from './types.js';
@@ -46,7 +47,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     onThemeChange,
 }) => {
     // State
-    const [activeTab, setActiveTab] = useState<'model' | 'theme' | 'mcp'>('model');
+    const [activeTab, setActiveTab] = useState<'model' | 'theme' | 'apps' | 'mcp'>('model');
 
     // Refs for focus trap
     const panelRef = useRef<HTMLDivElement>(null);
@@ -226,6 +227,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                                     onThemeChange={onThemeChange}
                                 />
                             )}
+                            {activeTab === 'apps' && <AppsTab />}
                             {activeTab === 'mcp' && <McpTab />}
                         </div>
                     </SettingsErrorBoundary>

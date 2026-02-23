@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
-import { IconNewChat, IconSend } from './Icons.js';
+import { IconSend, IconPlay, IconPause } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import type { Message } from '../../types.js';
@@ -15,6 +15,10 @@ interface ChatAreaProps {
     canSendMessage?: boolean;
     sendBlockedReason?: string | null;
     onOpenSettings?: () => void;
+    agentState?: string;
+    agentPaused?: boolean;
+    onPauseAgent?: () => void;
+    onResumeAgent?: () => void;
 }
 
 type ToolTraceStep = {
@@ -46,7 +50,7 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings }: ChatAreaProps) {
+export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, agentState = 'IDLE', agentPaused = false, onPauseAgent, onResumeAgent }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -317,27 +321,30 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
     return (
         <div className="absolute inset-0 flex flex-col min-h-0">
+
+            {/* Top fade — blurs messages as they scroll under the header pills */}
             <div
-                className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-none"
+                className="absolute top-0 left-0 right-0 h-[44px] z-10 pointer-events-none"
                 style={{
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
-                    maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)'
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    maskImage: 'linear-gradient(to bottom, black 0%, black 20%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 20%, transparent 100%)',
                 }}
             />
 
+            {/* Bottom fade — blurs messages as they scroll toward the input pill */}
             <div
-                className="absolute bottom-0 left-0 right-0 h-24 z-10 pointer-events-none"
+                className="absolute bottom-0 left-0 right-0 h-[40px] z-10 pointer-events-none"
                 style={{
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
-                    maskImage: 'linear-gradient(to top, black 0%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to top, black 0%, transparent 100%)'
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    maskImage: 'linear-gradient(to top, black 0%, black 20%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to top, black 0%, black 20%, transparent 100%)',
                 }}
             />
 
-            <div ref={scrollAreaRef} className="flex-1 px-6 pt-20 pb-32 space-y-6 h-full overflow-y-auto custom-scrollbar">
+            <div ref={scrollAreaRef} className="absolute inset-0 px-6 pt-[78px] pb-[10px] space-y-6 overflow-y-auto custom-scrollbar">
                 {messages.length === 0 && (
                     <EmptyState onNewChat={() => { }} />
                 )}
@@ -471,28 +478,118 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 z-20 pointer-events-none">
-                <div className="relative w-full max-w-3xl mx-auto mat-lg-regular rounded-[24px] flex items-end gap-2 p-1 pr-2 transition-all duration-200 focus-within:border-[var(--color-accent)] focus-within:shadow-[0_0_0_3px_var(--color-accent-ring),inset_0_1px_0_var(--mat-inset-highlight)] pointer-events-auto shadow-lg">
-                    <textarea
-                        ref={textareaRef}
-                        className="w-full bg-transparent border-none outline-none focus:ring-0 focus:outline-none text-[13px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] px-4 py-2 min-h-[36px] max-h-48 resize-none overflow-y-auto scrollbar-hide"
-                        placeholder="Enter command..."
-                        rows={1}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                    />
-                    <div className="pb-0.5">
-                        <Button
-                            isIconOnly
-                            size="sm"
-                            className={`min-w-8 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 motion-reduce:active:scale-100 ${inputValue.trim() ? 'bg-[var(--color-accent)] text-white shadow-md' : 'bg-[var(--mat-lg-clear-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}`}
-                            onClick={handleSendClick}
-                        >
-                            <IconSend />
-                        </Button>
+            {/* ──────────────────────────────────────────
+                 Chat Hub: Unified Control + Input Pill
+                 ────────────────────────────────────────── */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-2 z-20 pointer-events-none">
+                <div className="w-full max-w-[512px] mx-auto pointer-events-auto">
+
+                    {/* Single unified pill */}
+                    <div className="
+                        flex items-center
+                        mat-lg-regular rounded-[26px]
+                        shadow-lg
+                        transition-all duration-200
+                        focus-within:shadow-[0_0_0_4px_rgba(10,132,255,0.15),0_8px_32px_var(--mat-shadow-color)]
+                    ">
+                        {/* ── Agent Controls Section ── */}
+                        {(onPauseAgent || onResumeAgent) && (
+                            <>
+                                <div
+                                    data-testid="agent-control-pill"
+                                    className="shrink-0 flex items-center gap-2 pl-4 pr-3 py-3"
+                                >
+                                    {/* State dot */}
+                                    <span
+                                        data-testid="agent-status-dot"
+                                        className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                                            agentPaused
+                                                ? 'bg-[var(--color-warning)]'
+                                                : agentState === 'IDLE'
+                                                    ? 'bg-[var(--color-text-tertiary)]'
+                                                    : 'bg-[var(--color-success)] animate-pulse-dot'
+                                        }`}
+                                    />
+                                    {/* Status label */}
+                                    <span className="text-[11px] font-medium text-[var(--color-text-secondary)] uppercase tracking-[0.05em] select-none whitespace-nowrap">
+                                        {agentPaused ? 'Paused' : (agentState ?? 'Idle')}
+                                    </span>
+                                    {/* Play / Pause button */}
+                                    {agentPaused ? (
+                                        <Button
+                                            isIconOnly size="sm" variant="light"
+                                            onClick={onResumeAgent}
+                                            className="min-w-7 w-7 h-7 rounded-full text-[var(--color-success)] hover:bg-[var(--color-success)]/10 hover:scale-110 transition-all"
+                                            aria-label="Resume Agent"
+                                        >
+                                            <IconPlay />
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            isIconOnly size="sm" variant="light"
+                                            onClick={onPauseAgent}
+                                            className={`
+                                                min-w-7 w-7 h-7 rounded-full transition-all
+                                                text-[var(--color-text-tertiary)] hover:bg-white/5
+                                                hover:text-[var(--color-text-secondary)] hover:scale-110
+                                                ${agentState === 'IDLE' ? 'opacity-30 pointer-events-none' : 'opacity-100'}
+                                            `}
+                                            aria-label="Pause Agent"
+                                        >
+                                            <IconPause />
+                                        </Button>
+                                    )}
+                                </div>
+                                {/* Vertical divider */}
+                                <span className="w-px h-5 bg-white/10 shrink-0 self-center" />
+                            </>
+                        )}
+
+                        {/* ── Input Section ── */}
+                        <textarea
+                            ref={textareaRef}
+                            className="
+                                flex-1 bg-transparent border-none outline-none
+                                focus:ring-0 focus:outline-none
+                                text-[15px] leading-[1.5] text-[var(--color-text-primary)]
+                                placeholder:text-[var(--color-text-tertiary)]
+                                px-4 py-3
+                                min-h-[44px] max-h-40
+                                resize-none overflow-y-auto scrollbar-hide
+                            "
+                            placeholder={
+                                agentPaused
+                                    ? 'Agent paused — resume to continue…'
+                                    : agentState && agentState !== 'IDLE'
+                                        ? 'Agent is working…'
+                                        : 'Message the agent…'
+                            }
+                            rows={1}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                        />
+
+                        {/* Send button */}
+                        <div className="pr-2 py-2 shrink-0">
+                            <Button
+                                isIconOnly size="sm"
+                                className={`
+                                    min-w-8 w-8 h-8 rounded-full flex items-center justify-center
+                                    transition-all duration-[var(--dur-fast)]
+                                    active:scale-[0.94] motion-reduce:active:scale-100
+                                    ${inputValue.trim()
+                                        ? 'bg-[var(--color-accent)] text-white shadow-md'
+                                        : 'bg-white/5 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}
+                                `}
+                                onClick={handleSendClick}
+                                aria-label="Send message"
+                            >
+                                <IconSend />
+                            </Button>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>

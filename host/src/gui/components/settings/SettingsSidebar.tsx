@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { IconModel, IconTheme, IconPlug } from '../Icons.js';
+import { IconModel, IconTheme, IconPlug, IconFolder } from '../Icons.js';
 import type { SettingsSidebarProps } from './types.js';
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange }) => {
@@ -64,6 +64,22 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                     aria-hidden="true"
                 />
                 <span className={`text-[13px] ${activeTab === 'theme' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Theme</span>
+            </button>
+
+            {/* Apps Tab Button */}
+            <button
+                onClick={() => onTabChange('apps')}
+                role="tab"
+                aria-selected={activeTab === 'apps'}
+                aria-controls="apps-tab-panel"
+                id="apps-tab"
+                className={`${baseBtnClass} ${activeTab === 'apps' ? activeBtnClass : inactiveBtnClass}`}
+            >
+                <IconFolder
+                    className={`w-4 h-4 ${activeTab === 'apps' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
+                    aria-hidden="true"
+                />
+                <span className={`text-[13px] ${activeTab === 'apps' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Apps</span>
             </button>
 
             {/* MCP Tab Button */}

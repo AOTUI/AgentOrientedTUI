@@ -37,7 +37,7 @@ describe('ChatArea Component', () => {
 
     it('handles send message', () => {
         render(<ChatArea {...defaultProps} />);
-        const input = screen.getByPlaceholderText('Enter command or message...');
+        const input = screen.getByPlaceholderText('Message the agent…');
         fireEvent.change(input, { target: { value: 'New Message' } });
         fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
         expect(defaultProps.onSendMessage).toHaveBeenCalledWith('New Message');
@@ -45,6 +45,6 @@ describe('ChatArea Component', () => {
 
     it('handles empty state', () => {
         render(<ChatArea {...defaultProps} messages={[]} />);
-        expect(screen.getByText('System Ready. Awaiting Input.')).toBeInTheDocument();
+        expect(screen.getByText('System Online')).toBeInTheDocument();
     });
 });

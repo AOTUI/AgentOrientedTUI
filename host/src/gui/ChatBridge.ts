@@ -394,6 +394,19 @@ export class ChatBridge {
         }
     }
 
+    async renameTopic(topicId: string, newTitle: string): Promise<void> {
+        try {
+            await this.getTrpcClient().db.renameTopic.mutate({ id: topicId, title: newTitle });
+            const topic = this.topics.get(topicId);
+            if (topic) {
+                this.topics.set(topicId, { ...topic, title: newTitle, updatedAt: Date.now() });
+                this.notify({ type: 'topic', topicId });
+            }
+        } catch (error) {
+            console.error('[ChatBridge] Failed to rename topic:', error);
+        }
+    }
+
     isAgentPaused(topicId: string): boolean {
         return this.agentPaused.get(topicId) || false;
     }

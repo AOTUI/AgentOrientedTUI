@@ -6,55 +6,75 @@ import type { Topic } from '../../../types.js';
 
 vi.mock('../Icons', () => ({
     IconMenu: () => <div data-testid="icon-menu" />,
-    IconPlay: () => <div data-testid="icon-play" />,
-    IconPause: () => <div data-testid="icon-pause" />,
-    IconDelete: () => <div data-testid="icon-delete" />,
 }));
 
 describe('WorkspaceHeader Component', () => {
     const mockTopic: Topic = { id: '1', title: 'Test Topic', createdAt: 0, updatedAt: 0, status: 'hot', summary: 'Test Summary' };
-    
+
     const defaultProps = {
         activeTopic: mockTopic,
-        activeTopicId: '1',
         connected: true,
         sidebarOpen: true,
         setSidebarOpen: vi.fn(),
         viewMode: 'chat' as const,
         setViewMode: vi.fn(),
-        agentState: 'IDLE',
-        agentPaused: false,
-        onResumeAgent: vi.fn(),
-        onPauseAgent: vi.fn(),
-        onShowDeleteConfirm: vi.fn()
     };
 
-    it('renders topic title and status', () => {
+    it('renders topic title', () => {
         render(<WorkspaceHeader {...defaultProps} />);
         expect(screen.getByText('Test Topic')).toBeInTheDocument();
-        expect(screen.getByText(/LINKED: 1/)).toBeInTheDocument();
-        expect(screen.getByText('Test Summary')).toBeInTheDocument();
     });
 
-    it('handles view mode switching', () => {
+    it('renders System Chat when no active topic', () => {
+        render(<WorkspaceHeader {...defaultProps} activeTopic={null} />);
+        expect(screen.getByText('System Chat')).toBeInTheDocument();
+    });
+
+    it('shows connected dot in green when connected', () => {
+        const { container } = render(<WorkspaceHeader {...defaultProps} connected={true} />);
+        const dot = container.querySelector('.bg-\\[var\\(--color-success\\)\\]');
+        expect(dot).toBeInTheDocument();
+    });
+
+    it('shows danger dot when disconnected', () => {
+        const { container } = render(<WorkspaceHeader {...defaultProps} connected={false} />);
+        const dot = container.querySelector('.bg-\\[var\\(--color-danger\\)\\]');
+        expect(dot).toBeInTheDocument();
+    });
+
+    it('hamburger is offset right when sidebar is closed', () => {
+        const { container } = render(<WorkspaceHeader {...defaultProps} sidebarOpen={false} />);
+        const leftIsland = container.querySelector('[data-testid="header-left-island"]');
+        expect(leftIsland?.className).toContain('ml-[80px]');
+    });
+
+    it('hamburger has no offset when sidebar is open', () => {
+        const { container } = render(<WorkspaceHeader {...defaultProps} sidebarOpen={true} />);
+        const leftIsland = container.querySelector('[data-testid="header-left-island"]');
+        expect(leftIsland?.className).toContain('ml-0');
+    });
+
+    it('toggles sidebar on hamburger click', () => {
         render(<WorkspaceHeader {...defaultProps} />);
-        fireEvent.click(screen.getByText('TUI VIEW'));
+        fireEvent.click(screen.getByTestId('hamburger-btn'));
+        expect(defaultProps.setSidebarOpen).toHaveBeenCalledWith(false);
+    });
+
+    it('handles view mode switching to tui', () => {
+        render(<WorkspaceHeader {...defaultProps} />);
+        fireEvent.click(screen.getByText('TUI View'));
         expect(defaultProps.setViewMode).toHaveBeenCalledWith('tui');
     });
 
-    it('shows pause button when agent is running', () => {
-        render(<WorkspaceHeader {...defaultProps} agentState="EXECUTING" />);
-        expect(screen.getByTestId('icon-pause')).toBeInTheDocument();
+    it('handles view mode switching to chat', () => {
+        render(<WorkspaceHeader {...defaultProps} viewMode="tui" />);
+        fireEvent.click(screen.getByText('Chat'));
+        expect(defaultProps.setViewMode).toHaveBeenCalledWith('chat');
     });
 
-    it('shows play button when agent is paused', () => {
-        render(<WorkspaceHeader {...defaultProps} agentPaused={true} />);
-        expect(screen.getByTestId('icon-play')).toBeInTheDocument();
-    });
-
-    it('handles delete topic', () => {
-        render(<WorkspaceHeader {...defaultProps} />);
-        fireEvent.click(screen.getByTestId('icon-delete').parentElement!);
-        expect(defaultProps.onShowDeleteConfirm).toHaveBeenCalled();
+    it('hides view toggle when no active topic', () => {
+        render(<WorkspaceHeader {...defaultProps} activeTopic={null} />);
+        expect(screen.queryByText('Chat')).not.toBeInTheDocument();
+        expect(screen.queryByText('TUI View')).not.toBeInTheDocument();
     });
 });

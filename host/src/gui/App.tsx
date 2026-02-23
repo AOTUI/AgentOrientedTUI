@@ -267,6 +267,24 @@ export function App() {
         if (activeTopicId) bridge.resumeAgent(activeTopicId);
     }, [bridge, activeTopicId]);
 
+    const handleDeleteTopicById = useCallback(async (topicId: string) => {
+        await bridge.destroyDesktop(topicId);
+        await bridge.deleteTopic(topicId);
+
+        if (topicId === activeTopicId) {
+            setActiveTopicId(null);
+            setMessages([]);
+            setTuiSnapshot('');
+            setAgentThinking('');
+            setAgentReasoning('');
+            setViewMode('chat');
+        }
+    }, [bridge, activeTopicId]);
+
+    const handleRenameTopicById = useCallback(async (topicId: string, newTitle: string) => {
+        await bridge.renameTopic(topicId, newTitle);
+    }, [bridge]);
+
     const handleDeleteTopic = useCallback(async () => {
         if (!activeTopicId) return;
         await bridge.destroyDesktop(activeTopicId);
@@ -305,7 +323,7 @@ export function App() {
     }
 
     return (
-        <div className="w-screen h-screen bg-[var(--mat-base)] text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative flex p-2 gap-2 box-border">
+        <div className="w-screen h-screen bg-transparent text-[var(--color-text-primary)] overflow-hidden font-system selection:bg-[var(--color-accent)] selection:text-white relative flex box-border">
             {/* Background Layers */}
 
             {/* Window Drag Region */}
@@ -324,6 +342,8 @@ export function App() {
                 onOpenSettings={openSettings}
                 getTopicState={(topicId) => bridge.getAgentState(topicId)}
                 getTopicPaused={(topicId) => bridge.isAgentPaused(topicId)}
+                onDeleteTopic={handleDeleteTopicById}
+                onRenameTopic={handleRenameTopicById}
             />
 
             {/* ======== Area 2: Main Workspace (Layer 1) ======== */}
@@ -331,17 +351,11 @@ export function App() {
                 {/* Area 2.1: Header (Layer 2 Islands) */}
                 <WorkspaceHeader
                     activeTopic={activeTopic}
-                    activeTopicId={activeTopicId}
                     connected={connected}
                     sidebarOpen={sidebarOpen}
                     setSidebarOpen={setSidebarOpen}
                     viewMode={viewMode}
                     setViewMode={setViewMode}
-                    agentState={agentState}
-                    agentPaused={agentPaused}
-                    onResumeAgent={handleResumeAgent}
-                    onPauseAgent={handlePauseAgent}
-                    onShowDeleteConfirm={() => setShowDeleteConfirm(true)}
                 />
 
                 {/* Area 2.2: Content (Chat / TUI) */}
@@ -356,6 +370,10 @@ export function App() {
                                 canSendMessage={canSendMessage}
                                 sendBlockedReason={sendBlockedReason}
                                 onOpenSettings={openSettings}
+                                agentState={agentState}
+                                agentPaused={agentPaused}
+                                onPauseAgent={handlePauseAgent}
+                                onResumeAgent={handleResumeAgent}
                             />
                         ) : (
                             <div className="absolute inset-0 bg-[var(--color-bg-base)] rounded-2xl overflow-hidden border border-[var(--mat-border)]">

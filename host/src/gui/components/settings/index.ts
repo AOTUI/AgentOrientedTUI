@@ -56,6 +56,7 @@ export { ModelRegistryTab } from './ModelRegistryTab.js';
 export { ConfigCard } from './ConfigCard.js';
 export { ConfigForm } from './ConfigForm.js';
 export { ThemeTab } from './ThemeTab.js';
+export { AppsTab } from './apps/AppsTab.js';
 export { ThemeCard } from './ThemeCard.js';
 export { ProviderLogo } from './ProviderLogo.js';
 export { ProviderCard } from './ProviderCard.js';
