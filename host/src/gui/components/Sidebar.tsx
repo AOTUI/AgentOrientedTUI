@@ -2,13 +2,14 @@ import React from 'react';
 import { Button } from "@heroui/button";
 import { Tooltip } from "@heroui/tooltip";
 import { ScrollShadow } from "@heroui/scroll-shadow";
-import { IconNewChat, IconSun, IconMoon, IconFolder, IconSettings } from './Icons.js';
+import { IconNewChat, IconSun, IconMoon, IconFolder, IconSettings, IconChat } from './Icons.js';
 import type { Topic } from '../../types.js';
 
 interface SidebarProps {
     sidebarOpen: boolean;
     topics: Topic[];
     activeTopicId: string | null;
+    currentProjectPath?: string | null;
     theme: 'dark' | 'light';
     onNewChat: () => void;
     onSelectTopic: (topicId: string) => void;
@@ -37,79 +38,68 @@ export function Sidebar({
     sidebarOpen,
     topics,
     activeTopicId,
+    currentProjectPath,
     theme,
     onNewChat,
     onSelectTopic,
     toggleTheme,
     onSwitchProject,
     onOpenSettings,
-    getTopicState,
-    getTopicPaused,
 }: SidebarProps) {
-    const getDotClass = (state: string, paused: boolean) => {
-        if (paused) return 'bg-[var(--color-warning)]';
-        if (state === 'THINKING') return 'bg-[var(--color-accent)]';
-        if (state === 'EXECUTING') return 'bg-[var(--color-success)]';
-        if (state === 'STOPPED') return 'bg-[var(--color-danger)]';
-        return 'bg-[var(--color-text-tertiary)]';
-    };
-
     const sortedTopics = [...topics].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
     return (
         <aside className={`
             relative z-20 shrink-0 self-stretch
-            mat-lg-regular flex flex-col overflow-hidden
+            mat-lg-clear flex flex-col overflow-hidden
             transition-all duration-400 ease-[var(--ease-spring)] motion-reduce:transition-none
             rounded-[18px]
-            ${sidebarOpen ? 'w-[272px] opacity-100 mt-2 ml-2 mb-2 mr-2' : 'w-0 opacity-0 mt-0 ml-0 mb-0 mr-0 border-none'}
+            ${sidebarOpen ? 'w-[260px] opacity-100 mt-2 ml-2 mb-2 mr-2' : 'w-0 opacity-0 m-0 border-none'}
         `}>
             {/* Sidebar Header */}
-            <div className="px-4 pb-4 pt-10 flex flex-col gap-4 shrink-0 relative w-[272px]">
-                <Button
-                    className="w-full h-9 mt-2 font-medium bg-[var(--mat-lg-clear-bg)] text-[var(--color-accent)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] hover:border-[var(--mat-border-highlight)] transition-all flex items-center justify-center gap-2 group rounded-xl shadow-sm"
-                    onClick={onNewChat}
-                >
-                    <IconNewChat />
-                    <span className="text-[13px]">New Session</span>
-                </Button>
+            <div className="px-3 pb-2 pt-10 shrink-0 w-[260px]">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                        <IconChat className="w-4 h-4" />
+                        <span className="text-[12px] font-bold uppercase tracking-[0.02em]">Sessions</span>
+                    </div>
+                    <Button
+                        className="h-7 min-w-0 px-2.5 font-medium bg-[var(--mat-lg-clear-bg)] text-[var(--color-accent)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] hover:border-[var(--mat-border-highlight)] transition-all flex items-center justify-center gap-1.5 rounded-full"
+                        onClick={onNewChat}
+                    >
+                        <IconNewChat className="w-3.5 h-3.5" />
+                        <span className="text-[12px] leading-none">New</span>
+                    </Button>
+                </div>
             </div>
 
-            {/* Sessions Label */}
-            <div className="px-5 pb-2 shrink-0 w-[272px]">
-                <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">Sessions</span>
-            </div>
-
-            <ScrollShadow className="flex-1 w-[272px] px-3 pb-6 overflow-y-auto scrollbar-hide">
+            <ScrollShadow className="flex-1 w-[260px] px-2 pb-6 overflow-y-auto scrollbar-hide">
                 <div className="space-y-1">
                     {sortedTopics.map(topic => {
                         const isActive = topic.id === activeTopicId;
-                        const paused = getTopicPaused?.(topic.id) ?? false;
-                        const state = getTopicState(topic.id);
                         const timeAgo = formatTimeAgo(topic.updatedAt ?? topic.createdAt);
                         return (
                             <div
                                 key={topic.id}
                                 className={`
-                                    relative w-full h-11 px-3 rounded-[10px] cursor-pointer
-                                    flex flex-col justify-center
+                                    relative w-full h-8 px-2 rounded-[8px] cursor-pointer
+                                    flex items-center justify-between
                                     transition-colors duration-200
-                                    ${isActive ? 'bg-[var(--mat-content-card-hover-bg)]' : ''}
+                                    ${isActive ? 'bg-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.1)]' : 'bg-transparent'}
                                 `}
                                 onClick={() => onSelectTopic(topic.id)}
                             >
                                 {/* Title */}
                                 <span className={`truncate text-[13px] font-medium ${
                                     isActive
-                                        ? 'text-[var(--color-text-primary)]'
+                                        ? 'text-[var(--color-accent)]'
                                         : 'text-[var(--color-text-secondary)]'
                                 }`}>
                                     {topic.title}
                                 </span>
 
                                 {/* Status dot + time ago */}
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${getDotClass(state, paused)}`} />
+                                <div className="flex items-center gap-1.5 shrink-0">
                                     {timeAgo && (
                                         <span className="text-[11px] text-[var(--color-text-tertiary)]">{timeAgo}</span>
                                     )}
@@ -120,8 +110,21 @@ export function Sidebar({
                 </div>
             </ScrollShadow>
 
+            {currentProjectPath && (
+                <div className="px-3 pb-2 shrink-0 w-[260px]">
+                    <div className="w-full rounded-[8px] bg-[var(--mat-content-card-hover-bg)] px-2 py-1.5">
+                        <div className="text-[10px] uppercase tracking-[0.03em] text-[var(--color-text-tertiary)] mb-1">
+                            Project Directory
+                        </div>
+                        <div className="text-[11px] leading-4 text-[var(--color-text-secondary)] break-all whitespace-normal" title={currentProjectPath}>
+                            {currentProjectPath}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Sidebar Footer */}
-            <div className="p-3 border-t border-[var(--mat-border)] flex items-center justify-between w-[272px]">
+            <div className="p-2 border-t border-[var(--mat-border)] flex items-center justify-between w-[260px]">
                 <Tooltip content="Switch Project">
                     <Button
                         variant="light"

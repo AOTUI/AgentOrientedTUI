@@ -131,13 +131,13 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
     const renderLiveReasoningBlock = () => (
         <div className="flex justify-start">
-            <Card className="max-w-[85%] mat-content rounded-2xl rounded-tl-sm">
+            <Card className="max-w-[85%] bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm !border-0 shadow-none">
                 <CardBody className="p-4">
                     <div className="flex items-center gap-2 mb-2 text-[var(--color-accent)] text-[12px] font-medium">
                         <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
                         <span>Reasoning Chain</span>
                     </div>
-                    <div className="text-[11px] leading-5 text-[var(--color-text-secondary)] opacity-90 pl-2 border-l-2 border-[var(--color-accent)]/30">
+                    <div className="text-[11px] leading-5 text-[var(--color-text-secondary)] opacity-90 pl-2">
                         <MarkdownRenderer content={agentReasoning} />
                     </div>
                 </CardBody>
@@ -182,11 +182,11 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
                 return (
                     <React.Fragment key={`trace-reasoning-${index}`}>
-                        <div className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-2 rounded-xl bg-[var(--mat-lg-clear-bg)] border border-[var(--mat-border)]">
+                        <div className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-2 rounded-xl bg-[var(--mat-toolchain-block-bg)]">
                             <MarkdownRenderer content={item.text} />
                         </div>
                         {showFoldedBarAfter && (
-                            <div className="flex items-center gap-2 px-2 py-1 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[11px] text-[var(--color-text-secondary)]">
+                            <div className="flex items-center gap-2 px-2 py-1 rounded-xl bg-[var(--mat-toolchain-bar-bg)] text-[11px] text-[var(--color-text-secondary)]">
                                 <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
                                 <span className="font-medium">Folded Toolcalls</span>
                                 <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
@@ -236,7 +236,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         </div>
                     </summary>
                     {(hasInput || showOutput) && (
-                        <div className="mt-2 pl-3 border-l border-[var(--color-border)] text-[10px] leading-5 text-[var(--color-text-secondary)] space-y-2 opacity-85">
+                        <div className="mt-2 pl-3 text-[10px] leading-5 text-[var(--color-text-secondary)] space-y-2 opacity-85">
                             {hasInput && (
                                 <div>
                                     <div className="text-[12px] font-medium text-[var(--color-text-secondary)]">Input</div>
@@ -267,7 +267,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
         return (
             <div key={key} data-trace-key={key} className="flex justify-start">
-                <Card className="max-w-[92%] mat-content rounded-2xl rounded-tl-sm overflow-hidden">
+                <Card className="max-w-[92%] bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm overflow-hidden !border-0 shadow-none">
                     <CardBody className="p-4">
                         <div className="flex items-center justify-between gap-2 mb-2 text-[12px] font-medium text-[var(--color-text-tertiary)]">
                             <div className="flex items-center gap-2">
@@ -277,7 +277,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         </div>
 
                         {!isExpanded && hiddenToolCount > 0 && (
-                            <div className="h-1.5 mb-3 rounded-full bg-[var(--mat-content-card-hover-bg)] overflow-hidden">
+                            <div className="h-1.5 mb-3 rounded-full bg-[var(--mat-toolchain-bar-bg)] overflow-hidden">
                                 <div className={`h-full w-1/3 rounded-full ${isRunning ? 'bg-[var(--color-text-secondary)]' : 'bg-[var(--color-accent)] opacity-40'}`} />
                             </div>
                         )}
@@ -287,11 +287,11 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 <React.Fragment key={`trace-item-${index}`}>
                                     {!isExpanded && index === firstVisibleToolIndex && firstVisibleToolIndex >= 0 && hiddenToolCount > 0 && (
                                         <button
-                                                className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-full bg-[var(--mat-content-card-hover-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)]"
+                                                className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-full bg-[var(--mat-toolchain-bar-bg)] text-[11px] text-[var(--color-text-secondary)]"
                                             onClick={() => toggleTraceExpand(key)}
                                             aria-label="Click to expand tool chain"
                                         >
-                                            <span className="px-1.5 py-0.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)]">
+                                            <span className="px-1.5 py-0.5 rounded bg-[var(--mat-toolchain-block-bg)] text-[var(--color-text-secondary)]">
                                                 +{hiddenToolCount} hidden
                                             </span>
                                             <span className="normal-case tracking-normal">click to expand</span>
@@ -305,7 +305,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         {isExpanded && (
                             <div className="mt-3 sticky bottom-2 z-10 flex justify-end">
                                 <button
-                                    className="text-[11px] px-2.5 py-1 rounded-full border border-[var(--color-border)] bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)]"
+                                    className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                                     onClick={() => toggleTraceExpand(key)}
                                     aria-label="Collapse tool chain"
                                 >
@@ -429,10 +429,10 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                             >
                                 <Card
                                     className={`
-                                        max-w-[85%] shadow-sm
+                                        max-w-[85%] !border-0 shadow-none
                                         ${isAgent
-                                            ? 'mat-content rounded-2xl rounded-tl-sm'
-                                            : 'mat-lg-clear-accent rounded-2xl rounded-tr-sm'}
+                                            ? 'bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm'
+                                            : 'bg-[var(--mat-lg-clear-accent-bg)] rounded-2xl rounded-tr-sm'}
                                     `}
                                 >
                                     <CardBody className="p-4 overflow-hidden">
@@ -461,7 +461,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                 {/* Thinking / Output Block */}
                 {agentThinking && (
                     <div className="flex justify-start">
-                        <Card className="max-w-[85%] mat-content rounded-2xl rounded-tl-sm">
+                        <Card className="max-w-[85%] bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm !border-0 shadow-none">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-2 mb-2 text-[var(--color-text-secondary)] text-[11px] font-medium">
                                     <Spinner size="sm" color="current" />
@@ -487,7 +487,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                     {/* Single unified pill */}
                     <div className="
                         flex items-center
-                        mat-lg-regular rounded-[26px]
+                        mat-lg-clear rounded-full
                         shadow-lg
                         transition-all duration-200
                         focus-within:shadow-[0_0_0_4px_rgba(10,132,255,0.15),0_8px_32px_var(--mat-shadow-color)]
@@ -511,7 +511,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         }`}
                                     />
                                     {/* Status label */}
-                                    <span className="text-[11px] font-medium text-[var(--color-text-secondary)] uppercase tracking-[0.05em] select-none whitespace-nowrap">
+                                    <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-[0.05em] select-none whitespace-nowrap">
                                         {agentPaused ? 'Paused' : (agentState ?? 'Idle')}
                                     </span>
                                     {/* Play / Pause button */}
@@ -540,8 +540,6 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         </Button>
                                     )}
                                 </div>
-                                {/* Vertical divider */}
-                                <span className="w-px h-5 bg-white/10 shrink-0 self-center" />
                             </>
                         )}
 
@@ -551,7 +549,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                             className="
                                 flex-1 bg-transparent border-none outline-none
                                 focus:ring-0 focus:outline-none
-                                text-[15px] leading-[1.5] text-[var(--color-text-primary)]
+                                text-[13px] leading-relaxed text-[var(--color-text-primary)]
                                 placeholder:text-[var(--color-text-tertiary)]
                                 px-4 py-3
                                 min-h-[44px] max-h-40

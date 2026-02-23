@@ -164,7 +164,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     return (
         <div
             className={`
-                fixed inset-0 z-50 flex items-center justify-center
+                fixed inset-0 z-50 flex items-center justify-center no-drag
                 bg-[var(--mat-overlay-bg)] backdrop-blur-md
                 transition-opacity duration-300
                 ${isOpen ? 'opacity-100' : 'opacity-0'}
@@ -178,7 +178,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <div
                 ref={panelRef}
                 className={`
-                    relative w-full 
+                    relative w-full no-drag
                     max-w-[1000px] min-w-[320px]
                     max-h-[720px] h-[85vh]
                     mx-4 sm:mx-6

@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useChatBridge } from './ChatBridge.js';
 import { TuiDesktopViewer } from './components/TuiDesktopViewer.js';
-import type { Topic, Message } from '../types.js';
+import type { Topic, Message, Project } from '../types.js';
 
 // Components
 import { ProjectSelector } from './components/ProjectSelector.js';
@@ -158,9 +158,33 @@ export function App() {
         const updateTopics = () => {
             const allTopics = bridge.getTopics();
             if (currentProjectId) {
-                setTopics(allTopics.filter(t => t.projectId === currentProjectId));
+                const filteredTopics = allTopics.filter(t => t.projectId === currentProjectId);
+                setTopics(filteredTopics);
+
+                const activeId = bridge.getActiveTopicId();
+                if (activeId) {
+                    const activeTopic = bridge.getTopic(activeId);
+                    if (!activeTopic || activeTopic.projectId !== currentProjectId) {
+                        setActiveTopicId(null);
+                        setMessages([]);
+                        setTuiSnapshot('');
+                        setAgentThinking('');
+                        setAgentReasoning('');
+                        setAgentState('IDLE');
+                        setAgentPaused(false);
+                        setViewMode('chat');
+                    }
+                }
             } else {
                 setTopics([]);
+                setActiveTopicId(null);
+                setMessages([]);
+                setTuiSnapshot('');
+                setAgentThinking('');
+                setAgentReasoning('');
+                setAgentState('IDLE');
+                setAgentPaused(false);
+                setViewMode('chat');
             }
         };
 
@@ -296,6 +320,9 @@ export function App() {
     }, [bridge, activeTopicId]);
 
     const activeTopic = (activeTopicId && bridge.getTopic(activeTopicId)) || null;
+    const currentProject: Project | null = currentProjectId
+        ? bridge.getProjects().find((project) => project.id === currentProjectId) ?? null
+        : null;
 
     if (connecting) return <ConnectionScreen status="connecting" />;
     if (!connected) return <ConnectionScreen status="error" onRetry={() => window.location.reload()} />;
@@ -306,6 +333,14 @@ export function App() {
                 <ProjectSelector
                     onSelectProject={(projectId) => {
                         setSettingsPanelOpen(false);
+                        setActiveTopicId(null);
+                        setMessages([]);
+                        setTuiSnapshot('');
+                        setAgentThinking('');
+                        setAgentReasoning('');
+                        setAgentState('IDLE');
+                        setAgentPaused(false);
+                        setViewMode('chat');
                         setCurrentProjectId(projectId);
                     }}
                     theme={theme}
@@ -326,19 +361,32 @@ export function App() {
         <div className="w-screen h-screen bg-[var(--mat-base)] rounded-[24px] overflow-hidden text-[var(--color-text-primary)] font-system selection:bg-[var(--color-accent)] selection:text-white relative flex box-border">
             {/* Background Layers */}
 
-            {/* Window Drag Region */}
-            <div className="fixed top-0 left-0 right-0 h-8 title-drag-region z-50" />
+            {/* Window Drag Regions (segmented to avoid pills) */}
+            <div className="fixed top-0 left-0 w-[280px] h-10 title-drag-region z-10" />
+            <div className="fixed top-0 left-[460px] right-[140px] h-10 title-drag-region z-10" />
+            <div className="fixed top-0 right-0 w-3 h-10 title-drag-region z-10" />
 
             {/* ======== Area 1: Sidebar (Layer 2) ======== */}
             <Sidebar
                 sidebarOpen={sidebarOpen}
                 topics={topics}
                 activeTopicId={activeTopicId}
+                currentProjectPath={currentProject?.path ?? null}
                 theme={theme}
                 onNewChat={handleNewChat}
                 onSelectTopic={handleSelectTopic}
                 toggleTheme={toggleTheme}
-                onSwitchProject={() => setCurrentProjectId(null)}
+                onSwitchProject={() => {
+                    setCurrentProjectId(null);
+                    setActiveTopicId(null);
+                    setMessages([]);
+                    setTuiSnapshot('');
+                    setAgentThinking('');
+                    setAgentReasoning('');
+                    setAgentState('IDLE');
+                    setAgentPaused(false);
+                    setViewMode('chat');
+                }}
                 onOpenSettings={openSettings}
                 getTopicState={(topicId) => bridge.getAgentState(topicId)}
                 getTopicPaused={(topicId) => bridge.isAgentPaused(topicId)}
@@ -349,6 +397,7 @@ export function App() {
                 {/* Area 2.1: Header (Layer 2 Islands) */}
                 <WorkspaceHeader
                     activeTopic={activeTopic}
+                    emptyTitle={'What’s on your mind today?'}
                     connected={connected}
                     sidebarOpen={sidebarOpen}
                     setSidebarOpen={setSidebarOpen}
