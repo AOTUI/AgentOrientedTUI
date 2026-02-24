@@ -8,7 +8,7 @@ export interface ParsedSkill {
 }
 
 function parseFrontmatter(raw: string): { data: Record<string, string>; content: string } {
-    const normalized = raw.replace(/^\uFEFF/, '');
+    const normalized = raw.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     if (!normalized.startsWith('---\n')) {
         return { data: {}, content: normalized };
     }

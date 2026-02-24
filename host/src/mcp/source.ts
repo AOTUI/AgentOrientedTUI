@@ -10,6 +10,9 @@ export class McpDrivenSource {
     public readonly name = "mcp-driven-source";
     private listeners: (() => void)[] = [];
     private toolsCache: Record<string, Tool> = {};
+    private sourceEnabled = true;
+    private disabledTools = new Set<string>();
+    private disabledServers = new Set<string>();
 
     constructor() {
         // Assume MCP updates will be polled or events emitted
@@ -19,6 +22,55 @@ export class McpDrivenSource {
         for (const listener of this.listeners) {
             listener();
         }
+    }
+
+    setEnabled(enabled: boolean): void {
+        this.sourceEnabled = enabled;
+        this.triggerUpdate();
+    }
+
+    setToolEnabled(toolName: string, enabled: boolean): void {
+        if (enabled) {
+            this.disabledTools.delete(toolName);
+        } else {
+            this.disabledTools.add(toolName);
+        }
+        this.triggerUpdate();
+    }
+
+    setServerEnabled(serverName: string, enabled: boolean): void {
+        if (enabled) {
+            this.disabledServers.delete(serverName);
+        } else {
+            this.disabledServers.add(serverName);
+        }
+        this.triggerUpdate();
+    }
+
+    getControlState(): { enabled: boolean; disabledTools: string[] } {
+        return {
+            enabled: this.sourceEnabled,
+            disabledTools: Array.from(this.disabledTools).sort((a, b) => a.localeCompare(b)),
+        };
+    }
+
+    private buildServerPrefix(serverName: string): string {
+        const sanitizedServer = serverName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        return `mcp-${sanitizedServer}-`;
+    }
+
+    private isToolAllowed(toolKey: string): boolean {
+        if (this.disabledTools.has(toolKey)) {
+            return false;
+        }
+
+        for (const serverName of this.disabledServers) {
+            if (toolKey.startsWith(this.buildServerPrefix(serverName))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     onUpdate(callback: () => void): () => void {
@@ -35,8 +87,15 @@ export class McpDrivenSource {
     // @ts-ignore - AI SDK Tool schemas version mismatch
     async getTools(): Promise<Record<string, Tool>> {
         log.info("Fetching tools from MCP manager");
+        if (!this.sourceEnabled) {
+            this.toolsCache = {};
+            return {};
+        }
         try {
-            this.toolsCache = await MCP.tools() as Record<string, Tool>;
+            const allTools = await MCP.tools() as Record<string, Tool>;
+            this.toolsCache = Object.fromEntries(
+                Object.entries(allTools).filter(([name]) => this.isToolAllowed(name)),
+            );
             return this.toolsCache as any;
         } catch (e) {
             log.error("Failed to fetch tools", e);

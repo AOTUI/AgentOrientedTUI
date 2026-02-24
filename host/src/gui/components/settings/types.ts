@@ -21,6 +21,8 @@ export interface SettingsPanelProps {
     theme: 'dark' | 'light';
     /** Callback when theme changes */
     onThemeChange: (theme: 'dark' | 'light') => void;
+    /** Current selected project path (optional) */
+    currentProjectPath?: string | null;
 }
 
 /**
@@ -28,7 +30,7 @@ export interface SettingsPanelProps {
  */
 export interface SettingsPanelState {
     /** Currently active tab */
-    activeTab: 'model' | 'theme' | 'apps' | 'mcp';
+    activeTab: 'model' | 'theme' | 'apps' | 'mcp' | 'skills';
 }
 
 /**
@@ -38,9 +40,9 @@ export interface SettingsPanelState {
  */
 export interface SettingsSidebarProps {
     /** Currently active tab */
-    activeTab: 'model' | 'theme' | 'apps' | 'mcp';
+    activeTab: 'model' | 'theme' | 'apps' | 'mcp' | 'skills';
     /** Callback when tab changes */
-    onTabChange: (tab: 'model' | 'theme' | 'apps' | 'mcp') => void;
+    onTabChange: (tab: 'model' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
 }
 
 /**

@@ -17,6 +17,8 @@ export class SkillDrivenSource {
     private listeners = new Set<() => void>();
     private logger = new Logger('SkillDrivenSource');
     private catalog: SkillCatalogService;
+    private sourceEnabled = true;
+    private disabledSkills = new Set<string>();
 
     constructor(options: SkillDrivenSourceOptions = {}) {
         this.catalog = new SkillCatalogService({ projectPath: options.projectPath });
@@ -26,15 +28,47 @@ export class SkillDrivenSource {
         return [];
     }
 
+    triggerUpdate(): void {
+        for (const listener of this.listeners) {
+            listener();
+        }
+    }
+
+    setEnabled(enabled: boolean): void {
+        this.sourceEnabled = enabled;
+        this.triggerUpdate();
+    }
+
+    setSkillEnabled(skillName: string, enabled: boolean): void {
+        if (enabled) {
+            this.disabledSkills.delete(skillName);
+        } else {
+            this.disabledSkills.add(skillName);
+        }
+        this.triggerUpdate();
+    }
+
+    getControlState(): { enabled: boolean; disabledSkills: string[] } {
+        return {
+            enabled: this.sourceEnabled,
+            disabledSkills: Array.from(this.disabledSkills).sort((a, b) => a.localeCompare(b)),
+        };
+    }
+
     // @ts-ignore - AI SDK Tool schemas version mismatch across workspace packages
     async getTools(): Promise<Record<string, any>> {
+        if (!this.sourceEnabled) {
+            return {};
+        }
+
         const skills = await this.catalog.listSkills();
+        const enabledSkills = skills.filter((skill) => !this.disabledSkills.has(skill.name));
         const description =
-            skills.length === 0
+            enabledSkills.length === 0
                 ? 'Load a specialized skill. No skills are currently available.'
                 : [
                     'Load a specialized skill by name. Available skills:',
-                    ...skills.map((skill) => `- ${skill.name}: ${skill.description}`),
+                    ...enabledSkills.map((skill) => `- ${skill.name}: ${skill.description}`),
                 ].join('\n');
 
         const skillTool = dynamicTool({
@@ -87,6 +121,17 @@ export class SkillDrivenSource {
                 error: {
                     code: 'E_SKILL_NOT_FOUND',
                     message: `Skill "${requested}" not found. Available skills: ${available}`,
+                },
+            };
+        }
+
+        if (this.disabledSkills.has(skill.name)) {
+            return {
+                toolCallId,
+                toolName,
+                error: {
+                    code: 'E_SKILL_DISABLED',
+                    message: `Skill "${skill.name}" is temporarily disabled for this topic.`,
                 },
             };
         }

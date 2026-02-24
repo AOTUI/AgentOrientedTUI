@@ -19,6 +19,24 @@ import { SettingsPanel } from './components/settings/SettingsPanel.js';
 
 type ViewMode = 'chat' | 'tui';
 
+type TopicCapabilities = {
+    mcp: {
+        enabled: boolean;
+        groups: Array<{
+            key: string;
+            serverName: string;
+            enabled: boolean;
+            connected: boolean;
+            items: Array<{ key: string; name: string; enabled: boolean }>;
+        }>;
+    };
+    skill: {
+        enabled: boolean;
+        items: Array<{ name: string; enabled: boolean }>;
+    };
+    apps: Array<{ name: string; enabled: boolean }>;
+};
+
 export function App() {
     const bridge = useChatBridge();
 
@@ -51,6 +69,7 @@ export function App() {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [canSendMessage, setCanSendMessage] = useState(false);
     const [sendBlockedReason, setSendBlockedReason] = useState<string | null>(null);
+    const [topicCapabilities, setTopicCapabilities] = useState<TopicCapabilities | null>(null);
 
     // Init Theme
     useEffect(() => {
@@ -313,6 +332,69 @@ export function App() {
         await bridge.renameTopic(topicId, newTitle);
     }, [bridge]);
 
+    const refreshTopicCapabilities = useCallback(async (topicId: string) => {
+        const projectPath = currentProjectId
+            ? bridge.getProjects().find((project) => project.id === currentProjectId)?.path
+            : undefined;
+
+        try {
+            const data = await bridge.getTrpcClient().sourceControl.getTopic.query({
+                id: topicId,
+                projectPath,
+            });
+            setTopicCapabilities(data as TopicCapabilities);
+        } catch (error) {
+            console.error('[App] Failed to load topic capabilities:', error);
+            setTopicCapabilities(null);
+        }
+    }, [bridge, currentProjectId]);
+
+    useEffect(() => {
+        if (!activeTopicId) {
+            setTopicCapabilities(null);
+            return;
+        }
+        void refreshTopicCapabilities(activeTopicId);
+    }, [activeTopicId, refreshTopicCapabilities]);
+
+    const handleToggleCapabilityGroup = useCallback(async (source: 'mcp' | 'skill', enabled: boolean) => {
+        if (!activeTopicId) return;
+        try {
+            await bridge.getTrpcClient().sourceControl.setSourceEnabled.mutate({
+                id: activeTopicId,
+                source,
+                enabled,
+            });
+            await refreshTopicCapabilities(activeTopicId);
+        } catch (error) {
+            console.error('[App] Failed to toggle capability group:', error);
+        }
+    }, [bridge, activeTopicId, refreshTopicCapabilities]);
+
+    const handleToggleCapabilityItem = useCallback(async (source: 'mcp' | 'skill', itemName: string, enabled: boolean) => {
+        if (!activeTopicId) return;
+        try {
+            await bridge.getTrpcClient().sourceControl.setItemEnabled.mutate({
+                id: activeTopicId,
+                source,
+                itemName,
+                enabled,
+            });
+            await refreshTopicCapabilities(activeTopicId);
+        } catch (error) {
+            console.error('[App] Failed to toggle capability item:', error);
+        }
+    }, [bridge, activeTopicId, refreshTopicCapabilities]);
+
+    const handleToggleApp = useCallback(async (name: string, enabled: boolean) => {
+        try {
+            await bridge.getTrpcClient().apps.setEnabled.mutate({ name, enabled });
+            if (activeTopicId) await refreshTopicCapabilities(activeTopicId);
+        } catch (error) {
+            console.error('[App] Failed to toggle app:', error);
+        }
+    }, [bridge, activeTopicId, refreshTopicCapabilities]);
+
     const handleDeleteTopic = useCallback(async () => {
         if (!activeTopicId) return;
         await bridge.destroyDesktop(activeTopicId);
@@ -357,6 +439,7 @@ export function App() {
                     onClose={closeSettings}
                     theme={theme}
                     onThemeChange={setTheme}
+                    currentProjectPath={null}
                 />
             </>
         );
@@ -430,6 +513,11 @@ export function App() {
                                 displayAgentState={displayAgentState}
                                 onPauseAgent={handlePauseAgent}
                                 onResumeAgent={handleResumeAgent}
+                                topicCapabilities={topicCapabilities}
+                                onToggleCapabilityGroup={handleToggleCapabilityGroup}
+                                onToggleCapabilityItem={handleToggleCapabilityItem}
+                                onToggleApp={handleToggleApp}
+                                capabilityHint="Temporary overrides for current topic only."
                             />
                         ) : (
                             <div className="absolute inset-0 bg-[var(--color-bg-base)] rounded-2xl overflow-hidden border border-[var(--mat-border)]">
@@ -456,6 +544,7 @@ export function App() {
                 onClose={closeSettings}
                 theme={theme}
                 onThemeChange={setTheme}
+                currentProjectPath={currentProject?.path ?? null}
             />
         </div>
     );

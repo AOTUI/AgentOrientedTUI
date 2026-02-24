@@ -12,6 +12,9 @@ import type { LLMConfigService } from '../core/llm-config-service.js';
 import type { ModelRegistry } from '../services/model-registry.js';
 import { MessageServiceV2 } from '../core/message-service-v2.js';
 import { Config } from '../config/config.js';
+import { SkillCatalogService } from '../skills/skill-catalog-service.js';
+import { getGlobalSkillsDir, getProjectSkillsDir } from '../skills/skill-config.js';
+import { importSkillZipToDirectory } from '../skills/skill-importer.js';
 
 import type { GuiUpdateEvent } from '../core/host-manager-v2.js';
 
@@ -359,6 +362,21 @@ function normalizeMcpServerEntry(entry: Record<string, any>): Record<string, any
     return normalized;
 }
 
+function normalizeSkillsConfig(rawSkills: unknown): {
+    enabled: boolean;
+    disabledSkills: string[];
+} {
+    const raw = rawSkills && typeof rawSkills === 'object' ? (rawSkills as Record<string, unknown>) : {};
+    const disabledSkills = Array.isArray(raw.disabledSkills)
+        ? raw.disabledSkills.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+        : [];
+
+    return {
+        enabled: raw.enabled !== false,
+        disabledSkills: Array.from(new Set(disabledSkills)).sort((a, b) => a.localeCompare(b)),
+    };
+}
+
 function normalizeMcpConfig(rawMcp: unknown): Record<string, any> {
     const raw = rawMcp && typeof rawMcp === 'object' ? (rawMcp as Record<string, any>) : {};
     const container = raw.mcpServers && typeof raw.mcpServers === 'object'
@@ -516,6 +534,247 @@ const mcpRouter = router({
         }),
 });
 
+const skillsRouter = router({
+    getLocations: publicProcedure
+        .input(z.object({ projectPath: z.string().optional() }).optional())
+        .query(async ({ input }) => {
+            return {
+                globalPath: getGlobalSkillsDir(),
+                projectPath: input?.projectPath ? getProjectSkillsDir(input.projectPath) : null,
+            };
+        }),
+
+    getConfig: publicProcedure
+        .query(async () => {
+            const config = await Config.getGlobal();
+            return normalizeSkillsConfig(config.skills ?? {});
+        }),
+
+    updateConfig: publicProcedure
+        .input(z.object({
+            skills: z.object({
+                enabled: z.boolean(),
+                disabledSkills: z.array(z.string()),
+            }),
+        }))
+        .mutation(async ({ input }) => {
+            const normalized = normalizeSkillsConfig(input.skills);
+            await Config.updateGlobal({
+                skills: {
+                    enabled: normalized.enabled,
+                    disabledSkills: normalized.disabledSkills,
+                },
+            });
+            return { success: true };
+        }),
+
+    importZip: publicProcedure
+        .input(z.object({
+            scope: z.enum(['global', 'project']),
+            projectPath: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+            const targetDirectory = input.scope === 'global'
+                ? getGlobalSkillsDir()
+                : (input.projectPath ? getProjectSkillsDir(input.projectPath) : null);
+
+            if (!targetDirectory) {
+                throw new Error('Project path is required for project-scoped skill import');
+            }
+
+            const result = await dialog.showOpenDialog({
+                properties: ['openFile'],
+                filters: [{ name: 'ZIP files', extensions: ['zip'] }],
+            });
+
+            if (result.canceled || result.filePaths.length === 0) {
+                return { success: false, canceled: true };
+            }
+
+            const zipPath = result.filePaths[0];
+            const importResult = await importSkillZipToDirectory(zipPath, targetDirectory);
+
+            return {
+                success: true,
+                canceled: false,
+                targetDirectory,
+                zipPath,
+                writtenFiles: importResult.writtenFiles,
+            };
+        }),
+
+    getRuntime: publicProcedure
+        .input(z.object({ projectPath: z.string().optional() }).optional())
+        .query(async ({ input }) => {
+            const config = await Config.getGlobal();
+            const normalized = normalizeSkillsConfig(config.skills ?? {});
+            const service = new SkillCatalogService({ projectPath: input?.projectPath });
+            const skills = await service.listSkills();
+
+            return {
+                enabled: normalized.enabled,
+                skills: skills.map((skill) => ({
+                    name: skill.name,
+                    description: skill.description,
+                    scope: skill.scope,
+                    enabled: !normalized.disabledSkills.includes(skill.name),
+                })),
+            };
+        }),
+
+    setSkillsEnabled: publicProcedure
+        .input(z.object({ enabled: z.boolean() }))
+        .mutation(async ({ input }) => {
+            const config = await Config.getGlobal();
+            const normalized = normalizeSkillsConfig(config.skills ?? {});
+            await Config.updateGlobal({
+                skills: {
+                    ...normalized,
+                    enabled: input.enabled,
+                },
+            });
+            return { success: true };
+        }),
+
+    setSkillEnabled: publicProcedure
+        .input(z.object({ name: z.string(), enabled: z.boolean() }))
+        .mutation(async ({ input }) => {
+            const config = await Config.getGlobal();
+            const normalized = normalizeSkillsConfig(config.skills ?? {});
+            const disabled = new Set(normalized.disabledSkills);
+
+            if (input.enabled) {
+                disabled.delete(input.name);
+            } else {
+                disabled.add(input.name);
+            }
+
+            await Config.updateGlobal({
+                skills: {
+                    ...normalized,
+                    disabledSkills: Array.from(disabled).sort((a, b) => a.localeCompare(b)),
+                },
+            });
+
+            return { success: true };
+        }),
+});
+
+const sourceControlRouter = router({
+    getTopic: publicProcedure
+        .input(z.object({ id: z.string(), projectPath: z.string().optional() }))
+        .query(async ({ input, ctx }) => {
+            const sourceState = ctx.hostManager.getSourceControlState(input.id);
+
+            const { MCP } = await import('../mcp/index.js');
+            const config = await Config.getGlobal();
+            const mcpConfig: Record<string, any> = normalizeMcpConfig(config.mcp ?? (config as Record<string, any>).mcpServers ?? {});
+            const statusMap = await MCP.status();
+            const clientsMap = await MCP.clients();
+
+            const buildMcpItemKey = (serverName: string, toolName: string) => {
+                const sanitizedServer = serverName.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const sanitizedTool = toolName.replace(/[^a-zA-Z0-9_-]/g, '_');
+                return `mcp-${sanitizedServer}-${sanitizedTool}`;
+            };
+
+            const serverNames = Array.from(new Set<string>([
+                ...Object.keys(mcpConfig),
+                ...Object.keys(statusMap),
+            ])).sort((a, b) => a.localeCompare(b));
+
+            const mcpGroups: Array<{
+                key: string;
+                serverName: string;
+                enabled: boolean;
+                connected: boolean;
+                items: Array<{ key: string; name: string; enabled: boolean }>;
+            }> = [];
+
+            for (const serverName of serverNames) {
+                const serverKey = `server:${serverName}`;
+                // Combine global config enabled state with topic-level override
+                const isGloballyEnabled = mcpConfig[serverName]?.enabled !== false;
+                const isTopicOverrideDisabled = sourceState.mcp.disabledItems.includes(serverKey);
+                const serverEnabled = isGloballyEnabled && !isTopicOverrideDisabled;
+
+                const serverStatus = (statusMap as Record<string, { status: string; error?: string }>)[serverName]
+                    ?? { status: mcpConfig[serverName]?.enabled === false ? 'disabled' : 'failed' };
+                const connected = serverStatus.status === 'connected';
+                const client = clientsMap[serverName];
+                const serverItems: Array<{ key: string; name: string; enabled: boolean }> = [];
+
+                if (connected && client) {
+                    try {
+                        const toolsResult = await client.listTools();
+                        for (const tool of toolsResult.tools) {
+                            const key = buildMcpItemKey(serverName, tool.name);
+                            serverItems.push({
+                                key,
+                                name: tool.name,
+                                enabled: !sourceState.mcp.disabledItems.includes(key),
+                            });
+                        }
+                    } catch {
+                    }
+                }
+
+                mcpGroups.push({
+                    key: serverKey,
+                    serverName,
+                    enabled: serverEnabled,
+                    connected,
+                    items: serverItems.sort((a, b) => a.name.localeCompare(b.name)),
+                });
+            }
+
+            const skillService = new SkillCatalogService({ projectPath: input.projectPath });
+            const skillEntries = await skillService.listSkills();
+            const appsConfig = await Config.getAppsConfig();
+            const appItems = Object.entries(appsConfig)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([name, entry]) => ({ name, enabled: (entry as any).enabled !== false }));
+
+            return {
+                mcp: {
+                    enabled: sourceState.mcp.enabled,
+                    groups: mcpGroups,
+                },
+                skill: {
+                    enabled: sourceState.skill.enabled,
+                    items: skillEntries.map((skill) => ({
+                        name: skill.name,
+                        enabled: !sourceState.skill.disabledItems.includes(skill.name),
+                    })),
+                },
+                apps: appItems,
+            };
+        }),
+
+    setSourceEnabled: publicProcedure
+        .input(z.object({
+            id: z.string(),
+            source: z.enum(['mcp', 'skill']),
+            enabled: z.boolean(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            ctx.hostManager.setSourceEnabled(input.id, input.source, input.enabled);
+            return { success: true };
+        }),
+
+    setItemEnabled: publicProcedure
+        .input(z.object({
+            id: z.string(),
+            source: z.enum(['mcp', 'skill']),
+            itemName: z.string(),
+            enabled: z.boolean(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            ctx.hostManager.setSourceItemEnabled(input.id, input.source, input.itemName, input.enabled);
+            return { success: true };
+        }),
+});
+
 export const appRouter = router({
     db: dbRouter,
     chat: chatRouter,
@@ -525,6 +784,8 @@ export const appRouter = router({
     modelRegistry: modelRegistryRouter,
     apps: appsRouter,
     mcp: mcpRouter,
+    skills: skillsRouter,
+    sourceControl: sourceControlRouter,
 });
 
 export type AppRouter = typeof appRouter;

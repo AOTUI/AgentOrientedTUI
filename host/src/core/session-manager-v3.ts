@@ -46,6 +46,11 @@ export class SessionManagerV3 extends EventEmitter {
     private messageService: MessageServiceV2;
     private logger: Logger;
     private cleanupTimer: NodeJS.Timeout | null = null;
+    private sourceControlsByTopic: Map<string, {
+        mcp: { enabled: boolean; disabledItems: Set<string> };
+        skill: { enabled: boolean; disabledItems: Set<string> };
+    }> = new Map();
+    private static readonly MCP_SERVER_KEY_PREFIX = 'server:';
 
     // 配置
     private config: Required<SessionManagerConfig>;
@@ -190,6 +195,7 @@ export class SessionManagerV3 extends EventEmitter {
 
         const mcpDrivenSource = new McpDrivenSource();
         const skillDrivenSource = new SkillDrivenSource({ projectPath });
+        this.applySourceControls(topicId, mcpDrivenSource, skillDrivenSource);
 
         // 4. 创建 AgentDriver
         const { providerId, modelId, modelLabel } = (() => {
@@ -305,6 +311,97 @@ export class SessionManagerV3 extends EventEmitter {
         };
     }
 
+    private getOrInitSourceControls(topicId: string) {
+        let existing = this.sourceControlsByTopic.get(topicId);
+        if (existing) {
+            return existing;
+        }
+
+        existing = {
+            mcp: { enabled: true, disabledItems: new Set<string>() },
+            skill: { enabled: true, disabledItems: new Set<string>() },
+        };
+        this.sourceControlsByTopic.set(topicId, existing);
+        return existing;
+    }
+
+    private applySourceControls(topicId: string, mcpSource?: McpDrivenSource, skillSource?: SkillDrivenSource): void {
+        const controls = this.getOrInitSourceControls(topicId);
+        if (mcpSource) {
+            mcpSource.setEnabled(controls.mcp.enabled);
+            controls.mcp.disabledItems.forEach((item) => {
+                if (item.startsWith(SessionManagerV3.MCP_SERVER_KEY_PREFIX)) {
+                    const serverName = item.slice(SessionManagerV3.MCP_SERVER_KEY_PREFIX.length);
+                    if (serverName) {
+                        mcpSource.setServerEnabled(serverName, false);
+                    }
+                    return;
+                }
+                mcpSource.setToolEnabled(item, false);
+            });
+        }
+        if (skillSource) {
+            skillSource.setEnabled(controls.skill.enabled);
+            controls.skill.disabledItems.forEach((item) => skillSource.setSkillEnabled(item, false));
+        }
+    }
+
+    getSourceControlState(topicId: string): {
+        mcp: { enabled: boolean; disabledItems: string[] };
+        skill: { enabled: boolean; disabledItems: string[] };
+    } {
+        const controls = this.getOrInitSourceControls(topicId);
+        return {
+            mcp: {
+                enabled: controls.mcp.enabled,
+                disabledItems: Array.from(controls.mcp.disabledItems).sort((a, b) => a.localeCompare(b)),
+            },
+            skill: {
+                enabled: controls.skill.enabled,
+                disabledItems: Array.from(controls.skill.disabledItems).sort((a, b) => a.localeCompare(b)),
+            },
+        };
+    }
+
+    setSourceEnabled(topicId: string, source: 'mcp' | 'skill', enabled: boolean): void {
+        const controls = this.getOrInitSourceControls(topicId);
+        controls[source].enabled = enabled;
+
+        const session = this.sessions.get(topicId);
+        if (session) {
+            if (source === 'mcp') {
+                session.sources.mcp.setEnabled(enabled);
+            } else {
+                session.sources.skill.setEnabled(enabled);
+            }
+        }
+    }
+
+    setSourceItemEnabled(topicId: string, source: 'mcp' | 'skill', itemName: string, enabled: boolean): void {
+        const controls = this.getOrInitSourceControls(topicId);
+        if (enabled) {
+            controls[source].disabledItems.delete(itemName);
+        } else {
+            controls[source].disabledItems.add(itemName);
+        }
+
+        const session = this.sessions.get(topicId);
+        if (session) {
+            if (source === 'mcp') {
+                if (itemName.startsWith(SessionManagerV3.MCP_SERVER_KEY_PREFIX)) {
+                    const serverName = itemName.slice(SessionManagerV3.MCP_SERVER_KEY_PREFIX.length);
+                    if (serverName) {
+                        session.sources.mcp.setServerEnabled(serverName, enabled);
+                    }
+                } else {
+                    session.sources.mcp.setToolEnabled(itemName, enabled);
+                }
+            } else {
+                session.sources.skill.setSkillEnabled(itemName, enabled);
+            }
+        }
+    }
+
     /**
      * 发送用户消息
      * 
@@ -374,6 +471,7 @@ export class SessionManagerV3 extends EventEmitter {
             // 4. 清理引用
             this.sessions.delete(topicId);
             this.inFlightSessions.delete(topicId);
+            this.sourceControlsByTopic.delete(topicId);
 
             this.logger.info('Session destroyed', {
                 topicId,
@@ -384,6 +482,7 @@ export class SessionManagerV3 extends EventEmitter {
             // 即使失败也要清理引用
             this.sessions.delete(topicId);
             this.inFlightSessions.delete(topicId);
+            this.sourceControlsByTopic.delete(topicId);
         }
     }
 
@@ -406,6 +505,7 @@ export class SessionManagerV3 extends EventEmitter {
             session.state = 'destroyed';
             this.sessions.delete(topicId);
             this.inFlightSessions.delete(topicId);
+            this.sourceControlsByTopic.delete(topicId);
 
             this.logger.info('Session gracefully shutdown', {
                 topicId,
@@ -415,6 +515,7 @@ export class SessionManagerV3 extends EventEmitter {
             this.logger.error('Failed to shutdown session', { topicId, error });
             this.sessions.delete(topicId);
             this.inFlightSessions.delete(topicId);
+            this.sourceControlsByTopic.delete(topicId);
         }
     }
 

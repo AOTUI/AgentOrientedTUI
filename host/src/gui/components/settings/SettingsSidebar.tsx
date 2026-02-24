@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { IconModel, IconTheme, IconPlug, IconFolder } from '../Icons.js';
+import { IconModel, IconTheme, IconPlug, IconFolder, IconTerminal } from '../Icons.js';
 import type { SettingsSidebarProps } from './types.js';
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange }) => {
@@ -96,6 +96,22 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                     aria-hidden="true"
                 />
                 <span className={`text-[13px] ${activeTab === 'mcp' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>MCP</span>
+            </button>
+
+            {/* Skills Tab Button */}
+            <button
+                onClick={() => onTabChange('skills')}
+                role="tab"
+                aria-selected={activeTab === 'skills'}
+                aria-controls="skills-tab-panel"
+                id="skills-tab"
+                className={`${baseBtnClass} ${activeTab === 'skills' ? activeBtnClass : inactiveBtnClass}`}
+            >
+                <IconTerminal
+                    className={`w-4 h-4 ${activeTab === 'skills' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
+                    aria-hidden="true"
+                />
+                <span className={`text-[13px] ${activeTab === 'skills' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Skills</span>
             </button>
         </nav>
     );

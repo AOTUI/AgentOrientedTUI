@@ -217,6 +217,33 @@ export class HostManagerV2 {
         return this.sessionManager;
     }
 
+    getSourceControlState(topicId: string): {
+        mcp: { enabled: boolean; disabledItems: string[] };
+        skill: { enabled: boolean; disabledItems: string[] };
+    } {
+        if (!this.sessionManager) {
+            throw new Error('SessionManager not initialized. Call initAgentDriver first.');
+        }
+
+        return this.sessionManager.getSourceControlState(topicId);
+    }
+
+    setSourceEnabled(topicId: string, source: 'mcp' | 'skill', enabled: boolean): void {
+        if (!this.sessionManager) {
+            throw new Error('SessionManager not initialized. Call initAgentDriver first.');
+        }
+
+        this.sessionManager.setSourceEnabled(topicId, source, enabled);
+    }
+
+    setSourceItemEnabled(topicId: string, source: 'mcp' | 'skill', itemName: string, enabled: boolean): void {
+        if (!this.sessionManager) {
+            throw new Error('SessionManager not initialized. Call initAgentDriver first.');
+        }
+
+        this.sessionManager.setSourceItemEnabled(topicId, source, itemName, enabled);
+    }
+
     /**
      * 清理资源
      */

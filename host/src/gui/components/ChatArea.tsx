@@ -2,12 +2,37 @@ import React, { useRef, useEffect } from 'react';
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
-import { IconSend, IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused } from './Icons.js';
+import { IconSend, IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconMCP } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import type { Message } from '../../types.js';
 
 export type DisplayAgentState = 'sleeping' | 'idle' | 'working' | 'paused';
+
+type CapabilityItem = {
+    name: string;
+    enabled: boolean;
+};
+
+type CapabilityGroup = {
+    enabled: boolean;
+    items: CapabilityItem[];
+};
+
+type TopicCapabilities = {
+    mcp: {
+        enabled: boolean;
+        groups: Array<{
+            key: string;
+            serverName: string;
+            enabled: boolean;
+            connected: boolean;
+            items: Array<{ key: string; name: string; enabled: boolean }>;
+        }>;
+    };
+    skill: CapabilityGroup;
+    apps: Array<{ name: string; enabled: boolean }>;
+};
 
 interface ChatAreaProps {
     messages: Message[];
@@ -20,6 +45,11 @@ interface ChatAreaProps {
     displayAgentState?: DisplayAgentState;
     onPauseAgent?: () => void;
     onResumeAgent?: () => void;
+    topicCapabilities?: TopicCapabilities | null;
+    onToggleCapabilityGroup?: (source: 'mcp' | 'skill', enabled: boolean) => void;
+    onToggleCapabilityItem?: (source: 'mcp' | 'skill', itemName: string, enabled: boolean) => void;
+    onToggleApp?: (name: string, enabled: boolean) => void;
+    capabilityHint?: string | null;
 }
 
 type ToolTraceStep = {
@@ -51,12 +81,57 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent }: ChatAreaProps) {
+export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent, topicCapabilities = null, onToggleCapabilityGroup, onToggleCapabilityItem, onToggleApp, capabilityHint = null }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const capPanelRef = useRef<HTMLDivElement>(null);
     const [inputValue, setInputValue] = React.useState('');
     const [expandedTraceKeys, setExpandedTraceKeys] = React.useState<Record<string, boolean>>({});
+    const [openCapPanel, setOpenCapPanel] = React.useState<'apps' | 'skills' | 'mcp' | null>(null);
+
+    // Close capability panels when clicking outside
+    useEffect(() => {
+        if (!openCapPanel) return;
+        const handleOutside = (e: MouseEvent) => {
+            if (capPanelRef.current && !capPanelRef.current.contains(e.target as Node)) {
+                setOpenCapPanel(null);
+            }
+        };
+        document.addEventListener('mousedown', handleOutside);
+        return () => document.removeEventListener('mousedown', handleOutside);
+    }, [openCapPanel]);
+
+    const toggleCapPanel = (panel: 'apps' | 'skills' | 'mcp') => {
+        setOpenCapPanel(prev => prev === panel ? null : panel);
+    };
+
+    const renderToggle = (checked: boolean, onChange: (v: boolean) => void, disabled = false) => (
+        <button
+            role="switch"
+            aria-checked={checked}
+            disabled={disabled}
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onChange(!checked);
+            }}
+            className={`
+                relative inline-flex items-center shrink-0 rounded-full border border-transparent
+                transition-colors duration-200 focus:outline-none w-7 h-4
+                ${checked ? 'bg-[var(--color-accent)]' : 'bg-[var(--mat-border)]'}
+                ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+            `}
+        >
+            <span
+                className={`
+                    inline-block rounded-full bg-white shadow transition-transform duration-200
+                    w-3 h-3 translate-x-0.5
+                    ${checked ? 'translate-x-3' : ''}
+                `}
+            />
+        </button>
+    );
 
     const toggleTraceExpand = (traceKey: string) => {
         const scrollArea = scrollAreaRef.current;
@@ -538,6 +613,144 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         <IconPause />
                                     </Button>
                                 )
+                            )}
+
+                            {topicCapabilities && (
+                                <div ref={capPanelRef} className="relative flex items-center gap-1">
+                                    {/* ── Apps Button ── */}
+                                    <button
+                                        onClick={() => toggleCapPanel('apps')}
+                                        className={`px-2 py-1 rounded-full text-[11px] inline-flex items-center gap-1.5 transition-colors
+                                            ${openCapPanel === 'apps'
+                                                ? 'bg-[var(--color-accent)] text-white'
+                                                : 'text-[var(--color-text-secondary)] bg-[var(--mat-content-card-hover-bg)]'}`}
+                                        aria-label="Apps"
+                                    >
+                                        <IconApps className="w-3.5 h-3.5" />
+                                        <span>Apps</span>
+                                    </button>
+
+                                    {/* ── Skills Button ── */}
+                                    <button
+                                        onClick={() => toggleCapPanel('skills')}
+                                        className={`px-2 py-1 rounded-full text-[11px] inline-flex items-center gap-1.5 transition-colors
+                                            ${openCapPanel === 'skills'
+                                                ? 'bg-[var(--color-accent)] text-white'
+                                                : 'text-[var(--color-text-secondary)] bg-[var(--mat-content-card-hover-bg)]'}`}
+                                        aria-label="Skills"
+                                    >
+                                        <IconSkills className="w-3.5 h-3.5" />
+                                        <span>Skills</span>
+                                    </button>
+
+                                    {/* ── MCP Button ── */}
+                                    <button
+                                        onClick={() => toggleCapPanel('mcp')}
+                                        className={`px-2 py-1 rounded-full text-[11px] inline-flex items-center gap-1.5 transition-colors
+                                            ${openCapPanel === 'mcp'
+                                                ? 'bg-[var(--color-accent)] text-white'
+                                                : 'text-[var(--color-text-secondary)] bg-[var(--mat-content-card-hover-bg)]'}`}
+                                        aria-label="MCP"
+                                    >
+                                        <IconMCP className="w-3.5 h-3.5" />
+                                        <span>MCP</span>
+                                    </button>
+
+                                    {/* ── Apps Panel ── */}
+                                    {openCapPanel === 'apps' && (
+                                        <div className="absolute bottom-[52px] left-0 w-[300px] max-h-[280px] overflow-auto rounded-2xl border border-[var(--mat-border)] bg-[var(--mat-lg-regular-bg)] p-3 shadow-lg z-40">
+                                            {capabilityHint && (
+                                                <div className="mb-2 text-[11px] text-[var(--color-text-tertiary)]">{capabilityHint}</div>
+                                            )}
+                                            {topicCapabilities.apps.length === 0 ? (
+                                                <div className="text-[11px] text-[var(--color-text-tertiary)]">No apps found</div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    {topicCapabilities.apps.map((app) => (
+                                                        <label key={`app-${app.name}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
+                                                            <span className="truncate">{app.name}</span>
+                                                            {renderToggle(app.enabled, (value) => onToggleApp?.(app.name, value))}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* ── Skills Panel ── */}
+                                    {openCapPanel === 'skills' && (
+                                        <div className="absolute bottom-[52px] left-0 w-[300px] max-h-[280px] overflow-auto rounded-2xl border border-[var(--mat-border)] bg-[var(--mat-lg-regular-bg)] p-3 shadow-lg z-40">
+                                            {capabilityHint && (
+                                                <div className="mb-2 text-[11px] text-[var(--color-text-tertiary)]">{capabilityHint}</div>
+                                            )}
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[12px] font-medium text-[var(--color-text-primary)]">Skills</span>
+                                                {renderToggle(topicCapabilities.skill.enabled, (value) => onToggleCapabilityGroup?.('skill', value))}
+                                            </div>
+                                            {topicCapabilities.skill.items.length === 0 ? (
+                                                <div className="text-[11px] text-[var(--color-text-tertiary)]">No skills available</div>
+                                            ) : (
+                                                <div className={`space-y-1 ${topicCapabilities.skill.enabled ? '' : 'opacity-45'}`}>
+                                                    {topicCapabilities.skill.items.map((item) => (
+                                                        <label key={`skill-${item.name}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
+                                                            <span className="truncate">{item.name}</span>
+                                                            {renderToggle(
+                                                                item.enabled,
+                                                                (value) => onToggleCapabilityItem?.('skill', item.name, value),
+                                                                !topicCapabilities.skill.enabled,
+                                                            )}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* ── MCP Panel ── */}
+                                    {openCapPanel === 'mcp' && (
+                                        <div className="absolute bottom-[52px] left-0 w-[320px] max-h-[300px] overflow-auto rounded-2xl border border-[var(--mat-border)] bg-[var(--mat-lg-regular-bg)] p-3 shadow-lg z-40">
+                                            {capabilityHint && (
+                                                <div className="mb-2 text-[11px] text-[var(--color-text-tertiary)]">{capabilityHint}</div>
+                                            )}
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[12px] font-medium text-[var(--color-text-primary)]">MCP</span>
+                                                {renderToggle(topicCapabilities.mcp.enabled, (value) => onToggleCapabilityGroup?.('mcp', value))}
+                                            </div>
+                                            <div className={`space-y-2 ${topicCapabilities.mcp.enabled ? '' : 'opacity-45'}`}>
+                                                {topicCapabilities.mcp.groups.map((group) => (
+                                                    <details key={`mcp-group-${group.serverName}`} className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2" open>
+                                                        <summary className="list-none cursor-pointer flex items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${group.connected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-text-tertiary)]'}`} />
+                                                                <span className="text-[10px] font-medium text-[var(--color-text-tertiary)] truncate">{group.serverName}</span>
+                                                            </div>
+                                                            {renderToggle(
+                                                                group.enabled,
+                                                                (value) => onToggleCapabilityItem?.('mcp', group.key, value),
+                                                                !topicCapabilities.mcp.enabled,
+                                                            )}
+                                                        </summary>
+                                                        {/* Only show tools area when server is connected AND enabled */}
+                                                        {group.connected && (
+                                                            <div className={`mt-1 space-y-1 ${(topicCapabilities.mcp.enabled && group.enabled) ? '' : 'opacity-45'}`}>
+                                                                {group.items.map((item) => (
+                                                                    <label key={`mcp-${item.key}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
+                                                                        <span className="truncate">{item.name}</span>
+                                                                        {renderToggle(
+                                                                            item.enabled,
+                                                                            (value) => onToggleCapabilityItem?.('mcp', item.key, value),
+                                                                            !topicCapabilities.mcp.enabled || !group.enabled,
+                                                                        )}
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </details>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
 

@@ -72,6 +72,8 @@ export interface Info {
   $schema?: string
   mcp?: Record<string, Mcp | { enabled: boolean }>
   skills?: {
+    enabled?: boolean
+    disabledSkills?: string[]
     paths?: string[]
     urls?: string[]
   }

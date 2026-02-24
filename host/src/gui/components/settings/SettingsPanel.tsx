@@ -11,6 +11,7 @@ import { ModelTab } from './ModelTab.js';
 import { ThemeTab } from './ThemeTab.js';
 import { McpTab } from './mcp/McpTab.js';
 import { AppsTab } from './apps/AppsTab.js';
+import { SkillsTab } from './skills/SkillsTab.js';
 import { SettingsErrorBoundary } from './SettingsErrorBoundary.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
 import type { SettingsPanelProps } from './types.js';
@@ -45,9 +46,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     onClose,
     theme,
     onThemeChange,
+    currentProjectPath,
 }) => {
     // State
-    const [activeTab, setActiveTab] = useState<'model' | 'theme' | 'apps' | 'mcp'>('model');
+    const [activeTab, setActiveTab] = useState<'model' | 'theme' | 'apps' | 'mcp' | 'skills'>('model');
 
     // Refs for focus trap
     const panelRef = useRef<HTMLDivElement>(null);
@@ -229,6 +231,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             )}
                             {activeTab === 'apps' && <AppsTab />}
                             {activeTab === 'mcp' && <McpTab />}
+                            {activeTab === 'skills' && <SkillsTab projectPath={currentProjectPath} />}
                         </div>
                     </SettingsErrorBoundary>
 

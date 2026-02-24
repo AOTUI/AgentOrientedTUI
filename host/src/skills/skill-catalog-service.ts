@@ -4,7 +4,6 @@ import { Logger } from '../utils/logger.js';
 import { parseSkillFile } from './skill-parser.js';
 import type { SkillInfo } from './types.js';
 import { resolveSkillSources } from './skill-config.js';
-import { SkillDiscovery } from './skill-discovery.js';
 
 async function walkSkillFiles(root: string): Promise<string[]> {
     const result: string[] = [];
@@ -39,7 +38,6 @@ export interface SkillCatalogOptions {
 
 export class SkillCatalogService {
     private logger = new Logger('SkillCatalogService');
-    private discovery = new SkillDiscovery();
     private cache: SkillInfo[] | null = null;
 
     constructor(private options: SkillCatalogOptions = {}) { }
@@ -99,25 +97,12 @@ export class SkillCatalogService {
             }
         };
 
-        const loadFromRemote = async (url: string, scope: 'global' | 'project') => {
-            const roots = await this.discovery.pull(url);
-            for (const root of roots) {
-                await loadFrom(root, scope);
-            }
-        };
-
         for (const dir of sources.global.paths) {
             await loadFrom(dir, 'global');
-        }
-        for (const url of sources.global.urls) {
-            await loadFromRemote(url, 'global');
         }
 
         for (const dir of sources.project.paths) {
             await loadFrom(dir, 'project');
-        }
-        for (const url of sources.project.urls) {
-            await loadFromRemote(url, 'project');
         }
 
         this.cache = Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
