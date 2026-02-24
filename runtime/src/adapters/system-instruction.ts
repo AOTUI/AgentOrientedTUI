@@ -70,7 +70,7 @@ The TUI state is provided in your context with the following structure:
     ## Application View Tree (mounted views hierarchy)
   </application_info>
   
-  <view id="view_0" name="XHome">
+  <view id="view_type" name="XHome">
     ## Application Instruction (explains this view's purpose and tools)
     ## Content (messages, data with RefName markers, etc.)
     ## Available Tools (function calls you can make)
@@ -83,11 +83,11 @@ The TUI state is provided in your context with the following structure:
 Each \`<application>\` contains one or more \`<view>\` components:
 
 - **\`<application id="app_0" name="XApp">\`**: The app container
-  - \`id\`: Unique identifier (e.g., \`app_0\`, \`app_1\`)
+  - \`id\`: Unique identifier (e.g., \`app_0\`, \`app_name\`)
   - \`name\`: Human-readable name
   
-- **\`<view id="view_0" name="Home">\`**: A displayable component within the app
-  - \`id\`: Unique identifier within the app (e.g., \`view_0\`, \`view_1\`)
+- **\`<view id="view_type" name="Home">\`**: A displayable component within the app
+  - \`id\`: Unique identifier within the app (e.g., \`view_type\`, \`view_1\`)
   - \`name\`: Human-readable name
   - Contains: Application Instruction, Content, Available Tools
 
@@ -121,7 +121,7 @@ When calling tools, use the \`refName\` as parameter values:
 
 \`\`\`json
 {
-  "name": "app_1-view_0-mark_complete",
+  "name": "app_name-view_type-mark_complete",
   "arguments": {
     "todo": "pending[0]"
   }
@@ -146,7 +146,7 @@ Examples:
 
 \`\`\`json
 {
-  "name": "app_1-view_0-open_plan",
+  "name": "app_name-view_type-open_plan",
   "arguments": {
     "plan": "plans[0]"
   }
@@ -155,7 +155,7 @@ Examples:
 
 \`\`\`json
 {
-  "name": "app_2-view_0-send_command",
+  "name": "app_2-view_type-send_command",
   "arguments": {
     "terminal": "terminals[0]",
     "command": "whoami"
@@ -205,7 +205,7 @@ Mark a TODO as completed
 
 Tool name format: \`{app_id}-{view_id}-{tool_name}\`
 
-Example: \`app_1-view_0-add_todo\`
+Example: \`app_name-view_type-add_todo\`
 
 # How to Operate the TUI Desktop
 
@@ -251,7 +251,7 @@ Use Function Calling to execute tools. Format: \`{app_id}-{view_id}-{tool_name}\
 
 **App Tools:**
 
-Example: \`app_0-view_0-tool_name\` with \`{ "content": "{$content}" }\`
+Example: \`app_0-view_type-tool_name\` with \`{ "content": "{$content}" }\`
 
 Each app defines its own tools. Always check \`## Available Tools\` in the view.
 
@@ -267,7 +267,7 @@ Each app defines its own tools. Always check \`## Available Tools\` in the view.
 
 \`\`\`json
 {
-  "name": "app_1-view_0-mark_complete",
+  "name": "app_name-view_type-mark_complete",
   "arguments": {
     "todo": "pending[0]"
   }
@@ -327,7 +327,7 @@ You operate a TUI Desktop. Your "speech" is minimal - **actions speak louder tha
 
 **Your action**:
 
-1. Recusively Call \`app_1-view_0-add_todo\` with \`{ "title": "{$Task title}" }\`
+1. Recusively Call \`app_name-view_type-add_todo\` with \`{ "title": "{$Task title}" }\`
 2. Check result
 3. If success, solve the tasks one bye one.
 
@@ -345,7 +345,7 @@ You operate a TUI Desktop. Your "speech" is minimal - **actions speak louder tha
 - (Write tests)[todo:pending[1]]
 \`\`\`
 
-**Your action**: Call \`app_1-view_0-mark_complete\` with \`{ "todo": "pending[0]" }\`
+**Your action**: Call \`app_name-view_type-mark_complete\` with \`{ "todo": "pending[0]" }\`
 
 **NOT this**: Call with \`{ "todo": "Fix login bug" }\` or guess an ID
 </example>

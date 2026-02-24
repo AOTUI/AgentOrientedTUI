@@ -102,6 +102,7 @@ export class SkillDrivenSource {
         const input = (args || {}) as Partial<SkillToolInput>;
         const requested = input.name?.trim();
         if (!requested) {
+            this.triggerUpdate();
             return {
                 toolCallId,
                 toolName,
@@ -115,6 +116,7 @@ export class SkillDrivenSource {
         const skill = await this.catalog.getSkill(requested);
         if (!skill) {
             const available = (await this.catalog.listSkills()).map((x) => x.name).join(', ') || 'none';
+            this.triggerUpdate();
             return {
                 toolCallId,
                 toolName,
@@ -126,6 +128,7 @@ export class SkillDrivenSource {
         }
 
         if (this.disabledSkills.has(skill.name)) {
+            this.triggerUpdate();
             return {
                 toolCallId,
                 toolName,
@@ -141,6 +144,8 @@ export class SkillDrivenSource {
             scope: skill.scope,
             location: skill.location,
         });
+
+        this.triggerUpdate();
 
         return {
             toolCallId,

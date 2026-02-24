@@ -22,12 +22,57 @@ export const IconPencil = (props: IconProps) => <svg viewBox="0 0 24 24" fill="n
 export const IconChat = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
 export const IconTerminal = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>;
 export const IconToolbox = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" /><path d="M9 7V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1" /><path d="M3 13h18" /></svg>;
-// Apps: puzzle-piece grid icon
-export const IconApps = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>;
-// Skills: lightning-bolt icon
-export const IconSkills = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>;
-// MCP: adapter/nodes icon
-export const IconMCP = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>;
+// Apps: Four rounded squares — macOS 26 superellipse grid
+// Design: Pure 2×2 grid. No hierarchy between cells; a deliberate
+// choice — the app launcher is a democracy. The rx=2.5 radius sits
+// exactly between SF Symbols' "app.badge.fill" and a plain rect,
+// giving it warmth without being playful. 2px gutters create
+// optical breathing room that holds at 16px.
+export const IconApps = (props: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}>
+    <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+    <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+    <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+    <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+  </svg>
+);
+
+// Skills: Precision wrench — macOS 26 production-quality tool icon
+// Design: SF Symbols "wrench" is a single compound path — one stroke
+// traces the hex jaw, the circular head with its adjustment slot,
+// and the ergonomic taper of the handle without lifting the pen.
+// This is the canonical form used across Apple's own icon system.
+// The 2.12-unit fillet on the handle tip echoes the squircle radius.
+export const IconSkills = (props: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}>
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+  </svg>
+);
+
+// MCP: Vertical blade plug — macOS 26 precision connector
+// Design: Two flat-blade pins (rects, not lines — physicality matters)
+// sit above a well-proportioned housing body. The rx=3 housing radius
+// is concentric with the rx=1 pin radius at this scale, maintaining
+// the squircle-nesting relationship that defines macOS 26 geometry.
+// Two recessed contact-slot indicators (filled, 35% opacity) on the
+// housing face add depth without introducing noise — they read as
+// "structured protocol" at a glance and cleanly distinguish this
+// from the simpler IconPlug. Cable exits from the bottom center.
+export const IconMCP = (props: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}>
+    {/* Left blade pin */}
+    <rect x="8.25" y="1.5" width="2.5" height="6" rx="1.25" />
+    {/* Right blade pin */}
+    <rect x="13.25" y="1.5" width="2.5" height="6" rx="1.25" />
+    {/* Plug housing */}
+    <rect x="4" y="7.5" width="16" height="14" rx="3" />
+    {/* Recessed contact slots — structural face detail */}
+    <rect x="8.75" y="11" width="2.5" height="5.5" rx="1.25" fill="currentColor" fillOpacity={0.35} stroke="none" />
+    <rect x="12.75" y="11" width="2.5" height="5.5" rx="1.25" fill="currentColor" fillOpacity={0.35} stroke="none" />
+    {/* Cable exit */}
+    <line x1="12" y1="21.5" x2="12" y2="23.5" />
+  </svg>
+);
 
 // --- Agent State Icons (Refined Cartoon Bot) ---
 

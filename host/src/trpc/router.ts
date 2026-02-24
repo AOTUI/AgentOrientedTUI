@@ -733,9 +733,17 @@ const sourceControlRouter = router({
             const appsConfig = await Config.getAppsConfig();
             const appItems = Object.entries(appsConfig)
                 .sort(([a], [b]) => a.localeCompare(b))
-                .map(([name, entry]) => ({ name, enabled: (entry as any).enabled !== false }));
+                .map(([name, entry]) => {
+                    const globalEnabled = (entry as any).enabled !== false;
+                    const topicEnabled = !sourceState.apps.disabledItems.includes(name);
+                    return { name, enabled: globalEnabled && topicEnabled };
+                });
 
             return {
+                apps: {
+                    enabled: sourceState.apps.enabled,
+                    items: appItems,
+                },
                 mcp: {
                     enabled: sourceState.mcp.enabled,
                     groups: mcpGroups,
@@ -747,14 +755,13 @@ const sourceControlRouter = router({
                         enabled: !sourceState.skill.disabledItems.includes(skill.name),
                     })),
                 },
-                apps: appItems,
             };
         }),
 
     setSourceEnabled: publicProcedure
         .input(z.object({
             id: z.string(),
-            source: z.enum(['mcp', 'skill']),
+            source: z.enum(['apps', 'mcp', 'skill']),
             enabled: z.boolean(),
         }))
         .mutation(async ({ input, ctx }) => {
@@ -765,7 +772,7 @@ const sourceControlRouter = router({
     setItemEnabled: publicProcedure
         .input(z.object({
             id: z.string(),
-            source: z.enum(['mcp', 'skill']),
+            source: z.enum(['apps', 'mcp', 'skill']),
             itemName: z.string(),
             enabled: z.boolean(),
         }))

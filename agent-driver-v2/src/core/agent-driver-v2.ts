@@ -38,6 +38,7 @@ export class AgentDriverV2 {
     private logger: Logger;
     private config: AgentDriverV2Config;
     private llmClient: LLMClient;
+    private sourceEnabledMap = new Map<string, boolean>();
 
     // 状态机
     private state: AgentState = 'idle';
@@ -58,6 +59,7 @@ export class AgentDriverV2 {
         this.logger = new Logger('AgentDriverV2');
         this.llmClient = new LLMClient(config.llm);
         this.driverId = AgentDriverV2.nextId++;
+        this.sources.forEach((source) => this.sourceEnabledMap.set(source.name, true));
 
         // 创建防抖的更新处理函数
         const debounceMs = config.workLoop?.debounceMs ?? 300;
@@ -100,6 +102,15 @@ export class AgentDriverV2 {
         return this.toolToSourceMap.get(toolName);
     }
 
+    setSourceEnabled(sourceName: string, enabled: boolean): void {
+        this.sourceEnabledMap.set(sourceName, enabled);
+        this.updateDebounced();
+    }
+
+    private getActiveSources(): IDrivenSource[] {
+        return this.sources.filter((source) => this.sourceEnabledMap.get(source.name) !== false);
+    }
+
     /**
      * 设置更新监听器
      * 
@@ -127,7 +138,7 @@ export class AgentDriverV2 {
 private async collectMessages(): Promise<ModelMessage[]> {
         const allMessages: MessageWithTimestamp[] = [];
 
-        for (const source of this.sources) {
+    for (const source of this.getActiveSources()) {
             try {
                 const messages = await source.getMessages();
                 allMessages.push(...messages);
@@ -263,7 +274,7 @@ private async collectMessages(): Promise<ModelMessage[]> {
     private async collectTools(): Promise<Record<string, Tool>> {
         const allTools: Record<string, Tool> = {};
 
-        for (const source of this.sources) {
+        for (const source of this.getActiveSources()) {
             try {
                 const tools = await source.getTools();
                 Object.assign(allTools, tools);
@@ -370,7 +381,7 @@ private async collectMessages(): Promise<ModelMessage[]> {
     private async updateToolMapping(): Promise<void> {
         this.toolToSourceMap.clear();
 
-        for (const source of this.sources) {
+        for (const source of this.getActiveSources()) {
             try {
                 const tools = await source.getTools();
                 for (const toolName of Object.keys(tools)) {

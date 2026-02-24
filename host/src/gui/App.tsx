@@ -34,7 +34,10 @@ type TopicCapabilities = {
         enabled: boolean;
         items: Array<{ name: string; enabled: boolean }>;
     };
-    apps: Array<{ name: string; enabled: boolean }>;
+    apps: {
+        enabled: boolean;
+        items: Array<{ name: string; enabled: boolean }>;
+    };
 };
 
 export function App() {
@@ -357,7 +360,7 @@ export function App() {
         void refreshTopicCapabilities(activeTopicId);
     }, [activeTopicId, refreshTopicCapabilities]);
 
-    const handleToggleCapabilityGroup = useCallback(async (source: 'mcp' | 'skill', enabled: boolean) => {
+    const handleToggleCapabilityGroup = useCallback(async (source: 'apps' | 'mcp' | 'skill', enabled: boolean) => {
         if (!activeTopicId) return;
         try {
             await bridge.getTrpcClient().sourceControl.setSourceEnabled.mutate({
@@ -371,7 +374,7 @@ export function App() {
         }
     }, [bridge, activeTopicId, refreshTopicCapabilities]);
 
-    const handleToggleCapabilityItem = useCallback(async (source: 'mcp' | 'skill', itemName: string, enabled: boolean) => {
+    const handleToggleCapabilityItem = useCallback(async (source: 'apps' | 'mcp' | 'skill', itemName: string, enabled: boolean) => {
         if (!activeTopicId) return;
         try {
             await bridge.getTrpcClient().sourceControl.setItemEnabled.mutate({
@@ -383,15 +386,6 @@ export function App() {
             await refreshTopicCapabilities(activeTopicId);
         } catch (error) {
             console.error('[App] Failed to toggle capability item:', error);
-        }
-    }, [bridge, activeTopicId, refreshTopicCapabilities]);
-
-    const handleToggleApp = useCallback(async (name: string, enabled: boolean) => {
-        try {
-            await bridge.getTrpcClient().apps.setEnabled.mutate({ name, enabled });
-            if (activeTopicId) await refreshTopicCapabilities(activeTopicId);
-        } catch (error) {
-            console.error('[App] Failed to toggle app:', error);
         }
     }, [bridge, activeTopicId, refreshTopicCapabilities]);
 
@@ -516,7 +510,6 @@ export function App() {
                                 topicCapabilities={topicCapabilities}
                                 onToggleCapabilityGroup={handleToggleCapabilityGroup}
                                 onToggleCapabilityItem={handleToggleCapabilityItem}
-                                onToggleApp={handleToggleApp}
                                 capabilityHint="Temporary overrides for current topic only."
                             />
                         ) : (

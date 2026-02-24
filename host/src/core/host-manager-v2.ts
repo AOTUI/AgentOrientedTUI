@@ -218,6 +218,7 @@ export class HostManagerV2 {
     }
 
     getSourceControlState(topicId: string): {
+        apps: { enabled: boolean; disabledItems: string[] };
         mcp: { enabled: boolean; disabledItems: string[] };
         skill: { enabled: boolean; disabledItems: string[] };
     } {
@@ -228,7 +229,7 @@ export class HostManagerV2 {
         return this.sessionManager.getSourceControlState(topicId);
     }
 
-    setSourceEnabled(topicId: string, source: 'mcp' | 'skill', enabled: boolean): void {
+    setSourceEnabled(topicId: string, source: 'apps' | 'mcp' | 'skill', enabled: boolean): void {
         if (!this.sessionManager) {
             throw new Error('SessionManager not initialized. Call initAgentDriver first.');
         }
@@ -236,7 +237,7 @@ export class HostManagerV2 {
         this.sessionManager.setSourceEnabled(topicId, source, enabled);
     }
 
-    setSourceItemEnabled(topicId: string, source: 'mcp' | 'skill', itemName: string, enabled: boolean): void {
+    setSourceItemEnabled(topicId: string, source: 'apps' | 'mcp' | 'skill', itemName: string, enabled: boolean): void {
         if (!this.sessionManager) {
             throw new Error('SessionManager not initialized. Call initAgentDriver first.');
         }

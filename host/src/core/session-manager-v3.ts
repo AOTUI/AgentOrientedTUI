@@ -47,6 +47,7 @@ export class SessionManagerV3 extends EventEmitter {
     private logger: Logger;
     private cleanupTimer: NodeJS.Timeout | null = null;
     private sourceControlsByTopic: Map<string, {
+        apps: { enabled: boolean; disabledItems: Set<string> };
         mcp: { enabled: boolean; disabledItems: Set<string> };
         skill: { enabled: boolean; disabledItems: Set<string> };
     }> = new Map();
@@ -195,7 +196,7 @@ export class SessionManagerV3 extends EventEmitter {
 
         const mcpDrivenSource = new McpDrivenSource();
         const skillDrivenSource = new SkillDrivenSource({ projectPath });
-        this.applySourceControls(topicId, mcpDrivenSource, skillDrivenSource);
+        this.applySourceControls(topicId, aotuiSource, mcpDrivenSource, skillDrivenSource);
 
         // 4. 创建 AgentDriver
         const { providerId, modelId, modelLabel } = (() => {
@@ -275,6 +276,11 @@ export class SessionManagerV3 extends EventEmitter {
             },
         });
 
+        const controls = this.getOrInitSourceControls(topicId);
+        (agentDriver as any).setSourceEnabled?.(aotuiSource.name, controls.apps.enabled);
+        (agentDriver as any).setSourceEnabled?.(skillDrivenSource.name, controls.skill.enabled);
+        (agentDriver as any).setSourceEnabled?.(mcpDrivenSource.name, controls.mcp.enabled);
+
         // 5. 启动 AgentDriver
         agentDriver.start();
 
@@ -318,6 +324,7 @@ export class SessionManagerV3 extends EventEmitter {
         }
 
         existing = {
+            apps: { enabled: true, disabledItems: new Set<string>() },
             mcp: { enabled: true, disabledItems: new Set<string>() },
             skill: { enabled: true, disabledItems: new Set<string>() },
         };
@@ -325,8 +332,12 @@ export class SessionManagerV3 extends EventEmitter {
         return existing;
     }
 
-    private applySourceControls(topicId: string, mcpSource?: McpDrivenSource, skillSource?: SkillDrivenSource): void {
+    private applySourceControls(topicId: string, aotuiSource?: AOTUIDrivenSource, mcpSource?: McpDrivenSource, skillSource?: SkillDrivenSource): void {
         const controls = this.getOrInitSourceControls(topicId);
+        if (aotuiSource) {
+            (aotuiSource as any).setEnabled?.(controls.apps.enabled);
+            controls.apps.disabledItems.forEach((item) => (aotuiSource as any).setAppEnabled?.(item, false));
+        }
         if (mcpSource) {
             mcpSource.setEnabled(controls.mcp.enabled);
             controls.mcp.disabledItems.forEach((item) => {
@@ -347,11 +358,16 @@ export class SessionManagerV3 extends EventEmitter {
     }
 
     getSourceControlState(topicId: string): {
+        apps: { enabled: boolean; disabledItems: string[] };
         mcp: { enabled: boolean; disabledItems: string[] };
         skill: { enabled: boolean; disabledItems: string[] };
     } {
         const controls = this.getOrInitSourceControls(topicId);
         return {
+            apps: {
+                enabled: controls.apps.enabled,
+                disabledItems: Array.from(controls.apps.disabledItems).sort((a, b) => a.localeCompare(b)),
+            },
             mcp: {
                 enabled: controls.mcp.enabled,
                 disabledItems: Array.from(controls.mcp.disabledItems).sort((a, b) => a.localeCompare(b)),
@@ -363,21 +379,26 @@ export class SessionManagerV3 extends EventEmitter {
         };
     }
 
-    setSourceEnabled(topicId: string, source: 'mcp' | 'skill', enabled: boolean): void {
+    setSourceEnabled(topicId: string, source: 'apps' | 'mcp' | 'skill', enabled: boolean): void {
         const controls = this.getOrInitSourceControls(topicId);
         controls[source].enabled = enabled;
 
         const session = this.sessions.get(topicId);
         if (session) {
-            if (source === 'mcp') {
+            if (source === 'apps') {
+                (session.agentDriver as any).setSourceEnabled?.(session.sources.aotui.name, enabled);
+                (session.sources.aotui as any).setEnabled?.(enabled);
+            } else if (source === 'mcp') {
+                (session.agentDriver as any).setSourceEnabled?.(session.sources.mcp.name, enabled);
                 session.sources.mcp.setEnabled(enabled);
             } else {
+                (session.agentDriver as any).setSourceEnabled?.(session.sources.skill.name, enabled);
                 session.sources.skill.setEnabled(enabled);
             }
         }
     }
 
-    setSourceItemEnabled(topicId: string, source: 'mcp' | 'skill', itemName: string, enabled: boolean): void {
+    setSourceItemEnabled(topicId: string, source: 'apps' | 'mcp' | 'skill', itemName: string, enabled: boolean): void {
         const controls = this.getOrInitSourceControls(topicId);
         if (enabled) {
             controls[source].disabledItems.delete(itemName);
@@ -387,7 +408,9 @@ export class SessionManagerV3 extends EventEmitter {
 
         const session = this.sessions.get(topicId);
         if (session) {
-            if (source === 'mcp') {
+            if (source === 'apps') {
+                (session.sources.aotui as any).setAppEnabled?.(itemName, enabled);
+            } else if (source === 'mcp') {
                 if (itemName.startsWith(SessionManagerV3.MCP_SERVER_KEY_PREFIX)) {
                     const serverName = itemName.slice(SessionManagerV3.MCP_SERVER_KEY_PREFIX.length);
                     if (serverName) {
