@@ -74,7 +74,7 @@ export type UseViewTypeToolResult = [TypeToolUI];
 /**
  * 注册一个 Type-level Tool
  *
- * 工具 ID 格式: `app_id-view_type-tool_id`
+ * 工具 ID 格式: `app_name-view_type-tool_id`
  * LLM 必须传入 `view_id` 参数来指定目标 View
  *
  * @param viewType - View 类型（如 "FileDetail"）

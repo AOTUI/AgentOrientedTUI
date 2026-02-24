@@ -259,6 +259,7 @@ function SystemIDEApp() {
  *   - 来源优先级: 启动参数 > 环境变量 > process.cwd()
  */
 export default createTUIApp({
+  appName: 'system_ide',
   name: 'AOTUI IDE',
   whatItIs: 'A text-based Integrated Development Environment designed for LLM Agents to explore codebases, search files by pattern or content, edit code with precise string replacement, and analyze code structure using Language Server Protocol (LSP) features like type inspection, definitions, references, and call hierarchies.',
   whenToUse: 'Use AOTUI IDE when you need to: (1) Navigate and understand a repository structure, (2) Search for files by glob pattern or grep content, (3) Read, edit, create, delete, or rename files with precision, (4) Analyze code using LSP features (hover types, go to definition, find references, diagnostics, symbols, call graphs), (5) Work with multiple files simultaneously through dynamic FileDetail views.',

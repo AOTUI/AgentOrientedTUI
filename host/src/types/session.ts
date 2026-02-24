@@ -14,6 +14,7 @@ import type { AgentDriverV2 } from '@aotui/agent-driver-v2';
 import type { SystemPromptDrivenSource } from '../adapters/system-prompt-source.js';
 import type { AOTUIDrivenSource } from '@aotui/runtime/adapters';
 import type { HostDrivenSourceV2 } from '../adapters/host-driven-source.js';
+import type { SkillDrivenSource } from '../skills/skill-driven-source.js';
 import type { McpDrivenSource } from '../mcp/source.js';
 import type { ModelMessage } from 'ai';
 
@@ -46,6 +47,7 @@ export interface Session {
         systemPrompt: SystemPromptDrivenSource;
         aotui: AOTUIDrivenSource;
         host: HostDrivenSourceV2;
+        skill: SkillDrivenSource;
         mcp: McpDrivenSource;
     };
 

@@ -61,7 +61,7 @@ export function WorkspaceHeader({
                     data-testid="header-left-island"
                     ref={menuRef}
                     className={`
-                        pointer-events-auto relative flex items-center h-10 min-w-[420px]
+                        pointer-events-auto relative flex items-center h-10 w-[420px] max-w-[420px] overflow-hidden shrink-0
                         mat-lg-clear rounded-full px-1
                         transition-all duration-300 ease-[var(--ease-standard)]
                         ${sidebarOpen ? 'ml-0 -translate-x-2' : 'ml-[80px] translate-x-0'}

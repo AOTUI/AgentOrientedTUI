@@ -233,6 +233,7 @@ function TerminalRoot() {
 }
 
 export default createTUIApp({
+    appName: 'terminal_app',
     name: 'Terminal App',
     whatItIs: 'A multi-terminal command execution system constrained to the project path, providing command history, working directory tracking, and output tailing for LLM workflows.',
     whenToUse: 'Use Terminal App when you need to run shell commands, manage multiple terminal sessions, and review command outputs while staying within the current project directory.',

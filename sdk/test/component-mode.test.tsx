@@ -14,6 +14,7 @@ describe('[RFC-027] Component Mode', () => {
         }
 
         const app = createTUIApp({
+            appName: 'test_app',
             name: 'Test App',
             component: TestApp,
         });
@@ -34,6 +35,7 @@ describe('[RFC-027] Component Mode', () => {
         }
 
         const app = createTUIApp({
+            appName: 'test_app',
             name: 'Test App',
             component: TestApp,
         });

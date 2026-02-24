@@ -25,6 +25,7 @@ import type { MessageServiceV2 } from './message-service-v2.js';
 import { HostDrivenSourceV2 } from '../adapters/host-driven-source.js';
 import { SystemPromptDrivenSource } from '../adapters/system-prompt-source.js';
 import { McpDrivenSource } from '../mcp/source.js';
+import { SkillDrivenSource } from '../skills/skill-driven-source.js';
 import type { Session, SessionManagerConfig, GuiUpdateEvent } from '../types/session.js';
 import { Logger } from '../utils/logger.js';
 import type { DesktopManager } from './desktop-manager.js';
@@ -188,6 +189,7 @@ export class SessionManagerV3 extends EventEmitter {
         );
 
         const mcpDrivenSource = new McpDrivenSource();
+        const skillDrivenSource = new SkillDrivenSource({ projectPath });
 
         // 4. 创建 AgentDriver
         const { providerId, modelId, modelLabel } = (() => {
@@ -223,6 +225,7 @@ export class SessionManagerV3 extends EventEmitter {
                 systemPromptSource, // timestamp=0
                 aotuiSource,        // timestamp=1 (instruction) + dynamic (state)
                 hostSource,         // timestamp=now (user/assistant messages)
+                skillDrivenSource,
                 mcpDrivenSource as any,    // Custom MCP Tools
             ],
             llm: llmConfig,
@@ -293,6 +296,7 @@ export class SessionManagerV3 extends EventEmitter {
                 systemPrompt: systemPromptSource,
                 aotui: aotuiSource,
                 host: hostSource,
+                skill: skillDrivenSource,
                 mcp: mcpDrivenSource,
             },
             state: 'active',

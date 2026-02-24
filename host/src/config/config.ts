@@ -71,6 +71,10 @@ export type Mcp = z.infer<typeof Mcp>
 export interface Info {
   $schema?: string
   mcp?: Record<string, Mcp | { enabled: boolean }>
+  skills?: {
+    paths?: string[]
+    urls?: string[]
+  }
   [key: string]: unknown
 }
 
@@ -93,6 +97,10 @@ export interface TuiInfo {
 /** 全局 MCP 配置文件路径 (~/.tui/mcp.json) */
 function getGlobalConfigPath(): string {
   return path.join(os.homedir(), ".tui", "mcp.json")
+}
+
+function getProjectConfigPath(projectPath: string): string {
+  return path.join(projectPath, ".tui", "mcp.json")
 }
 
 /** 全局 TUI 配置文件路径 (~/.tui/config.json) */
@@ -224,6 +232,11 @@ export namespace Config {
   /** 获取全局配置（从 ~/.tui/mcp.json 读取） */
   export async function getGlobal(): Promise<Info> {
     return readConfigFile(getGlobalConfigPath())
+  }
+
+  /** 获取项目配置（从 <projectPath>/.tui/mcp.json 读取） */
+  export async function getProject(projectPath: string): Promise<Info> {
+    return readConfigFile(getProjectConfigPath(projectPath))
   }
 
   /** 获取当前运行时配置（与 getGlobal 等价，无内存缓存） */

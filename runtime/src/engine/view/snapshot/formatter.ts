@@ -60,6 +60,31 @@ export class SnapshotFormatter implements ISnapshotFormatter {
         this.appLogLimit = config?.appLogLimit ?? 3;
     }
 
+    private resolveUniqueToolKey(rawKey: string, mergedIndexMap: Record<string, unknown>): string {
+        if (!(rawKey in mergedIndexMap)) {
+            return rawKey;
+        }
+
+        const toolPrefix = 'tool:';
+        const normalized = rawKey.startsWith(toolPrefix) ? rawKey.slice(toolPrefix.length) : rawKey;
+        const dashIndex = normalized.indexOf('-');
+
+        const appName = dashIndex > 0 ? normalized.slice(0, dashIndex) : normalized;
+        const rest = dashIndex > 0 ? normalized.slice(dashIndex + 1) : '';
+
+        let suffix = 2;
+        while (true) {
+            const candidateCore = rest.length > 0
+                ? `${appName}_${suffix}-${rest}`
+                : `${appName}_${suffix}`;
+            const candidate = `${toolPrefix}${candidateCore}`;
+            if (!(candidate in mergedIndexMap)) {
+                return candidate;
+            }
+            suffix += 1;
+        }
+    }
+
     /**
      * Format complete TUI snapshot
      * 
@@ -101,7 +126,8 @@ export class SnapshotFormatter implements ISnapshotFormatter {
                 // Skip operation metadata (already contains full path)
                 if (key.startsWith('tool:')) {
                     // console.log(`[SnapshotFormatter] Preserving operation metadata: ${key}`);
-                    mergedIndexMap[key] = value;
+                    const resolvedKey = this.resolveUniqueToolKey(key, mergedIndexMap);
+                    mergedIndexMap[resolvedKey] = value;
                     continue;
                 }
 

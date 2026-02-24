@@ -44,6 +44,15 @@ interface IndexMapOperationEntry {
     };
 }
 
+interface IndexMapTypeToolEntry {
+    description: string;
+    params: OperationParamDef[];
+    appId?: string;
+    appName?: string;
+    viewType?: string;
+    toolName?: string;
+}
+
 // ============================================================================
 // AOTUI System Instruction（Runtime 默认内置，可通过 options/env/path 覆盖）
 // ============================================================================
@@ -299,12 +308,21 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 appId = parts[0] || 'system';
                 operationName = parts[1];
             }
-        } else if (toolName.startsWith('app_') && toolName.includes('-')) {
-            const [appIdPart, viewTypePart, ...rest] = toolName.split('-');
-            if (appIdPart && viewTypePart && rest.length > 0) {
-                appId = appIdPart;
-                viewId = viewTypePart;
-                operationName = rest.join('-');
+        } else {
+            // Preferred path: resolve from snapshot indexMap metadata
+            const typeToolContext = await this.resolveTypeToolContext(toolName);
+            if (typeToolContext) {
+                appId = typeToolContext.appId;
+                viewId = typeToolContext.viewType;
+                operationName = typeToolContext.toolName;
+            } else if (toolName.startsWith('app_') && toolName.includes('-')) {
+                // Backward compatibility: app_id-view_type-tool_name
+                const [appIdPart, viewTypePart, ...rest] = toolName.split('-');
+                if (appIdPart && viewTypePart && rest.length > 0) {
+                    appId = appIdPart;
+                    viewId = viewTypePart;
+                    operationName = rest.join('-');
+                }
             }
         }
         // 1. 构建 Operation
@@ -360,6 +378,37 @@ export class AOTUIDrivenSource implements IDrivenSource {
         }
     }
 
+    private async resolveTypeToolContext(toolName: string): Promise<{ appId: string; viewType: string; toolName: string } | null> {
+        const snapshot = await this.kernel.acquireSnapshot(this.desktop.id);
+        try {
+            const key = `tool:${toolName}`;
+            const entry = snapshot.indexMap?.[key];
+            if (!this.isTypeToolEntry(entry)) {
+                return null;
+            }
+
+            const appId = entry.appId;
+            const viewType = entry.viewType;
+            const resolvedToolName = entry.toolName;
+
+            if (
+                typeof appId === 'string' && appId.length > 0 &&
+                typeof viewType === 'string' && viewType.length > 0 &&
+                typeof resolvedToolName === 'string' && resolvedToolName.length > 0
+            ) {
+                return {
+                    appId,
+                    viewType,
+                    toolName: resolvedToolName,
+                };
+            }
+
+            return null;
+        } finally {
+            this.kernel.releaseSnapshot(snapshot.id);
+        }
+    }
+
     /**
      * 订阅更新
      */
@@ -392,7 +441,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
      * 类型守卫: 判断是否为 useViewTypeTool 注册的工具
      * 格式: { description: string, params: Array<{ name, type, required, description }> }
      */
-    private isTypeToolEntry(entry: unknown): boolean {
+    private isTypeToolEntry(entry: unknown): entry is IndexMapTypeToolEntry {
         return (
             typeof entry === 'object' &&
             entry !== null &&

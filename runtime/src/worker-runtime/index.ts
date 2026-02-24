@@ -674,6 +674,7 @@ function pushSnapshotFragment(): void {
             description: string;
             params: Record<string, unknown>;
         }>>;
+        getToolAppName?: () => string;
     };
 
     if (kernel?.exportRefsToIndexMap) {
@@ -704,13 +705,14 @@ function pushSnapshotFragment(): void {
 
         // [RFC-020] Export Type Tools to IndexMap for AgentDriver discovery
         // AgentDriver uses generateToolsFromIndexMap to find tools
-        // Format: tool:{appId}-{viewType}-{toolName} (使用连字符以符合 API 工具名规范)
+        // Format: tool:{app_name}-{viewType}-{toolName} (使用连字符以符合 API 工具名规范)
+        const semanticAppName = kernel?.getToolAppName?.() ?? appId;
         for (const [viewType, tools] of allTypeTools) {
             for (const tool of tools) {
-                // Construct App-scoped ID: appId-viewType-toolName
+            // Construct App-scoped ID: appName-viewType-toolName
                 // Note: IndexMap key must start with "tool:"
                 // 使用连字符 '-' 而非点 '.' 以符合 LLM API 工具名要求 ^[a-zA-Z0-9_-]+$
-                const toolKey = `tool:${appId}-${viewType}-${tool.name}`;
+            const toolKey = `tool:${semanticAppName}-${viewType}-${tool.name}`;
 
                 // AgentDriver expects: description, params
                 const transformedParams = Object.entries(tool.params || {}).map(([name, def]) => {
@@ -729,7 +731,11 @@ function pushSnapshotFragment(): void {
 
                 finalIndexMap[toolKey] = {
                     description: tool.description,
-                    params: transformedParams
+                    params: transformedParams,
+                    appId,
+                    appName: semanticAppName,
+                    viewType,
+                    toolName: tool.name,
                 };
             }
         }

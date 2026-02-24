@@ -70,6 +70,7 @@ interface TypeToolParamDef {
 export class AppKernel implements IAOTUIApp, IRefExporter {
     private _id: AppID = '' as AppID;
     readonly name: string;
+    private readonly toolAppName: string;
 
     private config: AppKernelConfig;
     private context!: AppContext;
@@ -102,9 +103,40 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
 
         this.config = config;
         this.name = config.name;
+        this.toolAppName = this.resolveToolAppName(config.appName, config.name);
 
         // Initialize ViewRegistry
         this.viewRegistry = createViewRegistry();
+    }
+
+    private resolveToolAppName(explicitAppName: string | undefined, displayName: string): string {
+        if (explicitAppName !== undefined) {
+            if (!/^[a-zA-Z0-9_]+$/.test(explicitAppName)) {
+                throw new AOTUIError('CONFIG_INVALID', {
+                    reason: `Invalid appName "${explicitAppName}". appName must match /^[a-zA-Z0-9_]+$/`
+                });
+            }
+            return explicitAppName;
+        }
+
+        const normalized = displayName
+            .replace(/[^a-zA-Z0-9_]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .replace(/_{2,}/g, '_')
+            .toLowerCase();
+
+        if (normalized.length > 0) {
+            return normalized;
+        }
+
+        return 'app';
+    }
+
+    /**
+     * Tool 前缀语义名（供 Worker 侧导出 Tool Key）
+     */
+    getToolAppName(): string {
+        return this.toolAppName;
     }
 
     get id(): AppID {

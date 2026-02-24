@@ -57,6 +57,16 @@ export type SignalPolicy = 'auto' | 'manual' | 'never';
  */
 export interface AppKernelConfig {
     /**
+     * App 语义名称（用于对外暴露给 LLM 的 Tool 名称前缀）
+     *
+     * 约束: 仅允许 [a-zA-Z0-9_]
+     * 示例: system_ide, planning_app, terminal_app
+     *
+     * 若未提供，Runtime 会从 `name` 派生一个兼容值（向后兼容）。
+     */
+    appName?: string;
+
+    /**
      * App 名称
      * 语义化命名，用于日志和调试
      */

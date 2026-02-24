@@ -37,6 +37,13 @@ import { initPersistenceShutdown } from '../hooks/persistence-shutdown.js';
  * TUI App Configuration (Component Based)
  */
 export interface TUIAppConfig {
+    /**
+     * App 语义名称（用于对外暴露给 LLM 的 Tool 名称前缀）
+     *
+     * 约束: [a-zA-Z0-9_]
+     */
+    appName: string;
+
     /** App名称 */
     name: string;
 
@@ -114,11 +121,19 @@ export interface TUIComponentAppFactory extends Factory<IAOTUIApp> {
  * ```
  */
 export function createTUIApp(config: TUIAppConfig): TUIComponentAppFactory {
+    if (!/^[a-zA-Z0-9_]+$/.test(config.appName)) {
+        throw new Error(
+            `[AOTUI SDK] Invalid appName "${config.appName}". ` +
+            `appName must match /^[a-zA-Z0-9_]+$/`
+        );
+    }
+
     // 保存根组件
     const RootComponent = config.component;
 
     // 转换为AppKernelConfig格式
     const kernelConfig: AppKernelConfig = {
+        appName: config.appName,
         name: config.name,
         description: config.description,
         whatItIs: config.whatItIs,
