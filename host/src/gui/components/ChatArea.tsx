@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
-import { IconSend, IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconMCP } from './Icons.js';
+import { IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconMCP, IconBrain, IconPrompt } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import type { Message } from '../../types.js';
@@ -49,6 +49,13 @@ interface ChatAreaProps {
     onToggleCapabilityGroup?: (source: 'apps' | 'mcp' | 'skill', enabled: boolean) => void;
     onToggleCapabilityItem?: (source: 'apps' | 'mcp' | 'skill', itemName: string, enabled: boolean) => void;
     capabilityHint?: string | null;
+    modelGroups?: Array<{ providerId: string; models: string[] }>;
+    selectedModel?: string | null;
+    onSelectModel?: (modelId: string) => void;
+    promptTemplates?: Array<{ id: string; name: string; content: string }>;
+    topicPrompt?: string | null;
+    onChangeTopicPrompt?: (prompt: string) => void;
+    onApplyPromptTemplate?: (templateId: string) => void;
 }
 
 type ToolTraceStep = {
@@ -80,14 +87,16 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent, topicCapabilities = null, onToggleCapabilityGroup, onToggleCapabilityItem, capabilityHint = null }: ChatAreaProps) {
+export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent, topicCapabilities = null, onToggleCapabilityGroup, onToggleCapabilityItem, capabilityHint = null, modelGroups = [], selectedModel = null, onSelectModel, promptTemplates = [], topicPrompt = '', onChangeTopicPrompt, onApplyPromptTemplate }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const capPanelRef = useRef<HTMLDivElement>(null);
     const [inputValue, setInputValue] = React.useState('');
     const [expandedTraceKeys, setExpandedTraceKeys] = React.useState<Record<string, boolean>>({});
-    const [openCapPanel, setOpenCapPanel] = React.useState<'apps' | 'skills' | 'mcp' | null>(null);
+    const [openCapPanel, setOpenCapPanel] = React.useState<'model' | 'prompt' | 'apps' | 'skills' | 'mcp' | null>(null);
+    const [modelSearch, setModelSearch] = React.useState('');
+    const [promptSearch, setPromptSearch] = React.useState('');
 
     // Close capability panels when clicking outside
     useEffect(() => {
@@ -101,8 +110,68 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         return () => document.removeEventListener('mousedown', handleOutside);
     }, [openCapPanel]);
 
-    const toggleCapPanel = (panel: 'apps' | 'skills' | 'mcp') => {
+    const toggleCapPanel = (panel: 'model' | 'prompt' | 'apps' | 'skills' | 'mcp') => {
         setOpenCapPanel(prev => prev === panel ? null : panel);
+    };
+
+    const filteredModelGroups = modelGroups
+        .map((group) => ({
+            ...group,
+            models: group.models.filter((model) => {
+                if (!modelSearch.trim()) return true;
+                const q = modelSearch.toLowerCase();
+                return group.providerId.toLowerCase().includes(q) || model.toLowerCase().includes(q);
+            }),
+        }))
+        .filter((group) => group.models.length > 0);
+
+    const filteredPromptTemplates = promptTemplates
+        .filter((template) => {
+            if (!promptSearch.trim()) return true;
+            const q = promptSearch.toLowerCase();
+            return template.name.toLowerCase().includes(q) || template.content.toLowerCase().includes(q);
+        })
+        .slice(0, 20);
+
+    const currentModelSelection = React.useMemo(() => {
+        if (!selectedModel) {
+            return { provider: '—', model: 'Not selected' };
+        }
+        const separatorIndex = selectedModel.indexOf(':');
+        if (separatorIndex < 0) {
+            return { provider: '—', model: selectedModel };
+        }
+        return {
+            provider: selectedModel.slice(0, separatorIndex),
+            model: selectedModel.slice(separatorIndex + 1),
+        };
+    }, [selectedModel]);
+
+    const modelButtonLabel = currentModelSelection.model && currentModelSelection.model !== 'Not selected'
+        ? currentModelSelection.model
+        : 'Model';
+
+    const contextPillMaterialStyle: React.CSSProperties = {
+        backgroundColor: 'color-mix(in srgb, var(--mat-lg-regular-bg) 60%, transparent)',
+        backdropFilter: 'blur(40px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(150%)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+    };
+
+    // Popovers use the same visual material as the context pill.
+    // backdrop-filter works correctly here because the pill's blur layer is now an isolated
+    // sibling element (absolute inset-0, no children), NOT an ancestor — so these popovers
+    // are outside the compositing group and their blur reaches the real page background.
+    // We locally override the inner-card tokens (global dark value is only 0.06 alpha) so
+    // search inputs and group cards remain visible on top of the popover surface.
+    const popoverMaterialStyle: React.CSSProperties = {
+        backgroundColor: 'color-mix(in srgb, var(--mat-lg-regular-bg) 80%, transparent)',
+        backdropFilter: 'blur(40px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(150%)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        ['--mat-content-card-bg' as any]: 'rgba(255, 255, 255, 0.08)',
+        ['--mat-content-card-hover-bg' as any]: 'rgba(255, 255, 255, 0.13)',
+        ['--mat-content-bubble-bg' as any]: 'rgba(255, 255, 255, 0.13)',
     };
 
     const renderToggle = (checked: boolean, onChange: (v: boolean) => void, disabled = false) => (
@@ -169,8 +238,11 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
     // Auto-resize textarea
     useEffect(() => {
         if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+            const maxHeight = 160;
+            textareaRef.current.style.height = '0px';
+            const nextHeight = Math.min(textareaRef.current.scrollHeight, maxHeight);
+            textareaRef.current.style.height = `${nextHeight}px`;
+            textareaRef.current.style.overflowY = textareaRef.current.scrollHeight > maxHeight ? 'auto' : 'hidden';
         }
     }, [inputValue]);
 
@@ -560,95 +632,254 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                 <div className="w-full max-w-[512px] mx-auto pointer-events-auto">
 
                     {/* Single unified pill */}
-                    <div className="
-                        flex items-center
-                        mat-lg-clear rounded-full
-                        shadow-lg
-                        transition-all duration-200
-                        focus-within:shadow-[0_0_0_4px_rgba(10,132,255,0.15),0_8px_32px_var(--mat-shadow-color)]
-                    ">
+                    <div 
+                        className="
+                            relative flex flex-col
+                            rounded-[32px]
+                            shadow-[0_12px_32px_rgba(0,0,0,0.12)]
+                            transition-all duration-200
+                        "
+                    >
+                        {/* Frosted glass layer — isolated element with NO children.
+                            Its backdrop-filter creates a compositing group only for itself,
+                            so popovers in the sibling content div are free to apply their
+                            own backdrop-filter to the real page background (not this layer). */}
+                        <div
+                            className="absolute inset-0 rounded-[32px] pointer-events-none"
+                            style={{
+                                backgroundColor: 'color-mix(in srgb, var(--mat-lg-regular-bg) 60%, transparent)',
+                                backdropFilter: 'blur(40px) saturate(150%)',
+                                WebkitBackdropFilter: 'blur(40px) saturate(150%)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}
+                        />
+                        {/* Content layer — sibling of the backdrop-filter div, not nested inside it.
+                            Popovers here can freely blur the actual page background. */}
+                        <div className="relative flex flex-col">
                         {/* ── Agent Controls Section ── */}
                         <div
                             data-testid="agent-control-pill"
-                            className="shrink-0 flex items-center gap-2 pl-4 pr-3 py-3"
+                            className="w-full h-[36px] shrink-0 flex items-center justify-between px-4 mt-1"
                         >
-                            {/* State icon */}
-                            {displayAgentState === 'sleeping' && (
-                                <IconAgentSleeping className="w-7 h-7 text-[var(--color-text-tertiary)]" />
-                            )}
-                            {displayAgentState === 'idle' && (
-                                <IconAgentIdle className="w-7 h-7" />
-                            )}
-                            {displayAgentState === 'working' && (
-                                <IconAgentWorking className="w-7 h-7" />
-                            )}
-                            {displayAgentState === 'paused' && (
-                                <IconAgentPaused className="w-7 h-7 text-[var(--color-warning,#FF9F0A)]" />
-                            )}
+                            {/* Left: Context */}
+                            <div className="flex items-center gap-2">
+                                {/* State icon */}
+                                {displayAgentState === 'sleeping' && (
+                                    <IconAgentSleeping className="w-7 h-7 text-[var(--color-text-tertiary)]" />
+                                )}
+                                {displayAgentState === 'idle' && (
+                                    <IconAgentIdle className="w-7 h-7" />
+                                )}
+                                {displayAgentState === 'working' && (
+                                    <IconAgentWorking className="w-7 h-7" />
+                                )}
+                                {displayAgentState === 'paused' && (
+                                    <IconAgentPaused className="w-7 h-7 text-[var(--color-warning,#FF9F0A)]" />
+                                )}
 
-                            {/* Pause / Resume — hidden while sleeping */}
-                            {displayAgentState !== 'sleeping' && (
-                                displayAgentState === 'paused' ? (
-                                    <Button
-                                        isIconOnly size="sm" variant="light"
-                                        onClick={onResumeAgent}
-                                        className="min-w-7 w-7 h-7 rounded-full text-[var(--color-success)] hover:bg-[var(--color-success)]/10 hover:scale-110 transition-all"
-                                        aria-label="Resume Agent"
-                                    >
-                                        <IconPlay />
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        isIconOnly size="sm" variant="light"
-                                        onClick={onPauseAgent}
-                                        className={`
-                                            min-w-7 w-7 h-7 rounded-full transition-all
-                                            text-[var(--color-text-tertiary)] hover:bg-white/5
-                                            hover:text-[var(--color-text-secondary)] hover:scale-110
-                                            ${displayAgentState === 'idle' ? 'opacity-30 pointer-events-none' : 'opacity-100'}
-                                        `}
-                                        aria-label="Pause Agent"
-                                    >
-                                        <IconPause />
-                                    </Button>
-                                )
-                            )}
+                                {/* Pause / Resume — hidden while sleeping */}
+                                {displayAgentState !== 'sleeping' && (
+                                    displayAgentState === 'paused' ? (
+                                        <Button
+                                            isIconOnly size="sm" variant="light"
+                                            onClick={onResumeAgent}
+                                            className="min-w-7 w-7 h-7 rounded-full text-[var(--color-success)] hover:bg-[var(--color-success)]/10 hover:scale-110 transition-all"
+                                            aria-label="Resume Agent"
+                                        >
+                                            <IconPlay />
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            isIconOnly size="sm" variant="light"
+                                            onClick={onPauseAgent}
+                                            className={`
+                                                min-w-7 w-7 h-7 rounded-full transition-all
+                                                text-[var(--color-text-tertiary)] hover:bg-white/5
+                                                hover:text-[var(--color-text-secondary)] hover:scale-110
+                                                ${displayAgentState === 'idle' ? 'opacity-30 pointer-events-none' : 'opacity-100'}
+                                            `}
+                                            aria-label="Pause Agent"
+                                        >
+                                            <IconPause />
+                                        </Button>
+                                    )
+                                )}
+                            </div>
 
-                            {topicCapabilities && (
-                                <div ref={capPanelRef} className="relative flex items-center gap-1">
+                            {/* Right: Control */}
+                            <div ref={capPanelRef} className="relative flex items-center gap-1">
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => toggleCapPanel('model')}
+                                            className={`h-7 min-w-[132px] max-w-[180px] px-2 rounded-full text-[11px] inline-flex items-center justify-start gap-1.5 transition-all duration-200 hover:scale-105
+                                                ${openCapPanel === 'model'
+                                                    ? 'bg-[var(--color-accent)] text-white'
+                                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]'}`}
+                                            aria-label="Model"
+                                            title={`${currentModelSelection.provider}/${currentModelSelection.model}`}
+                                        >
+                                            <IconBrain className="w-4 h-4" />
+                                            <span className="truncate leading-none">{modelButtonLabel}</span>
+                                        </button>
+
+                                        {openCapPanel === 'model' && (
+                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[360px] rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
+                                                <div className="text-[12px] font-medium text-[var(--color-text-primary)] mb-2">Model</div>
+                                                <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                    <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                    <span>Temporary overrides for current topic only.</span>
+                                                </div>
+
+                                                <div className="mb-2">
+                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Current</div>
+                                                    <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-primary)] truncate">
+                                                        <span className="text-[var(--color-success)]" aria-hidden="true">✅</span>
+                                                        <span className="truncate">
+                                                            {currentModelSelection.provider}
+                                                            <span className="mx-1 text-[var(--color-text-tertiary)]">/</span>
+                                                            {currentModelSelection.model}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">Provider</div>
+                                                    <input
+                                                        value={modelSearch}
+                                                        onChange={(event) => setModelSearch(event.target.value)}
+                                                        placeholder="Search model ..."
+                                                        className="w-[190px] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] rounded-lg px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40 focus:border-[var(--color-accent)]"
+                                                    />
+                                                </div>
+
+                                                {filteredModelGroups.length === 0 ? (
+                                                    <div className="text-[11px] text-[var(--color-text-tertiary)]">No models found</div>
+                                                ) : (
+                                                    <div className="space-y-2 max-h-[380px] overflow-y-auto pr-2">
+                                                        {filteredModelGroups.map((group) => (
+                                                            <div key={`model-group-${group.providerId}`} className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 mr-1 min-h-[118px]">
+                                                                <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">{group.providerId}</div>
+                                                                <div className="space-y-1 max-h-[98px] overflow-y-auto pr-1">
+                                                                    {group.models.map((model) => {
+                                                                        const fullId = `${group.providerId}:${model}`;
+                                                                        const active = selectedModel === fullId;
+                                                                        return (
+                                                                            <button
+                                                                                key={fullId}
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    onSelectModel?.(fullId);
+                                                                                    setOpenCapPanel(null);
+                                                                                }}
+                                                                                className={`w-full text-left text-[11px] px-2 py-1.5 rounded-md transition-colors ${active
+                                                                                    ? 'bg-[var(--color-accent)] text-white'
+                                                                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-bg)]'
+                                                                                    }`}
+                                                                            >
+                                                                                {model}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => toggleCapPanel('prompt')}
+                                            className={`w-7 h-7 rounded-full text-[11px] inline-flex items-center justify-center transition-all duration-200 hover:scale-105
+                                                ${openCapPanel === 'prompt'
+                                                    ? 'bg-[var(--color-accent)] text-white'
+                                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]'}`}
+                                            aria-label="Prompt"
+                                        >
+                                            <IconPrompt className="w-4 h-4" />
+                                        </button>
+
+                                        {openCapPanel === 'prompt' && (
+                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[360px] rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
+                                                <div className="text-[12px] font-medium text-[var(--color-text-primary)] mb-2">Prompt</div>
+                                                <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                    <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                    <span>Temporary overrides for current topic only.</span>
+                                                </div>
+
+                                                <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Current</div>
+                                                <textarea
+                                                    value={topicPrompt || ''}
+                                                    onChange={(event) => onChangeTopicPrompt?.(event.target.value)}
+                                                    placeholder="Topic prompt override..."
+                                                    className="w-full h-[140px] overflow-y-auto bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] rounded-lg px-2.5 py-2 text-[12px] resize-none mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40 focus:border-[var(--color-accent)]"
+                                                />
+                                                <div className="mb-2 text-[10px] text-[var(--color-text-tertiary)]">Undo: ⌘Z / Ctrl+Z</div>
+
+                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">Templates</div>
+                                                    <input
+                                                        value={promptSearch}
+                                                        onChange={(event) => setPromptSearch(event.target.value)}
+                                                        placeholder="Search templates..."
+                                                        className="w-[190px] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] rounded-lg px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40 focus:border-[var(--color-accent)]"
+                                                    />
+                                                </div>
+
+                                                <div className="max-h-[180px] overflow-y-auto space-y-1">
+                                                    {filteredPromptTemplates.map((template) => (
+                                                        <button
+                                                            key={template.id}
+                                                            type="button"
+                                                            onClick={() => onApplyPromptTemplate?.(template.id)}
+                                                            className="w-full text-left text-[11px] px-2 py-1 rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]"
+                                                        >
+                                                            {template.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* ── Apps Button ── */}
                                     <div className="relative">
                                         <button
                                             onClick={() => toggleCapPanel('apps')}
-                                            className={`w-7 h-7 rounded-full text-[11px] inline-flex items-center justify-center transition-colors
+                                            className={`w-7 h-7 rounded-full text-[11px] inline-flex items-center justify-center transition-all duration-200 hover:scale-105
                                                 ${openCapPanel === 'apps'
                                                     ? 'bg-[var(--color-accent)] text-white'
-                                                    : 'text-[var(--color-text-secondary)] bg-[var(--mat-content-card-hover-bg)]'}`}
+                                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]'}`}
                                             aria-label="Apps"
                                         >
                                             <IconApps className="w-4 h-4" />
                                         </button>
 
                                         {openCapPanel === 'apps' && (
-                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[300px] max-h-[280px] overflow-auto rounded-2xl border border-[var(--mat-border)] bg-[var(--mat-lg-regular-bg)] p-3 shadow-lg z-40">
-                                                {capabilityHint && (
-                                                    <div className="mb-2 text-[11px] text-[var(--color-text-tertiary)]">{capabilityHint}</div>
-                                                )}
+                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[300px] max-h-[280px] overflow-auto rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
                                                 <div className="flex items-center justify-between mb-2">
                                                     <span className="text-[12px] font-medium text-[var(--color-text-primary)]">Apps</span>
-                                                    {renderToggle(topicCapabilities.apps.enabled, (value) => onToggleCapabilityGroup?.('apps', value))}
+                                                    {renderToggle(topicCapabilities?.apps.enabled ?? true, (value) => onToggleCapabilityGroup?.('apps', value))}
                                                 </div>
-                                                {topicCapabilities.apps.items.length === 0 ? (
+                                                {capabilityHint && (
+                                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                        <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                        <span>{capabilityHint}</span>
+                                                    </div>
+                                                )}
+                                                {(topicCapabilities?.apps.items.length ?? 0) === 0 ? (
                                                     <div className="text-[11px] text-[var(--color-text-tertiary)]">No apps found</div>
                                                 ) : (
-                                                    <div className={`rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 space-y-1 ${topicCapabilities.apps.enabled ? '' : 'opacity-45'}`}>
-                                                        {topicCapabilities.apps.items.map((app) => (
+                                                    <div className={`rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 space-y-1 ${(topicCapabilities?.apps.enabled ?? true) ? '' : 'opacity-45'}`}>
+                                                        {(topicCapabilities?.apps.items ?? []).map((app) => (
                                                             <label key={`app-${app.name}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
                                                                 <span className="truncate">{app.name}</span>
                                                                 {renderToggle(
                                                                     app.enabled,
                                                                     (value) => onToggleCapabilityItem?.('apps', app.name, value),
-                                                                    !topicCapabilities.apps.enabled,
+                                                                    !(topicCapabilities?.apps.enabled ?? true),
                                                                 )}
                                                             </label>
                                                         ))}
@@ -661,35 +892,38 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                     <div className="relative">
                                         <button
                                             onClick={() => toggleCapPanel('skills')}
-                                            className={`w-7 h-7 rounded-full text-[11px] inline-flex items-center justify-center transition-colors
+                                            className={`w-7 h-7 rounded-full text-[11px] inline-flex items-center justify-center transition-all duration-200 hover:scale-105
                                                 ${openCapPanel === 'skills'
                                                     ? 'bg-[var(--color-accent)] text-white'
-                                                    : 'text-[var(--color-text-secondary)] bg-[var(--mat-content-card-hover-bg)]'}`}
+                                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]'}`}
                                             aria-label="Skills"
                                         >
                                             <IconSkills className="w-4 h-4" />
                                         </button>
 
                                         {openCapPanel === 'skills' && (
-                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[300px] max-h-[280px] overflow-auto rounded-2xl border border-[var(--mat-border)] bg-[var(--mat-lg-regular-bg)] p-3 shadow-lg z-40">
-                                                {capabilityHint && (
-                                                    <div className="mb-2 text-[11px] text-[var(--color-text-tertiary)]">{capabilityHint}</div>
-                                                )}
+                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[300px] max-h-[280px] overflow-auto rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
                                                 <div className="flex items-center justify-between mb-2">
                                                     <span className="text-[12px] font-medium text-[var(--color-text-primary)]">Skills</span>
-                                                    {renderToggle(topicCapabilities.skill.enabled, (value) => onToggleCapabilityGroup?.('skill', value))}
+                                                    {renderToggle(topicCapabilities?.skill.enabled ?? true, (value) => onToggleCapabilityGroup?.('skill', value))}
                                                 </div>
-                                                {topicCapabilities.skill.items.length === 0 ? (
+                                                {capabilityHint && (
+                                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                        <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                        <span>{capabilityHint}</span>
+                                                    </div>
+                                                )}
+                                                {(topicCapabilities?.skill.items.length ?? 0) === 0 ? (
                                                     <div className="text-[11px] text-[var(--color-text-tertiary)]">No skills available</div>
                                                 ) : (
-                                                    <div className={`rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 space-y-1 ${topicCapabilities.skill.enabled ? '' : 'opacity-45'}`}>
-                                                        {topicCapabilities.skill.items.map((item) => (
+                                                    <div className={`rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 space-y-1 ${(topicCapabilities?.skill.enabled ?? true) ? '' : 'opacity-45'}`}>
+                                                        {(topicCapabilities?.skill.items ?? []).map((item) => (
                                                             <label key={`skill-${item.name}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
                                                                 <span className="truncate">{item.name}</span>
                                                                 {renderToggle(
                                                                     item.enabled,
                                                                     (value) => onToggleCapabilityItem?.('skill', item.name, value),
-                                                                    !topicCapabilities.skill.enabled,
+                                                                    !(topicCapabilities?.skill.enabled ?? true),
                                                                 )}
                                                             </label>
                                                         ))}
@@ -702,26 +936,29 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                     <div className="relative">
                                         <button
                                             onClick={() => toggleCapPanel('mcp')}
-                                            className={`w-7 h-7 rounded-full text-[11px] inline-flex items-center justify-center transition-colors
+                                            className={`w-7 h-7 rounded-full text-[11px] inline-flex items-center justify-center transition-all duration-200 hover:scale-105
                                                 ${openCapPanel === 'mcp'
                                                     ? 'bg-[var(--color-accent)] text-white'
-                                                    : 'text-[var(--color-text-secondary)] bg-[var(--mat-content-card-hover-bg)]'}`}
+                                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]'}`}
                                             aria-label="MCP"
                                         >
                                             <IconMCP className="w-4 h-4" />
                                         </button>
 
                                         {openCapPanel === 'mcp' && (
-                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[320px] max-h-[300px] overflow-auto rounded-2xl border border-[var(--mat-border)] bg-[var(--mat-lg-regular-bg)] p-3 shadow-lg z-40">
-                                                {capabilityHint && (
-                                                    <div className="mb-2 text-[11px] text-[var(--color-text-tertiary)]">{capabilityHint}</div>
-                                                )}
+                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[320px] max-h-[300px] overflow-auto rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
                                                 <div className="flex items-center justify-between mb-2">
                                                     <span className="text-[12px] font-medium text-[var(--color-text-primary)]">MCP</span>
-                                                    {renderToggle(topicCapabilities.mcp.enabled, (value) => onToggleCapabilityGroup?.('mcp', value))}
+                                                    {renderToggle(topicCapabilities?.mcp.enabled ?? true, (value) => onToggleCapabilityGroup?.('mcp', value))}
                                                 </div>
-                                                <div className={`space-y-2 ${topicCapabilities.mcp.enabled ? '' : 'opacity-45'}`}>
-                                                    {topicCapabilities.mcp.groups.map((group) => (
+                                                {capabilityHint && (
+                                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                        <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                        <span>{capabilityHint}</span>
+                                                    </div>
+                                                )}
+                                                <div className={`space-y-2 ${(topicCapabilities?.mcp.enabled ?? true) ? '' : 'opacity-45'}`}>
+                                                    {(topicCapabilities?.mcp.groups ?? []).map((group) => (
                                                         <details key={`mcp-group-${group.serverName}`} className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2" open>
                                                             <summary className="list-none cursor-pointer flex items-center justify-between gap-2">
                                                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -731,18 +968,18 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                                                 {renderToggle(
                                                                     group.enabled,
                                                                     (value) => onToggleCapabilityItem?.('mcp', group.key, value),
-                                                                    !topicCapabilities.mcp.enabled,
+                                                                    !(topicCapabilities?.mcp.enabled ?? true),
                                                                 )}
                                                             </summary>
                                                             {group.connected && (
-                                                                <div className={`mt-1 space-y-1 ${(topicCapabilities.mcp.enabled && group.enabled) ? '' : 'opacity-45'}`}>
+                                                                <div className={`mt-1 space-y-1 ${((topicCapabilities?.mcp.enabled ?? true) && group.enabled) ? '' : 'opacity-45'}`}>
                                                                     {group.items.map((item) => (
                                                                         <label key={`mcp-${item.key}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
                                                                             <span className="truncate">{item.name}</span>
                                                                             {renderToggle(
                                                                                 item.enabled,
                                                                                 (value) => onToggleCapabilityItem?.('mcp', item.key, value),
-                                                                                !topicCapabilities.mcp.enabled || !group.enabled,
+                                                                                !(topicCapabilities?.mcp.enabled ?? true) || !group.enabled,
                                                                             )}
                                                                         </label>
                                                                     ))}
@@ -755,52 +992,60 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         )}
                                     </div>
                                 </div>
-                            )}
                         </div>
 
                         {/* ── Input Section ── */}
-                        <textarea
-                            ref={textareaRef}
-                            className="
-                                flex-1 bg-transparent border-none outline-none
-                                focus:ring-0 focus:outline-none
-                                text-[13px] leading-relaxed text-[var(--color-text-primary)]
-                                placeholder:text-[var(--color-text-tertiary)]
-                                px-4 py-3
-                                min-h-[44px] max-h-40
-                                resize-none overflow-y-auto scrollbar-hide
-                            "
-                            placeholder={
-                                displayAgentState === 'paused'
-                                    ? 'Agent paused — resume to continue…'
-                                    : displayAgentState === 'working'
-                                        ? 'Agent is working…'
-                                        : 'Message the agent…'
-                            }
-                            rows={1}
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                        />
+                        <div className="w-full min-h-[44px] px-3 pb-3 pt-2">
+                            <div className="w-full flex items-end rounded-[22px] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)]">
+                                <textarea
+                                    ref={textareaRef}
+                                    className="
+                                    flex-1 bg-transparent border-none outline-none
+                                    focus:ring-0 focus:outline-none
+                                    text-[15px] leading-relaxed text-[var(--color-text-primary)]
+                                    placeholder:text-[var(--color-text-tertiary)]
+                                    px-4 py-3
+                                    max-h-40
+                                        resize-none overflow-y-hidden scrollbar-hide
+                                    font-['SF_Pro_Rounded',system-ui,sans-serif]
+                                "
+                                    placeholder={
+                                        displayAgentState === 'paused'
+                                            ? 'Agent paused — resume to continue…'
+                                            : displayAgentState === 'working'
+                                                ? 'Agent is working…'
+                                                : 'Message the agent…'
+                                    }
+                                    rows={1}
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                />
 
-                        {/* Send button */}
-                        <div className="pr-2 py-2 shrink-0">
-                            <Button
-                                isIconOnly size="sm"
-                                className={`
-                                    min-w-8 w-8 h-8 rounded-full flex items-center justify-center
-                                    transition-all duration-[var(--dur-fast)]
-                                    active:scale-[0.94] motion-reduce:active:scale-100
-                                    ${inputValue.trim()
-                                        ? 'bg-[var(--color-accent)] text-white shadow-md'
-                                        : 'bg-white/5 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}
-                                `}
-                                onClick={handleSendClick}
-                                aria-label="Send message"
-                            >
-                                <IconSend />
-                            </Button>
+                                {/* Send button */}
+                                <div className="pr-2 py-2 shrink-0">
+                                    <Button
+                                        isIconOnly size="sm"
+                                        className={`
+                                        min-w-9 w-9 h-9 rounded-full flex items-center justify-center
+                                        transition-all duration-[var(--dur-fast)]
+                                        active:scale-[0.94] motion-reduce:active:scale-100
+                                        ${inputValue.trim()
+                                                ? 'bg-[var(--color-accent)] text-white'
+                                                : 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}
+                                        `}
+                                        onClick={handleSendClick}
+                                        aria-label="Send message"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                                            <path d="M12 18V6" />
+                                            <path d="M7 11L12 6L17 11" />
+                                        </svg>
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
+                        </div> {/* content layer */}
                     </div>
 
                 </div>
