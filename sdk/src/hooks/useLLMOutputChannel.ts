@@ -26,7 +26,8 @@
  */
 
 import { useEffect, useRef } from './preact-hooks.js';
-import { useViewSelector } from './use-view-selector.js';
+import { useContext } from './preact-hooks.js';
+import { ViewRuntimeContext } from '../contexts/view-runtime-context.js';
 import type { LLMOutputEvent, LLMOutputListener } from '@aotui/runtime/spi';
 
 // ============================================================================
@@ -74,8 +75,9 @@ export function useLLMOutputChannel(
     onText: LLMOutputListener,
     options?: LLMOutputChannelOptions
 ): void {
-    // 从 ViewRuntimeContext 获取 llmOutput 通道
-    const llmOutput = useViewSelector(ctx => ctx.llmOutput);
+    // 从 ViewRuntimeContext 获取 llmOutput 通道 (null-safe: 允许在 View 外调用)
+    const viewCtx = useContext(ViewRuntimeContext);
+    const llmOutput = viewCtx?.llmOutput ?? null;
 
     // 使用 ref 保持回调引用最新
     const callbackRef = useRef(onText);
@@ -88,7 +90,7 @@ export function useLLMOutputChannel(
         };
 
         // [RFC-011] 方案1: 通过 Context Subscribe (用于 Embedded 模式)
-        const unsubscribeFn = llmOutput.subscribe(handler);
+        const unsubscribeFn = llmOutput?.subscribe(handler) ?? (() => {});
 
         // [RFC-011] 方案2: Worker 模式通过 DOM 事件接收
         // 兼容两种事件名：
@@ -127,7 +129,7 @@ export function useLLMOutputChannel(
                 document.removeEventListener('aotui:llm-text', domHandler);
             }
         };
-    }, [llmOutput]);
+    }, [llmOutput]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 // ============================================================================
@@ -155,6 +157,7 @@ export function useLLMOutputChannel(
  * ```
  */
 export function useLLMOutputHistory(): LLMOutputEvent[] {
-    const llmOutput = useViewSelector(ctx => ctx.llmOutput);
-    return llmOutput.getHistory();
+    const viewCtx = useContext(ViewRuntimeContext);
+    const llmOutput = viewCtx?.llmOutput ?? null;
+    return llmOutput?.getHistory() ?? [];
 }
