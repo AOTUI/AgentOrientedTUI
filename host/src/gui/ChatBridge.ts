@@ -206,6 +206,7 @@ export class ChatBridge {
                 // New message broadcast (from Agent response or other sources)
                 const newMsg = msg.message as Message;
                 const topicId = msg.desktopId;
+                this.touchTopic(topicId, newMsg.timestamp || Date.now());
                 const msgs = this.messages.get(topicId) || [];
 
                 // Dedup: check if message already exists (optimistic update may have added it)
@@ -315,6 +316,7 @@ export class ChatBridge {
             const msgs = this.messages.get(topicId) || [];
             msgs.push(optimisticMessage);
             this.messages.set(topicId, msgs);
+            this.touchTopic(topicId, optimisticMessage.timestamp);
             this.notify({ type: 'message', topicId, data: optimisticMessage });
 
             // [Fix] Race Condition: Give tRPC Subscription a moment to establish handshake
@@ -524,6 +526,18 @@ export class ChatBridge {
 
     private notify(event: ChatUpdateEvent): void {
         this.subscribers.forEach(cb => cb(event));
+    }
+
+    private touchTopic(topicId: string, updatedAt: number = Date.now()): void {
+        const topic = this.topics.get(topicId);
+        if (!topic) {
+            return;
+        }
+
+        this.topics.set(topicId, {
+            ...topic,
+            updatedAt,
+        });
     }
 
     // ============ Utilities ============

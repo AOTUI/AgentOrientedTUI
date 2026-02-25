@@ -48,9 +48,15 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     theme,
     onThemeChange,
     currentProjectPath,
+    initialTab,
 }) => {
     // State
-    const [activeTab, setActiveTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>('model');
+    const [activeTab, setActiveTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>(initialTab ?? 'model');
+
+    // Jump to initialTab whenever the panel opens
+    useEffect(() => {
+        if (isOpen && initialTab) setActiveTab(initialTab);
+    }, [isOpen, initialTab]);
 
     // Refs for focus trap
     const panelRef = useRef<HTMLDivElement>(null);

@@ -23,6 +23,8 @@ export interface SettingsPanelProps {
     onThemeChange: (theme: 'dark' | 'light') => void;
     /** Current selected project path (optional) */
     currentProjectPath?: string | null;
+    /** If provided, the panel will open on this tab */
+    initialTab?: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
 }
 
 /**

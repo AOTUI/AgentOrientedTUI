@@ -27,7 +27,8 @@ const mockDb = {
 const mockMessages: any[] = [];
 
 vi.mock('../src/db/index.js', () => ({
-    getDb: () => mockDb
+    getDb: () => mockDb,
+    persistDatabase: vi.fn(),
 }));
 
 describe('MessageServiceV2', () => {
@@ -48,6 +49,13 @@ describe('MessageServiceV2', () => {
             return mockMessages
                 .filter(m => m.topic_id === topicId)
                 .sort((a, b) => a.timestamp - b.timestamp);
+        });
+
+        vi.spyOn(dbV2, 'updateMessageV2').mockImplementation((db, topicId, message) => {
+            const idx = mockMessages.findIndex((m) => m.topic_id === topicId && m.id === message.id);
+            if (idx >= 0) {
+                mockMessages[idx] = { ...message, topic_id: topicId };
+            }
         });
 
         messageService = new MessageServiceV2();
@@ -244,6 +252,172 @@ describe('MessageServiceV2', () => {
             expect(messages[1].role).toBe('assistant');
             expect(messages[2].role).toBe('tool');
             expect(messages[3].role).toBe('assistant');
+        });
+    });
+
+    describe('Context Compaction', () => {
+        it('should keep full GUI history but filter LLM messages after compaction anchor', () => {
+            const keepCount = 10;
+            for (let i = 0; i < 16; i += 1) {
+                messageService.addMessage(testTopicId, {
+                    role: i % 2 === 0 ? 'user' : 'assistant',
+                    content: `message-${i}`,
+                } as ModelMessage);
+            }
+
+            const result = messageService.compactContext(testTopicId, {
+                trigger: 'host_fallback',
+                createSyntheticMessages: true,
+                keepRecentMessages: keepCount,
+            });
+
+            expect(result.compacted).toBe(true);
+            expect(result.syntheticMessages.length).toBe(2);
+
+            const fullMessages = messageService.getMessages(testTopicId);
+            expect(fullMessages.length).toBe(18);
+
+            const llmMessages = messageService.getMessagesForLLM(testTopicId);
+            expect(llmMessages.length).toBe(2);
+            expect(llmMessages[0].role).toBe('assistant');
+            expect(llmMessages[1].role).toBe('tool');
+            expect((llmMessages[1] as any)._aotuiCompactionAnchor).toBe(true);
+        });
+
+        it('should clean old tool result outputs with placeholder but keep structure', () => {
+            const toolCallId = 'call_old_1';
+            for (let i = 0; i < 8; i += 1) {
+                messageService.addMessage(testTopicId, {
+                    role: 'user',
+                    content: `seed-${i}`,
+                } as ModelMessage);
+            }
+
+            messageService.addMessage(testTopicId, {
+                role: 'tool',
+                content: [
+                    {
+                        type: 'tool-result',
+                        toolCallId,
+                        toolName: 'search_code',
+                        result: 'VERY_LONG_TOOL_OUTPUT_ABC',
+                    },
+                ],
+            } as ModelMessage);
+
+            for (let i = 0; i < 8; i += 1) {
+                messageService.addMessage(testTopicId, {
+                    role: i % 2 === 0 ? 'assistant' : 'user',
+                    content: `tail-${i}`,
+                } as ModelMessage);
+            }
+
+            const result = messageService.compactContext(testTopicId, {
+                trigger: 'host_fallback',
+                createSyntheticMessages: true,
+                keepRecentMessages: 6,
+            });
+
+            expect(result.compacted).toBe(true);
+            expect(result.cleanedToolResultCount).toBeGreaterThan(0);
+
+            const toolMessages = messageService
+                .getMessages(testTopicId)
+                .filter((message) => message.role === 'tool') as any[];
+            const oldToolMessage = toolMessages.find((message) =>
+                Array.isArray(message.content) &&
+                message.content.some((part: any) => part.toolName === 'search_code')
+            );
+
+            expect(oldToolMessage).toBeDefined();
+            const resultPart = oldToolMessage.content.find((part: any) => part.toolName === 'search_code');
+            expect(resultPart.result).toBe('[Old tool result content cleared by context compaction]');
+            expect(resultPart.output).toBe('[Old tool result content cleared by context compaction]');
+            expect(resultPart.metadata.aotuiCompacted).toBe(true);
+        });
+
+        it('should allow agent-trigger compaction without synthetic messages', () => {
+            for (let i = 0; i < 16; i += 1) {
+                messageService.addMessage(testTopicId, {
+                    role: i % 2 === 0 ? 'user' : 'assistant',
+                    content: `agent-${i}`,
+                } as ModelMessage);
+            }
+
+            const before = messageService.getMessages(testTopicId).length;
+            const result = messageService.compactContext(testTopicId, {
+                trigger: 'agent',
+                createSyntheticMessages: false,
+            });
+            const after = messageService.getMessages(testTopicId).length;
+
+            expect(result.compacted).toBe(true);
+            expect(result.syntheticMessages.length).toBe(0);
+            expect(after).toBe(before);
+        });
+
+        it('should support repeated compaction across multiple growth cycles without re-compacting old windows', () => {
+            for (let i = 0; i < 16; i += 1) {
+                messageService.addMessage(testTopicId, {
+                    role: i % 2 === 0 ? 'user' : 'assistant',
+                    content: `round1-${i}`,
+                } as ModelMessage);
+            }
+
+            const r1 = messageService.compactContext(testTopicId, {
+                trigger: 'host_fallback',
+                createSyntheticMessages: true,
+                keepRecentMessages: 8,
+            });
+            expect(r1.compacted).toBe(true);
+            expect(r1.compactedMessageCount).toBe(16);
+
+            let llmWindow = messageService.getMessagesForLLM(testTopicId);
+            expect(llmWindow.length).toBe(2);
+            expect(llmWindow[0].role).toBe('assistant');
+            expect(llmWindow[1].role).toBe('tool');
+
+            for (let i = 0; i < 14; i += 1) {
+                messageService.addMessage(testTopicId, {
+                    role: i % 2 === 0 ? 'user' : 'assistant',
+                    content: `round2-${i}`,
+                } as ModelMessage);
+            }
+
+            const r2 = messageService.compactContext(testTopicId, {
+                trigger: 'host_fallback',
+                createSyntheticMessages: true,
+                keepRecentMessages: 8,
+            });
+            expect(r2.compacted).toBe(true);
+            expect(r2.compactedMessageCount).toBe(14);
+
+            llmWindow = messageService.getMessagesForLLM(testTopicId);
+            expect(llmWindow.length).toBe(2);
+            expect(llmWindow[0].role).toBe('assistant');
+            expect(llmWindow[1].role).toBe('tool');
+            expect((llmWindow[1] as any)._aotuiCompactionAnchor).toBe(true);
+
+            for (let i = 0; i < 14; i += 1) {
+                messageService.addMessage(testTopicId, {
+                    role: i % 2 === 0 ? 'user' : 'assistant',
+                    content: `round3-${i}`,
+                } as ModelMessage);
+            }
+
+            const r3 = messageService.compactContext(testTopicId, {
+                trigger: 'host_fallback',
+                createSyntheticMessages: true,
+                keepRecentMessages: 8,
+            });
+            expect(r3.compacted).toBe(true);
+            expect(r3.compactedMessageCount).toBe(14);
+
+            llmWindow = messageService.getMessagesForLLM(testTopicId);
+            expect(llmWindow.length).toBe(2);
+            expect(llmWindow[0].role).toBe('assistant');
+            expect(llmWindow[1].role).toBe('tool');
+            expect((llmWindow[1] as any)._aotuiCompactionAnchor).toBe(true);
         });
     });
 });

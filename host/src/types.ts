@@ -93,6 +93,13 @@ export interface Topic {
         mcp: { enabled: boolean; disabledItems: string[] };
         skill: { enabled: boolean; disabledItems: string[] };
     };
+    /** Topic-level context compaction policy override */
+    contextCompaction?: {
+        enabled?: boolean;
+        minMessages?: number;
+        keepRecentMessages?: number;
+        hardFallbackThresholdTokens?: number;
+    };
 }
 
 export interface Project {

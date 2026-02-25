@@ -104,7 +104,8 @@ function initSchema() {
             project_id TEXT REFERENCES projects(id),
             model_override TEXT DEFAULT NULL,
             prompt_override TEXT DEFAULT NULL,
-            source_controls TEXT DEFAULT NULL
+            source_controls TEXT DEFAULT NULL,
+            context_compaction_controls TEXT DEFAULT NULL
         );
 
         CREATE TABLE IF NOT EXISTS messages (
@@ -284,6 +285,19 @@ function migrateSchema() {
         }
     }
 
+    // Topic context compaction controls snapshot
+    try {
+        db.exec("SELECT context_compaction_controls FROM topics LIMIT 1");
+    } catch {
+        console.log('[DB] Migrating: Adding context_compaction_controls to topics table');
+        try {
+            db.run("ALTER TABLE topics ADD COLUMN context_compaction_controls TEXT DEFAULT NULL");
+            saveToDisk();
+        } catch (alterError) {
+            console.error('[DB] Migration failed:', alterError);
+        }
+    }
+
     // [Message System Optimization] Add message_type column
     try {
         db.exec("SELECT message_type FROM messages LIMIT 1");
@@ -343,6 +357,14 @@ function rowToTopic(row: any): Topic {
             if (!row.source_controls) return undefined;
             try {
                 return JSON.parse(row.source_controls);
+            } catch {
+                return undefined;
+            }
+        })(),
+        contextCompaction: (() => {
+            if (!row.context_compaction_controls) return undefined;
+            try {
+                return JSON.parse(row.context_compaction_controls);
             } catch {
                 return undefined;
             }
@@ -413,12 +435,13 @@ function queryOne<T>(sql: string, params: any[] = [], mapper: (row: any) => T): 
 export function createTopic(topic: Topic): void {
     const db = getDb();
     db.run(`
-        INSERT INTO topics (id, title, created_at, updated_at, status, summary, stage, last_snapshot_time, project_id, model_override, prompt_override, source_controls)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO topics (id, title, created_at, updated_at, status, summary, stage, last_snapshot_time, project_id, model_override, prompt_override, source_controls, context_compaction_controls)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
         topic.id, topic.title, topic.createdAt, topic.updatedAt, topic.status,
         topic.summary ?? null, topic.stage ?? null, topic.lastSnapshotTime ?? null, topic.projectId ?? null,
-        topic.modelOverride ?? null, topic.promptOverride ?? null, topic.sourceControls ? JSON.stringify(topic.sourceControls) : null
+        topic.modelOverride ?? null, topic.promptOverride ?? null, topic.sourceControls ? JSON.stringify(topic.sourceControls) : null,
+        topic.contextCompaction ? JSON.stringify(topic.contextCompaction) : null
     ]);
     saveToDisk();
 }
@@ -446,6 +469,7 @@ export function updateTopic(id: string, updates: Partial<Topic>): void {
     if (updates.modelOverride !== undefined) { fields.push('model_override = ?'); values.push(updates.modelOverride); }
     if (updates.promptOverride !== undefined) { fields.push('prompt_override = ?'); values.push(updates.promptOverride); }
     if (updates.sourceControls !== undefined) { fields.push('source_controls = ?'); values.push(updates.sourceControls ? JSON.stringify(updates.sourceControls) : null); }
+    if (updates.contextCompaction !== undefined) { fields.push('context_compaction_controls = ?'); values.push(updates.contextCompaction ? JSON.stringify(updates.contextCompaction) : null); }
 
     if (fields.length === 0) return;
 

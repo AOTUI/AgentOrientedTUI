@@ -12,6 +12,7 @@ export type DisplayAgentState = 'sleeping' | 'idle' | 'working' | 'paused';
 type CapabilityItem = {
     name: string;
     enabled: boolean;
+    scope?: 'global' | 'project';
 };
 
 type CapabilityGroup = {
@@ -41,7 +42,7 @@ interface ChatAreaProps {
     onSendMessage: (content: string) => void;
     canSendMessage?: boolean;
     sendBlockedReason?: string | null;
-    onOpenSettings?: () => void;
+    onOpenSettings?: (tab?: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
     displayAgentState?: DisplayAgentState;
     onPauseAgent?: () => void;
     onResumeAgent?: () => void;
@@ -164,14 +165,21 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
     // are outside the compositing group and their blur reaches the real page background.
     // We locally override the inner-card tokens (global dark value is only 0.06 alpha) so
     // search inputs and group cards remain visible on top of the popover surface.
+    // color-mix against --color-text-primary gives theme-adaptive tints:
+    //   dark mode  → text-primary ≈ white  → white-tinted borders/cards (same feel as before)
+    //   light mode → text-primary ≈ black  → dark-gray borders/cards (visible on light bg)
     const popoverMaterialStyle: React.CSSProperties = {
         backgroundColor: 'color-mix(in srgb, var(--mat-lg-regular-bg) 80%, transparent)',
         backdropFilter: 'blur(40px) saturate(150%)',
         WebkitBackdropFilter: 'blur(40px) saturate(150%)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        ['--mat-content-card-bg' as any]: 'rgba(255, 255, 255, 0.08)',
-        ['--mat-content-card-hover-bg' as any]: 'rgba(255, 255, 255, 0.13)',
-        ['--mat-content-bubble-bg' as any]: 'rgba(255, 255, 255, 0.13)',
+        // Outer border and shadow
+        border: '1px solid color-mix(in srgb, var(--color-text-primary) 6%, transparent)',
+        boxShadow: '0 8px 32px var(--mat-floating-shadow-strong), 0 2px 8px var(--mat-floating-shadow-soft), 0 2px 10px var(--mat-floating-accent-glow)',
+        // Inner element token overrides (theme-adaptive)
+        ['--mat-border' as any]: 'color-mix(in srgb, var(--color-text-primary) 8%, transparent)',
+        ['--mat-content-card-bg' as any]: 'color-mix(in srgb, var(--color-text-primary) 4%, transparent)',
+        ['--mat-content-card-hover-bg' as any]: 'color-mix(in srgb, var(--color-text-primary) 7%, transparent)',
+        ['--mat-content-bubble-bg' as any]: 'color-mix(in srgb, var(--color-text-primary) 9%, transparent)',
     };
 
     const renderToggle = (checked: boolean, onChange: (v: boolean) => void, disabled = false) => (
@@ -491,7 +499,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                 }}
             />
 
-            <div ref={scrollAreaRef} className="absolute inset-0 px-6 pt-[78px] pb-[10px] space-y-6 overflow-y-auto custom-scrollbar">
+            <div ref={scrollAreaRef} className="absolute inset-0 px-6 pt-[78px] pb-[60px] space-y-6 overflow-y-auto custom-scrollbar">
                 {messages.length === 0 && (
                     <EmptyState onNewChat={() => { }} />
                 )}
@@ -636,9 +644,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         className="
                             relative flex flex-col
                             rounded-[32px]
-                            shadow-[0_12px_32px_rgba(0,0,0,0.12)]
                             transition-all duration-200
                         "
+                        style={{ boxShadow: '0 8px 32px var(--mat-floating-shadow-strong), 0 2px 8px var(--mat-floating-shadow-soft), 0 2px 10px var(--mat-floating-accent-glow)' }}
                     >
                         {/* Frosted glass layer — isolated element with NO children.
                             Its backdrop-filter creates a compositing group only for itself,
@@ -650,7 +658,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 backgroundColor: 'color-mix(in srgb, var(--mat-lg-regular-bg) 60%, transparent)',
                                 backdropFilter: 'blur(40px) saturate(150%)',
                                 WebkitBackdropFilter: 'blur(40px) saturate(150%)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                                border: '1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent)'
                             }}
                         />
                         {/* Content layer — sibling of the backdrop-filter div, not nested inside it.
@@ -828,17 +836,21 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                                     />
                                                 </div>
 
-                                                <div className="max-h-[180px] overflow-y-auto space-y-1">
-                                                    {filteredPromptTemplates.map((template) => (
-                                                        <button
-                                                            key={template.id}
-                                                            type="button"
-                                                            onClick={() => onApplyPromptTemplate?.(template.id)}
-                                                            className="w-full text-left text-[11px] px-2 py-1 rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]"
-                                                        >
-                                                            {template.name}
-                                                        </button>
-                                                    ))}
+                                                <div className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2">
+                                                    <div className="max-h-[90px] overflow-y-auto space-y-0.5 pr-0.5">
+                                                        {filteredPromptTemplates.length === 0 ? (
+                                                            <div className="text-[11px] text-[var(--color-text-tertiary)] px-1 py-0.5">No templates found</div>
+                                                        ) : filteredPromptTemplates.map((template) => (
+                                                            <button
+                                                                key={template.id}
+                                                                type="button"
+                                                                onClick={() => onApplyPromptTemplate?.(template.id)}
+                                                                className="w-full text-left text-[11px] px-2 py-1.5 rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-bg)] transition-colors"
+                                                            >
+                                                                {template.name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -901,36 +913,58 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                             <IconSkills className="w-4 h-4" />
                                         </button>
 
-                                        {openCapPanel === 'skills' && (
-                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[300px] max-h-[280px] overflow-auto rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-[12px] font-medium text-[var(--color-text-primary)]">Skills</span>
-                                                    {renderToggle(topicCapabilities?.skill.enabled ?? true, (value) => onToggleCapabilityGroup?.('skill', value))}
+                                        {openCapPanel === 'skills' && (() => {
+                                            const allSkills = topicCapabilities?.skill.items ?? [];
+                                            const globalSkills = allSkills.filter(s => s.scope !== 'project');
+                                            const projectSkills = allSkills.filter(s => s.scope === 'project');
+                                            const skillsEnabled = topicCapabilities?.skill.enabled ?? true;
+                                            const renderSkillList = (items: typeof allSkills) => (
+                                                <div className={`rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 space-y-1 ${skillsEnabled ? '' : 'opacity-45'}`}>
+                                                    {items.map((item) => (
+                                                        <label key={`skill-${item.name}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
+                                                            <span className="truncate">{item.name}</span>
+                                                            {renderToggle(
+                                                                item.enabled,
+                                                                (value) => onToggleCapabilityItem?.('skill', item.name, value),
+                                                                !skillsEnabled,
+                                                            )}
+                                                        </label>
+                                                    ))}
                                                 </div>
-                                                {capabilityHint && (
-                                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
-                                                        <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
-                                                        <span>{capabilityHint}</span>
+                                            );
+                                            return (
+                                                <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[300px] max-h-[340px] overflow-auto rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-[12px] font-medium text-[var(--color-text-primary)]">Skills</span>
+                                                        {renderToggle(skillsEnabled, (value) => onToggleCapabilityGroup?.('skill', value))}
                                                     </div>
-                                                )}
-                                                {(topicCapabilities?.skill.items.length ?? 0) === 0 ? (
-                                                    <div className="text-[11px] text-[var(--color-text-tertiary)]">No skills available</div>
-                                                ) : (
-                                                    <div className={`rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 space-y-1 ${(topicCapabilities?.skill.enabled ?? true) ? '' : 'opacity-45'}`}>
-                                                        {(topicCapabilities?.skill.items ?? []).map((item) => (
-                                                            <label key={`skill-${item.name}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
-                                                                <span className="truncate">{item.name}</span>
-                                                                {renderToggle(
-                                                                    item.enabled,
-                                                                    (value) => onToggleCapabilityItem?.('skill', item.name, value),
-                                                                    !(topicCapabilities?.skill.enabled ?? true),
-                                                                )}
-                                                            </label>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                                                    {capabilityHint && (
+                                                        <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                            <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                            <span>{capabilityHint}</span>
+                                                        </div>
+                                                    )}
+                                                    {allSkills.length === 0 ? (
+                                                        <div className="text-[11px] text-[var(--color-text-tertiary)]">No skills available</div>
+                                                    ) : (
+                                                        <div className="space-y-2">
+                                                            {globalSkills.length > 0 && (
+                                                                <div>
+                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Global</div>
+                                                                    {renderSkillList(globalSkills)}
+                                                                </div>
+                                                            )}
+                                                            {projectSkills.length > 0 && (
+                                                                <div>
+                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Project</div>
+                                                                    {renderSkillList(projectSkills)}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div className="relative">
@@ -945,51 +979,89 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                             <IconMCP className="w-4 h-4" />
                                         </button>
 
-                                        {openCapPanel === 'mcp' && (
-                                            <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[320px] max-h-[300px] overflow-auto rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-[12px] font-medium text-[var(--color-text-primary)]">MCP</span>
-                                                    {renderToggle(topicCapabilities?.mcp.enabled ?? true, (value) => onToggleCapabilityGroup?.('mcp', value))}
-                                                </div>
-                                                {capabilityHint && (
-                                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
-                                                        <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
-                                                        <span>{capabilityHint}</span>
+                                        {openCapPanel === 'mcp' && (() => {
+                                            const mcpEnabled = topicCapabilities?.mcp.enabled ?? true;
+                                            const allGroups = topicCapabilities?.mcp.groups ?? [];
+                                            const activeGroups = allGroups.filter(g => g.connected);
+                                            const inactiveGroups = allGroups.filter(g => !g.connected);
+                                            return (
+                                                <div className="absolute bottom-[52px] left-1/2 -translate-x-1/2 w-[320px] max-h-[360px] overflow-auto rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-[12px] font-medium text-[var(--color-text-primary)]">MCP</span>
+                                                        {renderToggle(mcpEnabled, (value) => onToggleCapabilityGroup?.('mcp', value))}
                                                     </div>
-                                                )}
-                                                <div className={`space-y-2 ${(topicCapabilities?.mcp.enabled ?? true) ? '' : 'opacity-45'}`}>
-                                                    {(topicCapabilities?.mcp.groups ?? []).map((group) => (
-                                                        <details key={`mcp-group-${group.serverName}`} className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2" open>
-                                                            <summary className="list-none cursor-pointer flex items-center justify-between gap-2">
-                                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${group.connected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-text-tertiary)]'}`} />
-                                                                    <span className="text-[10px] font-medium text-[var(--color-text-tertiary)] truncate">{group.serverName}</span>
-                                                                </div>
-                                                                {renderToggle(
-                                                                    group.enabled,
-                                                                    (value) => onToggleCapabilityItem?.('mcp', group.key, value),
-                                                                    !(topicCapabilities?.mcp.enabled ?? true),
-                                                                )}
-                                                            </summary>
-                                                            {group.connected && (
-                                                                <div className={`mt-1 space-y-1 ${((topicCapabilities?.mcp.enabled ?? true) && group.enabled) ? '' : 'opacity-45'}`}>
-                                                                    {group.items.map((item) => (
-                                                                        <label key={`mcp-${item.key}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
-                                                                            <span className="truncate">{item.name}</span>
-                                                                            {renderToggle(
-                                                                                item.enabled,
-                                                                                (value) => onToggleCapabilityItem?.('mcp', item.key, value),
-                                                                                !(topicCapabilities?.mcp.enabled ?? true) || !group.enabled,
-                                                                            )}
-                                                                        </label>
+                                                    {capabilityHint && (
+                                                        <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                            <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                            <span>{capabilityHint}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-3">
+                                                        {/* Active servers */}
+                                                        {activeGroups.length > 0 && (
+                                                            <div>
+                                                                <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Active</div>
+                                                                <div className={`space-y-2 ${mcpEnabled ? '' : 'opacity-45'}`}>
+                                                                    {activeGroups.map((group) => (
+                                                                        <details key={`mcp-group-${group.serverName}`} className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2" open>
+                                                                            <summary className="list-none cursor-pointer flex items-center justify-between gap-2">
+                                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-success)]" />
+                                                                                    <span className="text-[10px] font-medium text-[var(--color-text-tertiary)] truncate">{group.serverName}</span>
+                                                                                </div>
+                                                                                {renderToggle(
+                                                                                    group.enabled,
+                                                                                    (value) => onToggleCapabilityItem?.('mcp', group.key, value),
+                                                                                    !mcpEnabled,
+                                                                                )}
+                                                                            </summary>
+                                                                            <div className={`mt-1 space-y-1 ${(mcpEnabled && group.enabled) ? '' : 'opacity-45'}`}>
+                                                                                {group.items.map((item) => (
+                                                                                    <label key={`mcp-${item.key}`} className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-secondary)]">
+                                                                                        <span className="truncate">{item.name}</span>
+                                                                                        {renderToggle(
+                                                                                            item.enabled,
+                                                                                            (value) => onToggleCapabilityItem?.('mcp', item.key, value),
+                                                                                            !mcpEnabled || !group.enabled,
+                                                                                        )}
+                                                                                    </label>
+                                                                                ))}
+                                                                            </div>
+                                                                        </details>
                                                                     ))}
                                                                 </div>
-                                                            )}
-                                                        </details>
-                                                    ))}
+                                                            </div>
+                                                        )}
+                                                        {/* Inactive servers */}
+                                                        {inactiveGroups.length > 0 && (
+                                                            <div>
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">Inactive</div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => { setOpenCapPanel(null); onOpenSettings?.('mcp'); }}
+                                                                        className="text-[10px] text-[var(--color-accent)] hover:underline"
+                                                                    >
+                                                                        Open Settings To Activate →
+                                                                    </button>
+                                                                </div>
+                                                                <div className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 space-y-1.5 opacity-50">
+                                                                    {inactiveGroups.map((group) => (
+                                                                        <div key={`mcp-inactive-${group.serverName}`} className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                                            <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-text-tertiary)]" />
+                                                                            <span className="truncate">{group.serverName}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {allGroups.length === 0 && (
+                                                            <div className="text-[11px] text-[var(--color-text-tertiary)]">No MCP servers configured</div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                         </div>

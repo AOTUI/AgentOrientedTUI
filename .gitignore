@@ -4,6 +4,7 @@
 ignore
 outdated
 backup
+context-compact-migration
 
 # Python
 **/__pycache__/

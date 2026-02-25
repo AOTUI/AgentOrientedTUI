@@ -15,6 +15,7 @@ import { Config } from '../config/config.js';
 import { SkillCatalogService } from '../skills/skill-catalog-service.js';
 import { getGlobalSkillsDir, getProjectSkillsDir } from '../skills/skill-config.js';
 import { importSkillZipToDirectory } from '../skills/skill-importer.js';
+import { buildMcpServerItemKey, buildMcpToolItemKey } from '../core/source-control-keys.js';
 
 import type { GuiUpdateEvent } from '../core/host-manager-v2.js';
 
@@ -65,6 +66,12 @@ const dbRouter = router({
             projectId: z.string().optional(),
             modelOverride: z.string().optional(),
             promptOverride: z.string().optional(),
+            contextCompaction: z.object({
+                enabled: z.boolean().optional(),
+                minMessages: z.number().int().positive().optional(),
+                keepRecentMessages: z.number().int().positive().optional(),
+                hardFallbackThresholdTokens: z.number().int().positive().optional(),
+            }).optional(),
             sourceControls: z.object({
                 apps: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
                 mcp: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
@@ -83,6 +90,7 @@ const dbRouter = router({
                 projectId: input.projectId,
                 modelOverride: input.modelOverride,
                 promptOverride: input.promptOverride,
+                contextCompaction: input.contextCompaction,
                 sourceControls: input.sourceControls,
             };
             try {
@@ -110,6 +118,12 @@ const dbRouter = router({
             id: z.string(),
             modelOverride: z.string().optional(),
             promptOverride: z.string().optional(),
+            contextCompaction: z.object({
+                enabled: z.boolean().optional(),
+                minMessages: z.number().int().positive().optional(),
+                keepRecentMessages: z.number().int().positive().optional(),
+                hardFallbackThresholdTokens: z.number().int().positive().optional(),
+            }).optional(),
             sourceControls: z.object({
                 apps: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
                 mcp: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
@@ -120,6 +134,7 @@ const dbRouter = router({
             db.updateTopic(input.id, {
                 modelOverride: input.modelOverride,
                 promptOverride: input.promptOverride,
+                contextCompaction: input.contextCompaction,
                 sourceControls: input.sourceControls,
                 updatedAt: Date.now(),
             });
@@ -705,12 +720,6 @@ const sourceControlRouter = router({
             const statusMap = await MCP.status();
             const clientsMap = await MCP.clients();
 
-            const buildMcpItemKey = (serverName: string, toolName: string) => {
-                const sanitizedServer = serverName.replace(/[^a-zA-Z0-9_-]/g, '_');
-                const sanitizedTool = toolName.replace(/[^a-zA-Z0-9_-]/g, '_');
-                return `mcp-${sanitizedServer}-${sanitizedTool}`;
-            };
-
             const serverNames = Array.from(new Set<string>([
                 ...Object.keys(mcpConfig),
                 ...Object.keys(statusMap),
@@ -735,7 +744,7 @@ const sourceControlRouter = router({
                     try {
                         const toolsResult = await client.listTools();
                         for (const tool of toolsResult.tools) {
-                            const key = buildMcpItemKey(serverName, tool.name);
+                            const key = buildMcpToolItemKey(serverName, tool.name);
                             serverItems.push({ key, name: tool.name, enabled: true });
                         }
                     } catch {
@@ -743,7 +752,7 @@ const sourceControlRouter = router({
                 }
 
                 mcpGroups.push({
-                    key: `server:${serverName}`,
+                    key: buildMcpServerItemKey(serverName),
                     serverName,
                     enabled: mcpConfig[serverName]?.enabled !== false,
                     connected,
@@ -794,12 +803,6 @@ const sourceControlRouter = router({
             const statusMap = await MCP.status();
             const clientsMap = await MCP.clients();
 
-            const buildMcpItemKey = (serverName: string, toolName: string) => {
-                const sanitizedServer = serverName.replace(/[^a-zA-Z0-9_-]/g, '_');
-                const sanitizedTool = toolName.replace(/[^a-zA-Z0-9_-]/g, '_');
-                return `mcp-${sanitizedServer}-${sanitizedTool}`;
-            };
-
             const serverNames = Array.from(new Set<string>([
                 ...Object.keys(mcpConfig),
                 ...Object.keys(statusMap),
@@ -814,7 +817,7 @@ const sourceControlRouter = router({
             }> = [];
 
             for (const serverName of serverNames) {
-                const serverKey = `server:${serverName}`;
+                const serverKey = buildMcpServerItemKey(serverName);
                 // Combine global config enabled state with topic-level override
                 const isGloballyEnabled = mcpConfig[serverName]?.enabled !== false;
                 const isTopicOverrideDisabled = sourceState.mcp.disabledItems.includes(serverKey);
@@ -830,7 +833,7 @@ const sourceControlRouter = router({
                     try {
                         const toolsResult = await client.listTools();
                         for (const tool of toolsResult.tools) {
-                            const key = buildMcpItemKey(serverName, tool.name);
+                            const key = buildMcpToolItemKey(serverName, tool.name);
                             serverItems.push({
                                 key,
                                 name: tool.name,

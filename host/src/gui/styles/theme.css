@@ -80,6 +80,9 @@
     --mat-border-highlight: rgba(255, 255, 255, 0.15);
     --mat-inset-highlight: rgba(255, 255, 255, 0.05);
     --mat-shadow-color: rgba(9, 16, 34, 0.38);
+    --mat-floating-shadow-strong: rgba(0, 0, 0, 0.60);
+    --mat-floating-shadow-soft: rgba(0, 0, 0, 0.34);
+    --mat-floating-accent-glow: rgba(10, 132, 255, 0.14);
     --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.08);
     --mat-overlay-bg: rgba(0, 0, 0, 0.40);
     
@@ -142,6 +145,9 @@
     --mat-border-highlight: rgba(255, 255, 255, 0.78);
     --mat-inset-highlight: rgba(255, 255, 255, 0.95);
     --mat-shadow-color: rgba(23, 31, 56, 0.18);
+    --mat-floating-shadow-strong: rgba(23, 31, 56, 0.14);
+    --mat-floating-shadow-soft: rgba(23, 31, 56, 0.08);
+    --mat-floating-accent-glow: rgba(0, 122, 255, 0.04);
     --mat-lg-highlight-gradient: rgba(255, 255, 255, 0.92);
     --mat-overlay-bg: rgba(0, 0, 0, 0.15);
     

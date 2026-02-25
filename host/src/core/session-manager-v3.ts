@@ -32,6 +32,13 @@ import type { DesktopManager } from './desktop-manager.js';
 import * as db from '../db/index.js';
 import { projectService } from './project-service.js';
 import { toLLMConfig } from '../types/llm-config.js';
+import { isMcpServerItemKey, parseMcpServerItemKey } from './source-control-keys.js';
+import { Config } from '../config/config.js';
+
+type AOTUIControllableSource = {
+    setEnabled(enabled: boolean): void;
+    setAppEnabled(appName: string, enabled: boolean): void;
+};
 
 /**
  * SessionManagerV3
@@ -47,12 +54,28 @@ export class SessionManagerV3 extends EventEmitter {
     private messageService: MessageServiceV2;
     private logger: Logger;
     private cleanupTimer: NodeJS.Timeout | null = null;
+    private compactionGlobalPolicyCache: {
+        loadedAt: number;
+        value: {
+            enabled?: boolean;
+            minMessages?: number;
+            keepRecentMessages?: number;
+            hardFallbackThresholdTokens?: number;
+        };
+    } | null = null;
     private sourceControlsByTopic: Map<string, {
         apps: { enabled: boolean; disabledItems: Set<string> };
         mcp: { enabled: boolean; disabledItems: Set<string> };
         skill: { enabled: boolean; disabledItems: Set<string> };
     }> = new Map();
-    private static readonly MCP_SERVER_KEY_PREFIX = 'server:';
+    private asAOTUIControllableSource(source: AOTUIDrivenSource): AOTUIControllableSource | null {
+        const candidate = source as unknown as Partial<AOTUIControllableSource>;
+        if (typeof candidate.setEnabled !== 'function' || typeof candidate.setAppEnabled !== 'function') {
+            return null;
+        }
+
+        return candidate as AOTUIControllableSource;
+    }
 
     // 配置
     private config: Required<SessionManagerConfig>;
@@ -314,9 +337,9 @@ export class SessionManagerV3 extends EventEmitter {
         });
 
         const controls = this.getOrInitSourceControls(topicId);
-        (agentDriver as any).setSourceEnabled?.(aotuiSource.name, controls.apps.enabled);
-        (agentDriver as any).setSourceEnabled?.(skillDrivenSource.name, controls.skill.enabled);
-        (agentDriver as any).setSourceEnabled?.(mcpDrivenSource.name, controls.mcp.enabled);
+        agentDriver.setSourceEnabled(aotuiSource.name, controls.apps.enabled);
+        agentDriver.setSourceEnabled(skillDrivenSource.name, controls.skill.enabled);
+        agentDriver.setSourceEnabled(mcpDrivenSource.name, controls.mcp.enabled);
 
         // 5. 启动 AgentDriver
         agentDriver.start();
@@ -392,14 +415,17 @@ export class SessionManagerV3 extends EventEmitter {
     private applySourceControls(topicId: string, aotuiSource?: AOTUIDrivenSource, mcpSource?: McpDrivenSource, skillSource?: SkillDrivenSource): void {
         const controls = this.getOrInitSourceControls(topicId);
         if (aotuiSource) {
-            (aotuiSource as any).setEnabled?.(controls.apps.enabled);
-            controls.apps.disabledItems.forEach((item) => (aotuiSource as any).setAppEnabled?.(item, false));
+            const controllableSource = this.asAOTUIControllableSource(aotuiSource);
+            if (controllableSource) {
+                controllableSource.setEnabled(controls.apps.enabled);
+                controls.apps.disabledItems.forEach((item) => controllableSource.setAppEnabled(item, false));
+            }
         }
         if (mcpSource) {
             mcpSource.setEnabled(controls.mcp.enabled);
             controls.mcp.disabledItems.forEach((item) => {
-                if (item.startsWith(SessionManagerV3.MCP_SERVER_KEY_PREFIX)) {
-                    const serverName = item.slice(SessionManagerV3.MCP_SERVER_KEY_PREFIX.length);
+                if (isMcpServerItemKey(item)) {
+                    const serverName = parseMcpServerItemKey(item);
                     if (serverName) {
                         mcpSource.setServerEnabled(serverName, false);
                     }
@@ -412,6 +438,108 @@ export class SessionManagerV3 extends EventEmitter {
             skillSource.setEnabled(controls.skill.enabled);
             controls.skill.disabledItems.forEach((item) => skillSource.setSkillEnabled(item, false));
         }
+    }
+
+    private normalizeCompactionPolicy(input?: {
+        enabled?: boolean;
+        minMessages?: number;
+        keepRecentMessages?: number;
+        hardFallbackThresholdTokens?: number;
+    }): {
+        enabled?: boolean;
+        minMessages?: number;
+        keepRecentMessages?: number;
+        hardFallbackThresholdTokens?: number;
+    } {
+        if (!input) return {};
+
+        const next: {
+            enabled?: boolean;
+            minMessages?: number;
+            keepRecentMessages?: number;
+            hardFallbackThresholdTokens?: number;
+        } = {};
+
+        if (typeof input.enabled === 'boolean') {
+            next.enabled = input.enabled;
+        }
+        if (Number.isInteger(input.minMessages) && (input.minMessages as number) > 0) {
+            next.minMessages = input.minMessages;
+        }
+        if (Number.isInteger(input.keepRecentMessages) && (input.keepRecentMessages as number) > 0) {
+            next.keepRecentMessages = input.keepRecentMessages;
+        }
+        if (Number.isInteger(input.hardFallbackThresholdTokens) && (input.hardFallbackThresholdTokens as number) > 0) {
+            next.hardFallbackThresholdTokens = input.hardFallbackThresholdTokens;
+        }
+
+        return next;
+    }
+
+    private async getGlobalCompactionPolicy(): Promise<{
+        enabled?: boolean;
+        minMessages?: number;
+        keepRecentMessages?: number;
+        hardFallbackThresholdTokens?: number;
+    }> {
+        const now = Date.now();
+        if (this.compactionGlobalPolicyCache && now - this.compactionGlobalPolicyCache.loadedAt < 15_000) {
+            return this.compactionGlobalPolicyCache.value;
+        }
+
+        try {
+            const config = await Config.get();
+            const rawExperimental = (config as { experimental?: unknown }).experimental;
+            const rawCompaction = rawExperimental && typeof rawExperimental === 'object'
+                ? (rawExperimental as Record<string, unknown>).contextCompaction
+                : undefined;
+            const value = this.normalizeCompactionPolicy(
+                rawCompaction && typeof rawCompaction === 'object'
+                    ? (rawCompaction as {
+                        enabled?: boolean;
+                        minMessages?: number;
+                        keepRecentMessages?: number;
+                        hardFallbackThresholdTokens?: number;
+                    })
+                    : undefined,
+            );
+
+            this.compactionGlobalPolicyCache = {
+                loadedAt: now,
+                value,
+            };
+            return value;
+        } catch (error) {
+            this.logger.warn('Failed to load global context compaction policy, using defaults', { error });
+            return {};
+        }
+    }
+
+    private async resolveCompactionPolicy(topicId: string): Promise<{
+        enabled: boolean;
+        minMessages: number;
+        keepRecentMessages: number;
+        hardFallbackThresholdTokens: number;
+    }> {
+        const defaults = {
+            enabled: false,
+            minMessages: 14,
+            keepRecentMessages: 8,
+            hardFallbackThresholdTokens: 4_500,
+        };
+
+        const globalPolicy = await this.getGlobalCompactionPolicy();
+        const topicPolicy = this.normalizeCompactionPolicy(db.getTopic(topicId)?.contextCompaction);
+
+        return {
+            enabled: topicPolicy.enabled ?? globalPolicy.enabled ?? defaults.enabled,
+            minMessages: topicPolicy.minMessages ?? globalPolicy.minMessages ?? defaults.minMessages,
+            keepRecentMessages: topicPolicy.keepRecentMessages ?? globalPolicy.keepRecentMessages ?? defaults.keepRecentMessages,
+            hardFallbackThresholdTokens:
+                topicPolicy.hardFallbackThresholdTokens
+                ?? globalPolicy.hardFallbackThresholdTokens
+                ?? defaults.hardFallbackThresholdTokens,
+        };
     }
 
     getSourceControlState(topicId: string): {
@@ -444,13 +572,14 @@ export class SessionManagerV3 extends EventEmitter {
         const session = this.sessions.get(topicId);
         if (session) {
             if (source === 'apps') {
-                (session.agentDriver as any).setSourceEnabled?.(session.sources.aotui.name, enabled);
-                (session.sources.aotui as any).setEnabled?.(enabled);
+                session.agentDriver.setSourceEnabled(session.sources.aotui.name, enabled);
+                const controllableSource = this.asAOTUIControllableSource(session.sources.aotui);
+                controllableSource?.setEnabled(enabled);
             } else if (source === 'mcp') {
-                (session.agentDriver as any).setSourceEnabled?.(session.sources.mcp.name, enabled);
+                session.agentDriver.setSourceEnabled(session.sources.mcp.name, enabled);
                 session.sources.mcp.setEnabled(enabled);
             } else {
-                (session.agentDriver as any).setSourceEnabled?.(session.sources.skill.name, enabled);
+                session.agentDriver.setSourceEnabled(session.sources.skill.name, enabled);
                 session.sources.skill.setEnabled(enabled);
             }
         }
@@ -468,10 +597,11 @@ export class SessionManagerV3 extends EventEmitter {
         const session = this.sessions.get(topicId);
         if (session) {
             if (source === 'apps') {
-                (session.sources.aotui as any).setAppEnabled?.(itemName, enabled);
+                const controllableSource = this.asAOTUIControllableSource(session.sources.aotui);
+                controllableSource?.setAppEnabled(itemName, enabled);
             } else if (source === 'mcp') {
-                if (itemName.startsWith(SessionManagerV3.MCP_SERVER_KEY_PREFIX)) {
-                    const serverName = itemName.slice(SessionManagerV3.MCP_SERVER_KEY_PREFIX.length);
+                if (isMcpServerItemKey(itemName)) {
+                    const serverName = parseMcpServerItemKey(itemName);
                     if (serverName) {
                         session.sources.mcp.setServerEnabled(serverName, enabled);
                     }
@@ -509,7 +639,38 @@ export class SessionManagerV3 extends EventEmitter {
     async sendMessage(topicId: string, content: string, messageId?: string): Promise<void> {
         const session = await this.ensureSession(topicId);
 
+        const compactionPolicy = await this.resolveCompactionPolicy(topicId);
+        const topicModelHint = db.getTopic(topicId)?.modelOverride;
+
+        const fallbackCompaction = session.sources.host.maybeCompactByThreshold({
+            enabled: compactionPolicy.enabled,
+            maxContextTokens: compactionPolicy.hardFallbackThresholdTokens,
+            minMessages: compactionPolicy.minMessages,
+            keepRecentMessages: compactionPolicy.keepRecentMessages,
+            modelHint: topicModelHint,
+        });
+        if (fallbackCompaction.compacted) {
+            for (const syntheticMessage of fallbackCompaction.syntheticMessages) {
+                const eventType = syntheticMessage.role === 'tool' ? 'tool' : 'assistant';
+                const event: GuiUpdateEvent = {
+                    topicId,
+                    type: eventType,
+                    message: syntheticMessage as ModelMessage,
+                };
+                this.emit('message', event);
+            }
+
+            this.logger.info('Hard fallback context compaction applied before user message', {
+                topicId,
+                thresholdTokens: fallbackCompaction.thresholdTokens,
+                currentTokens: fallbackCompaction.currentTokens,
+                compactedMessageCount: fallbackCompaction.compactedMessageCount,
+                cleanedToolResultCount: fallbackCompaction.cleanedToolResultCount,
+            });
+        }
+
         // 1. 保存到数据库
+        const activityTimestamp = Date.now();
         const userMessage: ModelMessage = {
             role: 'user',
             content,
@@ -517,8 +678,11 @@ export class SessionManagerV3 extends EventEmitter {
         if (messageId) {
             (userMessage as any).id = messageId;
         }
-        (userMessage as any).timestamp = Date.now();
+        (userMessage as any).timestamp = activityTimestamp;
         this.messageService.addMessage(topicId, userMessage);
+
+        // 1.1 更新 Topic 活跃时间（用于会话列表排序与「x m ago」展示）
+        db.updateTopic(topicId, { updatedAt: activityTimestamp });
 
         // 2. 通知 HostDrivenSource
         session.sources.host.notifyNewMessage();
@@ -741,13 +905,31 @@ export class SessionManagerV3 extends EventEmitter {
         console.log('=====================================\n');
 
         // 1. 保存到数据库
-        this.messageService.addMessage(topicId, message);
+        const saved = this.messageService.addMessage(topicId, message);
+
+        const session = this.sessions.get(topicId);
+        if (session && type === 'tool' && Array.isArray((saved as any).content)) {
+            const toolResultPart = (saved as any).content.find((part: any) => part?.type === 'tool-result');
+            if (toolResultPart?.toolName === session.sources.host.getCompactionToolName()) {
+                const resultPayload = toolResultPart.result ?? toolResultPart.output;
+                const success = resultPayload && typeof resultPayload === 'object'
+                    ? (resultPayload as { success?: unknown }).success
+                    : undefined;
+                if (success === true) {
+                    const summary = resultPayload && typeof resultPayload === 'object'
+                        ? (resultPayload as { summary?: unknown }).summary
+                        : undefined;
+                    const summaryText = typeof summary === 'string' ? summary : undefined;
+                    session.sources.host.markToolCompactionAnchor(saved.id, summaryText);
+                }
+            }
+        }
 
         // 2. 触发 GUI 更新（通过事件总线）
         const event: GuiUpdateEvent = {
             topicId,
             type,
-            message, // 直接传递 message，不要重新构造
+            message: saved as unknown as ModelMessage,
         };
         this.emit('message', event);
 

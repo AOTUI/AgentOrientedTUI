@@ -1,173 +1,89 @@
-/* TuiDesktopViewer Styles - Glassmorphism & Bento Grid */
+/* ──────────────────────────────────────────────────────────────
+   TUI View Styles — macOS 26 Liquid Glass
+   Layout: absolute-scroll mirroring ChatArea (pt-[78px])
+   All CSS classes below map to JSX class strings used by
+   ApplicationBlock.tsx, ViewBlock.tsx only.
+   TuiDesktopViewer itself uses Tailwind utilities.
+────────────────────────────────────────────────────────────── */
 
-.tui-desktop {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-    padding: var(--space-lg);
-    height: 100%;
-    overflow-y: auto;
-    position: relative;
-}
-
-.tui-desktop__noise {
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-}
-
-.tui-app-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: var(--space-lg);
-    position: relative;
-    z-index: 1;
-}
-
-.tui-app-switcher {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    position: relative;
-    z-index: 1;
-    padding: 0 var(--space-xs);
-}
-
-.tui-app-switcher__label {
-    font-size: 0.72rem;
-    font-family: var(--font-mono);
-    letter-spacing: 0.05em;
-    color: var(--color-text-tertiary);
-    white-space: nowrap;
-}
-
-.tui-app-switcher__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs);
-}
-
-.tui-app-switcher__item {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--glass-bg);
-    padding: 5px 10px;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: all var(--duration-fast) var(--ease-out-expo);
-}
-
-.tui-app-switcher__item:hover {
-    color: var(--color-text-primary);
-    border-color: var(--glass-border-highlight);
-}
-
-.tui-app-switcher__item.active {
-    border-color: var(--color-accent-ring);
-    background: color-mix(in srgb, var(--color-accent) 14%, var(--glass-bg));
-    color: var(--color-text-primary);
-}
-
-.tui-app-switcher__name {
-    font-size: 0.78rem;
-    font-weight: 600;
-}
-
-.tui-app-switcher__id {
-    font-size: 0.65rem;
-    font-family: var(--font-mono);
-    color: var(--color-text-tertiary);
-}
-
-/* App Card - Glass Container */
+/* ── App Card — flat / sunken (no glass, no elevation) ──────── */
 .tui-app-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
+    background: var(--mat-content-card-bg);
+    border: none;
     border-radius: var(--radius-xl);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: all var(--duration-normal) var(--ease-out-expo);
+    box-shadow: inset 0 1px 0 var(--mat-inset-highlight);
 }
 
-@supports not (backdrop-filter: blur(1px)) {
-    .tui-app-card {
-        background: var(--mat-lg-regular-bg-fallback);
-    }
-}
-
-.tui-app-card:hover {
-    border-color: var(--glass-border-highlight);
-    box-shadow: 0 8px 32px var(--mat-shadow-color);
-}
-
-/* Header */
+/* ── Card Header ─────────────────────────────────────────────── */
 .tui-app-card-header {
-    padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid var(--glass-border);
+    padding: 12px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: var(--mat-content-card-bg);
+    background: transparent;
 }
 
 .tui-app-card-title {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: 10px;
 }
 
 .tui-app-card-icon {
     font-size: 1.25rem;
+    line-height: 1;
 }
 
 .tui-app-card-info {
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1.3;
 }
 
 .tui-app-card-name {
-    font-family: var(--font-display);
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-text-primary);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
 }
 
 .tui-app-card-id {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: var(--color-text-tertiary);
 }
 
+.tui-app-card-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Status Badge ─────────────────────────────────────────────── */
 .status-badge {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 700;
     padding: 2px 8px;
     border-radius: var(--radius-full);
-    letter-spacing: 0.05em;
-    background: var(--color-bg-highlight);
+    letter-spacing: 0.06em;
+    background: var(--mat-content-card-hover-bg);
     color: var(--color-text-secondary);
-    border: 1px solid var(--color-border);
+    border: 1px solid transparent;
 }
 
 .status-badge--running {
-    background: var(--color-success-muted);
+    background: color-mix(in srgb, var(--color-success) 12%, transparent);
     color: var(--color-success);
-    border-color: var(--color-success);
+    border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
 }
 
 .status-badge--mounted {
-    background: var(--color-accent-muted);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
     color: var(--color-accent);
-    border-color: var(--color-accent);
+    border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
 .breathing-dot {
@@ -176,128 +92,70 @@
     height: 6px;
     border-radius: 50%;
     background-color: var(--color-success);
-    margin-right: 6px;
 }
 
-/* Info Section - Bento Blocks */
-.tui-app-info-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-md);
-    padding: var(--space-md) var(--space-lg);
-    background: var(--mat-overlay-bg);
-}
-
-.tui-app-info-block {
-    background: var(--mat-content-card-bg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-}
-
-.tui-app-info-label {
-    font-size: 0.7rem;
-    letter-spacing: 0.05em;
-    color: var(--color-text-tertiary);
-    margin-bottom: var(--space-sm);
-    font-family: var(--font-mono);
-}
-
-.tui-app-ops-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.tui-app-op-item {
-    font-size: 0.8rem;
-    color: var(--color-text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.tui-op-icon {
-    color: var(--color-success);
-    font-size: 0.7rem;
-}
-
-.tui-view-tree-content {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    white-space: pre-wrap;
-    opacity: 0.8;
-}
-
-/* Tabs */
+/* ── View Tabs ────────────────────────────────────────────────── */
 .tui-view-tabs {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    padding: var(--space-xs) var(--space-lg);
-    border-bottom: 1px solid var(--color-border);
-}
-
-.tui-view-tabs-label {
-    font-size: 0.75rem;
-    color: var(--color-text-tertiary);
+    padding: 4px 12px 8px;
 }
 
 .tui-view-tabs-list {
     display: flex;
-    gap: var(--space-xs);
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: flex-start;
 }
 
 .tui-view-tab {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-full);
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .tui-view-tab:hover {
-    background: var(--mat-content-card-hover-bg);
+    background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
 
 .tui-view-tab.active {
-    background: var(--color-accent-muted);
-    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
 
 .tui-view-tab-name {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 500;
     color: var(--color-text-secondary);
+    line-height: 1;
 }
 
 .tui-view-tab.active .tui-view-tab-name {
     color: var(--color-accent);
 }
 
-.tui-view-tab-id {
-    font-size: 0.65rem;
-    font-family: var(--font-mono);
-    color: var(--color-text-tertiary);
-}
-
-/* Content */
+/* ── App Card Content ─────────────────────────────────────────── */
 .tui-app-card-content {
-    padding: var(--space-lg);
-    min-height: 200px;
-    background: var(--mat-overlay-bg);
+    padding: 0 16px 16px;
+    background: transparent;
 }
 
-/* View Block Styles */
+.tui-no-view {
+    font-size: 0.8rem;
+    color: var(--color-text-tertiary);
+    padding: 24px 0;
+    text-align: center;
+}
+
+/* ── View Block ───────────────────────────────────────────────── */
 .tui-block--view {
-    border: 1px dashed var(--color-border);
+    background: color-mix(in srgb, #60a5fa 9%, var(--mat-content-card-bg));
+    border: 1px solid transparent; /* structural; visually hidden */
     border-radius: var(--radius-lg);
-    background: var(--mat-content-card-bg);
     overflow: hidden;
 }
 
@@ -305,29 +163,25 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-sm) var(--space-md);
-    background: var(--mat-content-card-hover-bg);
-    border-bottom: 1px dashed var(--color-border);
+    padding: 8px 14px;
+    background: transparent;
 }
 
 .tui-block__title-group {
     display: flex;
     align-items: baseline;
-    gap: var(--space-sm);
+    gap: 8px;
 }
 
 .tui-block__label {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 700;
     color: var(--color-text-tertiary);
-    letter-spacing: 0.05em;
-    background: var(--mat-content-card-bg);
-    padding: 2px 4px;
-    border-radius: 4px;
+    letter-spacing: 0.07em;
 }
 
 .tui-block__name {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: var(--color-text-primary);
     font-weight: 500;
 }
@@ -335,23 +189,26 @@
 .tui-block__meta {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: 8px;
 }
 
 .tui-block__id {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     color: var(--color-text-tertiary);
 }
 
+/* ── Markdown inside views ────────────────────────────────────── */
 .tui-markdown {
-    padding: var(--space-md);
+    padding: 12px 14px 14px;
     color: var(--color-text-secondary);
-    font-size: 0.9rem;
-    line-height: 1.6;
+    font-size: 0.875rem;
+    line-height: 1.65;
 }
 
-.tui-markdown h1, .tui-markdown h2, .tui-markdown h3 {
+.tui-markdown h1,
+.tui-markdown h2,
+.tui-markdown h3 {
     color: var(--color-text-primary);
     margin-top: 1em;
     margin-bottom: 0.5em;
@@ -360,101 +217,25 @@
 
 .tui-markdown pre {
     background: var(--mat-overlay-bg);
-    padding: var(--space-md);
+    padding: 10px 12px;
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
+    border: 1px solid transparent;
     overflow-x: auto;
     font-family: var(--font-mono);
-    font-size: 0.8rem;
-    margin: 1em 0;
+    font-size: 0.78rem;
+    margin: 0.75em 0;
 }
 
-/* Agent Thinking Overlay */
-.tui-thinking-overlay {
-    position: absolute;
-    bottom: var(--space-lg);
-    right: var(--space-lg);
-    width: 300px;
-    background: var(--mat-lg-clear-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--mat-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    box-shadow: 0 4px 24px var(--mat-shadow-color);
-    z-index: 100;
-}
-
-@supports not (backdrop-filter: blur(1px)) {
-    .tui-thinking-overlay {
-        background: var(--mat-lg-clear-bg-fallback);
-    }
-}
-
-.tui-thinking-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--color-text-secondary);
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-bottom: var(--space-sm);
-    letter-spacing: 0.05em;
-}
-
-.tui-thinking-content {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-text-primary);
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-.thinking-indicator {
-    /* Removed pulse-glow animation */
-}
-
-[data-theme='light'] .tui-app-card-header {
+/* ── Light-mode overrides ─────────────────────────────────────── */
+[data-theme='light'] .tui-app-card {
     background: var(--mat-content-card-bg);
-}
-
-[data-theme='light'] .tui-app-switcher__item {
-    background: var(--mat-lg-clear-bg);
-}
-
-[data-theme='light'] .tui-app-info-section {
-    background: var(--mat-overlay-bg);
-}
-
-[data-theme='light'] .tui-app-info-block {
-    background: var(--mat-content-card-bg);
-}
-
-[data-theme='light'] .tui-view-tab:hover {
-    background: var(--mat-content-card-hover-bg);
-}
-
-[data-theme='light'] .tui-app-card-content {
-    background: var(--mat-overlay-bg);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
 [data-theme='light'] .tui-block--view {
-    background: var(--mat-content-card-bg);
-}
-
-[data-theme='light'] .tui-block__header {
-    background: var(--mat-content-card-hover-bg);
-}
-
-[data-theme='light'] .tui-block__label {
-    background: var(--mat-content-card-bg);
+    background: color-mix(in srgb, #3b82f6 8%, white);
 }
 
 [data-theme='light'] .tui-markdown pre {
-    background: var(--mat-content-card-bg);
-}
-
-[data-theme='light'] .tui-thinking-overlay {
-    background: var(--mat-lg-clear-bg);
-    border-color: var(--mat-border);
+    background: var(--mat-overlay-bg);
 }

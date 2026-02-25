@@ -16,6 +16,7 @@ import { McpOAuthProvider } from "./oauth-provider.js"
 import { McpOAuthCallback } from "./oauth-callback.js"
 import { McpAuth } from "./auth.js"
 import open from "open"
+import { buildMcpToolItemKey } from "../core/source-control-keys.js"
 
 export namespace MCP {
   const log = Log.create({ service: "mcp" })
@@ -569,9 +570,8 @@ export namespace MCP {
         if (disabledTools.has(mcpTool.name)) {
           continue
         }
-        const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
-        const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
-        result[`mcp-${sanitizedClientName}-${sanitizedToolName}`] = await convertMcpTool(mcpTool, client, timeout)
+        const toolItemKey = buildMcpToolItemKey(clientName, mcpTool.name)
+        result[toolItemKey] = await convertMcpTool(mcpTool, client, timeout)
       }
     }
     return result

@@ -14,6 +14,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconDelete, IconNewChat, IconPlug } from '../../Icons.js';
+import { buildMcpServerItemKey } from '../../../../core/source-control-keys.js';
 
 // ── 类型定义 ──────────────────────────────────────────────────────────────────
 
@@ -267,7 +268,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
     // ── 运行时控制 ──────────────────────────────────────────────────────────────
 
     const handleServerToggle = async (serverName: string, enabled: boolean) => {
-        const pendingKey = `server:${serverName}`;
+        const pendingKey = buildMcpServerItemKey(serverName);
         if (pendingToggles.has(pendingKey)) return;
 
         setPendingToggles(prev => new Set(prev).add(pendingKey));
@@ -504,7 +505,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                 {/* Server Enable/Disable 推钮 */}
                                 <div className="flex items-center gap-2">
                                     <span className="text-[11px] text-[var(--color-text-tertiary)]">
-                                        {pendingToggles.has(`server:${selectedKey}`)
+                                        {pendingToggles.has(buildMcpServerItemKey(selectedKey))
                                             ? 'Updating...'
                                             : (selectedRuntime?.status === 'disabled' || selectedServer.enabled === false)
                                                 ? 'Disabled'
@@ -517,7 +518,7 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                                                 : selectedServer.enabled !== false
                                         }
                                         onChange={(v) => handleServerToggle(selectedKey, v)}
-                                        disabled={pendingToggles.has(`server:${selectedKey}`)}
+                                        disabled={pendingToggles.has(buildMcpServerItemKey(selectedKey))}
                                     />
                                 </div>
                             </div>

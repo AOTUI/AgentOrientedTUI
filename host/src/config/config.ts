@@ -86,6 +86,15 @@ export interface Info {
       createdAt?: number
     }>
   }
+  experimental?: {
+    contextCompaction?: {
+      enabled?: boolean
+      minMessages?: number
+      keepRecentMessages?: number
+      hardFallbackThresholdTokens?: number
+    }
+    [key: string]: unknown
+  }
   [key: string]: unknown
 }
 

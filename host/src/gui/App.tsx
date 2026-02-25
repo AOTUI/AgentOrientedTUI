@@ -50,6 +50,7 @@ export function App() {
     const [viewMode, setViewMode] = useState<ViewMode>('chat');
     const [isNewChat, setIsNewChat] = useState(false);
     const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+    const [settingsInitialTab, setSettingsInitialTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills' | undefined>(undefined);
 
     // Theme
     const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -95,7 +96,9 @@ export function App() {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
-    const openSettings = () => {
+    const openSettings = (tab?: string) => {
+        if (tab) setSettingsInitialTab(tab as 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills');
+        else setSettingsInitialTab(undefined);
         setSettingsPanelOpen(true);
     };
 
@@ -267,8 +270,9 @@ export function App() {
             void refreshLLMReadiness();
             void refreshPromptTemplates();
             void refreshModelGroups();
+            void refreshDraftCapabilities();
         }
-    }, [settingsPanelOpen, connected, refreshLLMReadiness, refreshPromptTemplates, refreshModelGroups]);
+    }, [settingsPanelOpen, connected, refreshLLMReadiness, refreshPromptTemplates, refreshModelGroups, refreshDraftCapabilities]);
 
     // Subscribe
     useEffect(() => {
@@ -647,6 +651,7 @@ export function App() {
                     theme={theme}
                     onThemeChange={setTheme}
                     currentProjectPath={null}
+                    initialTab={settingsInitialTab}
                 />
             </>
         );
@@ -734,7 +739,7 @@ export function App() {
                                 onApplyPromptTemplate={handleApplyPromptTemplate}
                             />
                         ) : (
-                            <div className="absolute inset-0 bg-[var(--color-bg-base)] rounded-2xl overflow-hidden border border-[var(--mat-border)]">
+                            <div className="absolute inset-0 rounded-2xl overflow-hidden border border-transparent">
                                 <TuiDesktopViewer
                                     snapshot={tuiSnapshot}
                                     agentThinking={agentThinking}
@@ -759,6 +764,7 @@ export function App() {
                 theme={theme}
                 onThemeChange={setTheme}
                 currentProjectPath={currentProject?.path ?? null}
+                initialTab={settingsInitialTab}
             />
         </div>
     );

@@ -3,6 +3,7 @@ import { Tool } from "ai";
 import { MCP } from "./index.js";
 import { Bus, BusEvent } from "./utils.js";
 import { Log } from "./utils.js";
+import { buildMcpToolKeyPrefix } from "../core/source-control-keys.js";
 
 const log = Log.create({ service: "mcp-driven-source" });
 
@@ -55,8 +56,7 @@ export class McpDrivenSource {
     }
 
     private buildServerPrefix(serverName: string): string {
-        const sanitizedServer = serverName.replace(/[^a-zA-Z0-9_-]/g, '_');
-        return `mcp-${sanitizedServer}-`;
+        return buildMcpToolKeyPrefix(serverName);
     }
 
     private isToolAllowed(toolKey: string): boolean {

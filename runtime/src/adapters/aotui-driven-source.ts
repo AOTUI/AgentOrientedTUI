@@ -234,7 +234,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
         // 1. 注入 AOTUI System Instruction (仅一次)
         if (this.includeInstruction) {
             messages.push({
-                role: 'system',
+                role: 'user',
                 content: this.systemInstruction,
                 timestamp: 1, // ✅ 在 SystemPrompt (0) 之后，在用户消息之前
             });

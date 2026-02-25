@@ -70,7 +70,7 @@ The TUI state is provided in your context with the following structure:
     ## Application View Tree (mounted views hierarchy)
   </application_info>
   
-  <view id="view_type" name="XHome">
+  <view id="view_id" name="XHome">
     ## Application Instruction (explains this view's purpose and tools)
     ## Content (messages, data with RefName markers, etc.)
     ## Available Tools (function calls you can make)
@@ -166,7 +166,7 @@ Examples:
 IMPORTANT:
 
 - Prefer semantic object refs over UI/view identifiers.
-- Do not pass \`view_id\` unless a tool explicitly requires it.
+- Do not pass \`view_type\` unless a tool explicitly requires it.
 - Never guess refs; always use refs shown in current TUI state.
 
 ## Available Tools Section
@@ -203,7 +203,7 @@ Mark a TODO as completed
 
 **How to Call:**
 
-Tool name format: \`{app_id}-{view_id}-{tool_name}\`
+Tool name format: \`{app_name}-{view_type}-{tool_name}\`
 
 Example: \`app_name-view_type-add_todo\`
 
@@ -240,7 +240,7 @@ Based on the TUI state and user request, decide:
 
 ## 3. ACT - Execute ONE Tool
 
-Use Function Calling to execute tools. Format: \`{app_id}-{view_id}-{tool_name}\` or \`system-{tool_name}\`.
+Use Function Calling to execute tools. Format: \`{app_name}-{view_type}-{tool_name}\` or \`system-{tool_name}\`.
 
 **System Tools:**
 
@@ -251,7 +251,7 @@ Use Function Calling to execute tools. Format: \`{app_id}-{view_id}-{tool_name}\
 
 **App Tools:**
 
-Example: \`app_0-view_type-tool_name\` with \`{ "content": "{$content}" }\`
+Example: \`app_name-view_type-tool_name\` with \`{ "content": "{$content}" }\`
 
 Each app defines its own tools. Always check \`## Available Tools\` in the view.
 

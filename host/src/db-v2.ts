@@ -80,6 +80,26 @@ export function deleteMessageV2(db: Database, id: string): void {
 }
 
 /**
+ * 更新消息 (V2 格式)
+ */
+export function updateMessageV2(db: Database, topicId: string, message: Message): void {
+    const row = messageToRow(topicId, message);
+
+    db.run(`
+        UPDATE messages_v2
+        SET role = ?, content = ?, timestamp = ?, provider_options = ?
+        WHERE id = ? AND topic_id = ?
+    `, [
+        row.role,
+        row.content,
+        row.timestamp,
+        row.provider_options || null,
+        row.id,
+        row.topic_id,
+    ]);
+}
+
+/**
  * 批量获取所有话题的消息 (V2 格式)
  */
 export function getAllMessagesGroupedByTopicV2(db: Database): Map<string, Message[]> {
