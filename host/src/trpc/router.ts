@@ -62,9 +62,16 @@ const dbRouter = router({
     createTopic: publicProcedure
         .input(z.object({
             title: z.string(),
-            projectId: z.string().optional()
+            projectId: z.string().optional(),
+            modelOverride: z.string().optional(),
+            promptOverride: z.string().optional(),
+            sourceControls: z.object({
+                apps: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
+                mcp: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
+                skill: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
+            }).optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
             console.log('[TRPC] createTopic called:', input.title);
             const id = `topic_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
             const topic = {
@@ -73,7 +80,10 @@ const dbRouter = router({
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
                 status: 'hot' as const,
-                projectId: input.projectId
+                projectId: input.projectId,
+                modelOverride: input.modelOverride,
+                promptOverride: input.promptOverride,
+                sourceControls: input.sourceControls,
             };
             try {
                 db.createTopic(topic);
@@ -86,13 +96,38 @@ const dbRouter = router({
         }),
     deleteTopic: publicProcedure
         .input(z.object({ id: z.string() }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
             db.deleteTopic(input.id);
         }),
     renameTopic: publicProcedure
         .input(z.object({ id: z.string(), title: z.string().min(1).max(200) }))
         .mutation(async ({ input }) => {
             db.updateTopic(input.id, { title: input.title, updatedAt: Date.now() });
+            return { success: true };
+        }),
+    updateTopicConfig: publicProcedure
+        .input(z.object({
+            id: z.string(),
+            modelOverride: z.string().optional(),
+            promptOverride: z.string().optional(),
+            sourceControls: z.object({
+                apps: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
+                mcp: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
+                skill: z.object({ enabled: z.boolean(), disabledItems: z.array(z.string()) }),
+            }).optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            db.updateTopic(input.id, {
+                modelOverride: input.modelOverride,
+                promptOverride: input.promptOverride,
+                sourceControls: input.sourceControls,
+                updatedAt: Date.now(),
+            });
+
+            if (input.promptOverride !== undefined) {
+                ctx.hostManager.syncTopicPromptOverride(input.id);
+            }
+
             return { success: true };
         }),
 });
@@ -661,10 +696,97 @@ const skillsRouter = router({
 });
 
 const sourceControlRouter = router({
+    getDraft: publicProcedure
+        .input(z.object({ projectPath: z.string().optional() }).optional())
+        .query(async ({ input }) => {
+            const { MCP } = await import('../mcp/index.js');
+            const config = await Config.getGlobal();
+            const mcpConfig: Record<string, any> = normalizeMcpConfig(config.mcp ?? (config as Record<string, any>).mcpServers ?? {});
+            const statusMap = await MCP.status();
+            const clientsMap = await MCP.clients();
+
+            const buildMcpItemKey = (serverName: string, toolName: string) => {
+                const sanitizedServer = serverName.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const sanitizedTool = toolName.replace(/[^a-zA-Z0-9_-]/g, '_');
+                return `mcp-${sanitizedServer}-${sanitizedTool}`;
+            };
+
+            const serverNames = Array.from(new Set<string>([
+                ...Object.keys(mcpConfig),
+                ...Object.keys(statusMap),
+            ])).sort((a, b) => a.localeCompare(b));
+
+            const mcpGroups: Array<{
+                key: string;
+                serverName: string;
+                enabled: boolean;
+                connected: boolean;
+                items: Array<{ key: string; name: string; enabled: boolean }>;
+            }> = [];
+
+            for (const serverName of serverNames) {
+                const serverStatus = (statusMap as Record<string, { status: string; error?: string }>)[serverName]
+                    ?? { status: mcpConfig[serverName]?.enabled === false ? 'disabled' : 'failed' };
+                const connected = serverStatus.status === 'connected';
+                const client = clientsMap[serverName];
+                const serverItems: Array<{ key: string; name: string; enabled: boolean }> = [];
+
+                if (connected && client) {
+                    try {
+                        const toolsResult = await client.listTools();
+                        for (const tool of toolsResult.tools) {
+                            const key = buildMcpItemKey(serverName, tool.name);
+                            serverItems.push({ key, name: tool.name, enabled: true });
+                        }
+                    } catch {
+                    }
+                }
+
+                mcpGroups.push({
+                    key: `server:${serverName}`,
+                    serverName,
+                    enabled: mcpConfig[serverName]?.enabled !== false,
+                    connected,
+                    items: serverItems.sort((a, b) => a.name.localeCompare(b.name)),
+                });
+            }
+
+            const skillService = new SkillCatalogService({ projectPath: input?.projectPath });
+            const skillEntries = await skillService.listSkills();
+            const appsConfig = await Config.getAppsConfig();
+            const appItems = Object.entries(appsConfig)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([name, entry]) => ({
+                    name,
+                    enabled: (entry as any).enabled !== false,
+                }));
+
+            return {
+                apps: {
+                    enabled: true,
+                    items: appItems,
+                },
+                mcp: {
+                    enabled: true,
+                    groups: mcpGroups,
+                },
+                skill: {
+                    enabled: true,
+                    items: skillEntries.map((skill) => ({
+                        name: skill.name,
+                        enabled: true,
+                    })),
+                },
+                modelOverride: null,
+                promptOverride: null,
+            };
+        }),
+
     getTopic: publicProcedure
         .input(z.object({ id: z.string(), projectPath: z.string().optional() }))
         .query(async ({ input, ctx }) => {
             const sourceState = ctx.hostManager.getSourceControlState(input.id);
+            const topic = db.getTopic(input.id);
 
             const { MCP } = await import('../mcp/index.js');
             const config = await Config.getGlobal();
@@ -755,6 +877,8 @@ const sourceControlRouter = router({
                         enabled: !sourceState.skill.disabledItems.includes(skill.name),
                     })),
                 },
+                modelOverride: topic?.modelOverride ?? null,
+                promptOverride: topic?.promptOverride ?? null,
             };
         }),
 
@@ -782,6 +906,49 @@ const sourceControlRouter = router({
         }),
 });
 
+const promptTemplateSchema = z.object({
+    id: z.string(),
+    name: z.string().min(1).max(120),
+    content: z.string(),
+    createdAt: z.number().optional(),
+    updatedAt: z.number().optional(),
+});
+
+const promptsRouter = router({
+    getTemplates: publicProcedure
+        .query(async () => {
+            const config = await Config.getGlobal();
+            const templates = Array.isArray((config.prompts as any)?.templates)
+                ? (config.prompts as any).templates
+                : [];
+            return templates
+                .filter((item: any) => item && typeof item.id === 'string' && typeof item.name === 'string' && typeof item.content === 'string')
+                .map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    content: item.content,
+                    createdAt: typeof item.createdAt === 'number' ? item.createdAt : undefined,
+                    updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : undefined,
+                }))
+                .sort((a: any, b: any) => a.name.localeCompare(b.name));
+        }),
+    replaceTemplates: publicProcedure
+        .input(z.object({ templates: z.array(promptTemplateSchema) }))
+        .mutation(async ({ input }) => {
+            const normalized = input.templates.map((template) => ({
+                ...template,
+                createdAt: template.createdAt ?? Date.now(),
+                updatedAt: template.updatedAt ?? Date.now(),
+            }));
+            await Config.updateGlobal({
+                prompts: {
+                    templates: normalized,
+                },
+            });
+            return { success: true };
+        }),
+});
+
 export const appRouter = router({
     db: dbRouter,
     chat: chatRouter,
@@ -793,6 +960,7 @@ export const appRouter = router({
     mcp: mcpRouter,
     skills: skillsRouter,
     sourceControl: sourceControlRouter,
+    prompts: promptsRouter,
 });
 
 export type AppRouter = typeof appRouter;

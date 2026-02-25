@@ -31,6 +31,7 @@ import { Logger } from '../utils/logger.js';
 import type { DesktopManager } from './desktop-manager.js';
 import * as db from '../db/index.js';
 import { projectService } from './project-service.js';
+import { toLLMConfig } from '../types/llm-config.js';
 
 /**
  * SessionManagerV3
@@ -174,15 +175,51 @@ export class SessionManagerV3 extends EventEmitter {
             throw new Error(`Failed to create desktop for topic: ${topicId}`);
         }
 
-        // 2. 获取 LLM 配置
+        // 2. 获取 LLM 配置（支持 topic-level override）
         const llmConfig = await this.llmConfigService.getActiveLLMConfig();
         if (!llmConfig) {
             throw new Error('No active LLM config found. Please configure an LLM provider first.');
         }
 
+        const modelOverride = topic?.modelOverride?.trim();
+        const effectiveLLMConfig = (() => {
+            if (!modelOverride) return llmConfig;
+
+            const colonIndex = modelOverride.indexOf(':');
+            const overrideProviderId = colonIndex > 0 ? modelOverride.slice(0, colonIndex) : llmConfig.provider?.id;
+            const overrideModelId = colonIndex > 0 ? modelOverride.slice(colonIndex + 1) : modelOverride;
+
+            const allConfigs = this.llmConfigService.getAllConfigs();
+            const providerConfigs = allConfigs.filter((record) => record.providerId === overrideProviderId);
+            const exactProviderModelConfig = providerConfigs.find((record) => {
+                const recordModel = (record.model || '').trim();
+                if (!recordModel) return false;
+                const normalizedRecordModel = recordModel.startsWith(`${overrideProviderId}/`)
+                    ? recordModel.slice((overrideProviderId || '').length + 1)
+                    : recordModel;
+                return normalizedRecordModel === overrideModelId;
+            });
+            const providerConfigRecord = exactProviderModelConfig || providerConfigs[0];
+            const providerResolvedConfig = providerConfigRecord ? toLLMConfig(providerConfigRecord) : null;
+
+            return {
+                ...llmConfig,
+                model: overrideProviderId ? `${overrideProviderId}:${overrideModelId}` : overrideModelId,
+                provider: providerResolvedConfig?.provider
+                    ? {
+                        ...providerResolvedConfig.provider,
+                        id: overrideProviderId || providerResolvedConfig.provider.id,
+                    }
+                    : (overrideProviderId ? { id: overrideProviderId } : llmConfig.provider),
+                apiKey: providerResolvedConfig?.apiKey ?? llmConfig.apiKey,
+            };
+        })();
+
+        const effectiveSystemPrompt = topic?.promptOverride?.trim() || this.getSystemPrompt();
+
         // 3. 创建 DrivenSources
         const systemPromptSource = new SystemPromptDrivenSource({
-            systemPrompt: this.getSystemPrompt(),
+            systemPrompt: effectiveSystemPrompt,
         });
 
         const aotuiSource = new AOTUIDrivenSource(desktop, this.kernel, {
@@ -200,8 +237,8 @@ export class SessionManagerV3 extends EventEmitter {
 
         // 4. 创建 AgentDriver
         const { providerId, modelId, modelLabel } = (() => {
-            const rawModel = llmConfig.model;
-            const inferredProvider = llmConfig.provider?.id;
+            const rawModel = effectiveLLMConfig.model;
+            const inferredProvider = effectiveLLMConfig.provider?.id;
             const colonIndex = rawModel.indexOf(':');
             if (colonIndex > 0) {
                 const provider = rawModel.slice(0, colonIndex);
@@ -235,7 +272,7 @@ export class SessionManagerV3 extends EventEmitter {
                 skillDrivenSource,
                 mcpDrivenSource as any,    // Custom MCP Tools
             ],
-            llm: llmConfig,
+            llm: effectiveLLMConfig,
             onAssistantMessage: (message) => {
                 this.handleMessage(topicId, 'assistant', message);
             },
@@ -323,6 +360,26 @@ export class SessionManagerV3 extends EventEmitter {
             return existing;
         }
 
+        const topic = db.getTopic(topicId);
+        if (topic?.sourceControls) {
+            existing = {
+                apps: {
+                    enabled: topic.sourceControls.apps?.enabled ?? true,
+                    disabledItems: new Set<string>(topic.sourceControls.apps?.disabledItems ?? []),
+                },
+                mcp: {
+                    enabled: topic.sourceControls.mcp?.enabled ?? true,
+                    disabledItems: new Set<string>(topic.sourceControls.mcp?.disabledItems ?? []),
+                },
+                skill: {
+                    enabled: topic.sourceControls.skill?.enabled ?? true,
+                    disabledItems: new Set<string>(topic.sourceControls.skill?.disabledItems ?? []),
+                },
+            };
+            this.sourceControlsByTopic.set(topicId, existing);
+            return existing;
+        }
+
         existing = {
             apps: { enabled: true, disabledItems: new Set<string>() },
             mcp: { enabled: true, disabledItems: new Set<string>() },
@@ -382,6 +439,7 @@ export class SessionManagerV3 extends EventEmitter {
     setSourceEnabled(topicId: string, source: 'apps' | 'mcp' | 'skill', enabled: boolean): void {
         const controls = this.getOrInitSourceControls(topicId);
         controls[source].enabled = enabled;
+        db.updateTopic(topicId, { sourceControls: this.getSourceControlState(topicId), updatedAt: Date.now() });
 
         const session = this.sessions.get(topicId);
         if (session) {
@@ -405,6 +463,7 @@ export class SessionManagerV3 extends EventEmitter {
         } else {
             controls[source].disabledItems.add(itemName);
         }
+        db.updateTopic(topicId, { sourceControls: this.getSourceControlState(topicId), updatedAt: Date.now() });
 
         const session = this.sessions.get(topicId);
         if (session) {
@@ -423,6 +482,22 @@ export class SessionManagerV3 extends EventEmitter {
                 session.sources.skill.setSkillEnabled(itemName, enabled);
             }
         }
+    }
+
+    syncTopicPromptOverride(topicId: string): void {
+        const session = this.sessions.get(topicId);
+        if (!session) {
+            return;
+        }
+
+        const topic = db.getTopic(topicId);
+        const effectiveSystemPrompt = topic?.promptOverride?.trim() || this.getSystemPrompt();
+        session.sources.systemPrompt.setSystemPrompt(effectiveSystemPrompt);
+
+        this.logger.info('Synced topic prompt override to active session', {
+            topicId,
+            overridden: Boolean(topic?.promptOverride?.trim()),
+        });
     }
 
     /**

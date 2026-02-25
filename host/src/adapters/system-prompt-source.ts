@@ -61,6 +61,7 @@ export class SystemPromptDrivenSource implements IDrivenSource {
     readonly name = 'SystemPrompt';
     
     private config: SystemPromptConfig;
+    private listeners = new Set<() => void>();
     
     /**
      * 创建系统提示词驱动源
@@ -89,6 +90,28 @@ export class SystemPromptDrivenSource implements IDrivenSource {
             content: this.config.systemPrompt,
             timestamp: 0, // ✅ 确保第一位
         }];
+    }
+
+    /**
+     * 动态更新系统提示词
+     */
+    setSystemPrompt(systemPrompt: string): void {
+        const nextPrompt = systemPrompt?.trim();
+        if (!nextPrompt) {
+            throw new Error('SystemPromptDrivenSource: systemPrompt cannot be empty');
+        }
+        if (nextPrompt === this.config.systemPrompt) {
+            return;
+        }
+        this.config = {
+            ...this.config,
+            systemPrompt: nextPrompt,
+        };
+        this.listeners.forEach((listener) => listener());
+    }
+
+    getSystemPrompt(): string {
+        return this.config.systemPrompt;
     }
     
     /**
@@ -124,10 +147,10 @@ export class SystemPromptDrivenSource implements IDrivenSource {
      * 
      * @returns 空的取消订阅函数
      */
-    onUpdate(_callback: () => void): () => void {
-        // 系统提示词不会变化，无需通知
+    onUpdate(callback: () => void): () => void {
+        this.listeners.add(callback);
         return () => {
-            // No-op unsubscribe
+            this.listeners.delete(callback);
         };
     }
     

@@ -229,6 +229,11 @@ export class HostManagerV2 {
         return this.sessionManager.getSourceControlState(topicId);
     }
 
+    syncTopicPromptOverride(topicId: string): void {
+        if (!this.sessionManager) return;
+        this.sessionManager.syncTopicPromptOverride(topicId);
+    }
+
     setSourceEnabled(topicId: string, source: 'apps' | 'mcp' | 'skill', enabled: boolean): void {
         if (!this.sessionManager) {
             throw new Error('SessionManager not initialized. Call initAgentDriver first.');
