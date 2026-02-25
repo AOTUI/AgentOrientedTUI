@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { IconModel, IconTheme, IconPlug, IconFolder, IconTerminal } from '../Icons.js';
+import { IconModel, IconTheme, IconPlug, IconFolder, IconTerminal, IconPencil } from '../Icons.js';
 import type { SettingsSidebarProps } from './types.js';
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange }) => {
@@ -64,6 +64,21 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                     aria-hidden="true"
                 />
                 <span className={`text-[13px] ${activeTab === 'theme' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Theme</span>
+            </button>
+
+            <button
+                onClick={() => onTabChange('prompt')}
+                role="tab"
+                aria-selected={activeTab === 'prompt'}
+                aria-controls="prompt-tab-panel"
+                id="prompt-tab"
+                className={`${baseBtnClass} ${activeTab === 'prompt' ? activeBtnClass : inactiveBtnClass}`}
+            >
+                <IconPencil
+                    className={`w-4 h-4 ${activeTab === 'prompt' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
+                    aria-hidden="true"
+                />
+                <span className={`text-[13px] ${activeTab === 'prompt' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Prompt</span>
             </button>
 
             {/* Apps Tab Button */}

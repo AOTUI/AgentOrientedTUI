@@ -30,7 +30,7 @@ export interface SettingsPanelProps {
  */
 export interface SettingsPanelState {
     /** Currently active tab */
-    activeTab: 'model' | 'theme' | 'apps' | 'mcp' | 'skills';
+    activeTab: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
 }
 
 /**
@@ -40,9 +40,9 @@ export interface SettingsPanelState {
  */
 export interface SettingsSidebarProps {
     /** Currently active tab */
-    activeTab: 'model' | 'theme' | 'apps' | 'mcp' | 'skills';
+    activeTab: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
     /** Callback when tab changes */
-    onTabChange: (tab: 'model' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
+    onTabChange: (tab: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
 }
 
 /**

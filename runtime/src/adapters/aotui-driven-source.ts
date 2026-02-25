@@ -123,6 +123,9 @@ export class AOTUIDrivenSource implements IDrivenSource {
     
     private includeInstruction: boolean;
     private systemInstruction: string;
+    private sourceEnabled = true;
+    private disabledApps = new Set<string>();
+    private listeners = new Set<() => void>();
 
     constructor(
         private desktop: IDesktop,
@@ -140,6 +143,78 @@ export class AOTUIDrivenSource implements IDrivenSource {
             : loadSystemInstruction(instructionFromPath ?? instructionFromEnv);
     }
 
+    setEnabled(enabled: boolean): void {
+        this.sourceEnabled = enabled;
+        this.triggerUpdate();
+    }
+
+    setAppEnabled(appName: string, enabled: boolean): void {
+        const normalized = this.normalizeAppKey(appName);
+        if (!normalized) {
+            return;
+        }
+
+        if (enabled) {
+            this.disabledApps.delete(normalized);
+        } else {
+            this.disabledApps.add(normalized);
+        }
+
+        this.triggerUpdate();
+    }
+
+    private triggerUpdate(): void {
+        for (const listener of this.listeners) {
+            listener();
+        }
+    }
+
+    private normalizeAppKey(value: unknown): string {
+        if (typeof value !== 'string') {
+            return '';
+        }
+        return value.trim();
+    }
+
+    private resolveAppName(appId?: string): string | undefined {
+        if (!appId) {
+            return undefined;
+        }
+
+        try {
+            const info = (this.desktop as any).getAppInfo?.(appId);
+            if (info && typeof info.name === 'string') {
+                return info.name;
+            }
+        } catch {
+        }
+
+        return undefined;
+    }
+
+    private isAppAllowed(appId?: string, appName?: string): boolean {
+        if (!this.sourceEnabled) {
+            return false;
+        }
+
+        if (this.disabledApps.size === 0) {
+            return true;
+        }
+
+        const normalizedId = this.normalizeAppKey(appId);
+        const normalizedName = this.normalizeAppKey(appName);
+
+        if (normalizedId && this.disabledApps.has(normalizedId)) {
+            return false;
+        }
+
+        if (normalizedName && this.disabledApps.has(normalizedName)) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * 获取消息 (AOTUI System Instruction + TUI App Snapshots)
      * 
@@ -150,6 +225,10 @@ export class AOTUIDrivenSource implements IDrivenSource {
     * 2. Desktop State (timestamp=latest app fragment, role='user')
      */
     async getMessages(): Promise<MessageWithTimestamp[]> {
+        if (!this.sourceEnabled) {
+            return [];
+        }
+
         const messages: MessageWithTimestamp[] = [];
         
         // 1. 注入 AOTUI System Instruction (仅一次)
@@ -167,29 +246,11 @@ export class AOTUIDrivenSource implements IDrivenSource {
         try {
             const baseTimestamp = snapshot.createdAt || Date.now();
 
-            const getLatestAppTimestamp = () => {
-                if (!snapshot.structured?.appStates) {
-                    return undefined;
-                }
-
-                let latest: number | undefined;
-                for (const fragment of snapshot.structured.appStates) {
-                    if (typeof fragment.timestamp !== 'number') {
-                        continue;
-                    }
-                    if (latest === undefined || fragment.timestamp > latest) {
-                        latest = fragment.timestamp;
-                    }
-                }
-
-                return latest;
-            };
-
             const desktopTimestamp = 2;
 
             // 3. 优先使用结构化 Snapshot (RFC-014)
             if (snapshot.structured?.appStates) {
-                if (snapshot.structured.desktopState) {
+                if (snapshot.structured.desktopState && this.disabledApps.size === 0) {
                     messages.push({
                         role: 'user',
                         content: snapshot.structured.desktopState,
@@ -198,6 +259,14 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 }
 
                 for (const fragment of snapshot.structured.appStates) {
+                    const fragmentAppId = this.normalizeAppKey((fragment as any).appId);
+                    const fragmentAppName = this.normalizeAppKey((fragment as any).appName)
+                        || this.normalizeAppKey(this.resolveAppName(fragmentAppId));
+
+                    if (!this.isAppAllowed(fragmentAppId, fragmentAppName)) {
+                        continue;
+                    }
+
                     messages.push({
                         role: 'user',
                         content: `${fragment.markup}`,
@@ -206,7 +275,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 }
             }
             // 4. 回退到旧的 markup 解析 (如果需要)
-            else if (snapshot.markup) {
+            else if (snapshot.markup && this.disabledApps.size === 0) {
                 messages.push({
                     role: 'user',
                     content: `# TUI Desktop State\n\n${snapshot.markup}`,
@@ -230,6 +299,10 @@ export class AOTUIDrivenSource implements IDrivenSource {
     * 如果传入 parameters，inputSchema 为 undefined，会被推断成空 schema。
      */
     async getTools(): Promise<Record<string, any>> {
+        if (!this.sourceEnabled) {
+            return {};
+        }
+
         const snapshot = await this.kernel.acquireSnapshot(this.desktop.id);
 
         try {
@@ -239,6 +312,10 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 for (const [key, value] of Object.entries(snapshot.indexMap)) {
                     // 1. 传统 Operation Entry (type === 'operation')
                     if (this.isOperationEntry(value)) {
+                        if (!this.isAppAllowed(value.appId, this.resolveAppName(value.appId))) {
+                            continue;
+                        }
+
                         const op = value.operation;
                         const schema = this.convertParamsToJsonSchema(op.params);
                         tools[op.id] = {
@@ -248,6 +325,10 @@ export class AOTUIDrivenSource implements IDrivenSource {
                     }
                     // 2. useViewTypeTool 注册的工具 (key 以 'tool:' 开头)
                     else if (key.startsWith('tool:') && this.isTypeToolEntry(value)) {
+                        if (!this.isAppAllowed(value.appId, value.appName || this.resolveAppName(value.appId))) {
+                            continue;
+                        }
+
                         const toolId = key.slice(5);
                         const params = (value as any).params || [];
                         const schema = this.convertParamsToJsonSchema(params);
@@ -291,6 +372,17 @@ export class AOTUIDrivenSource implements IDrivenSource {
         args: unknown,
         toolCallId: string
     ): Promise<ToolResult | undefined> {
+        if (!this.sourceEnabled) {
+            return {
+                toolCallId,
+                toolName,
+                error: {
+                    code: 'E_SOURCE_DISABLED',
+                    message: 'AOTUI source is disabled for this topic',
+                },
+            };
+        }
+
         const ownerId = 'agent-driver';
         let appId = 'system';
         let viewId: string | undefined;
@@ -339,6 +431,17 @@ export class AOTUIDrivenSource implements IDrivenSource {
         // TODO: 真正的实现需要从 IndexMap 中查找 Operation context
         // 这里简化处理，假设 ToolName 就是 OperationID
         // 实际上 IndexMap 中包含了 correct context (appId, etc.)
+
+        if (appId !== 'system' && !this.isAppAllowed(appId, this.resolveAppName(appId))) {
+            return {
+                toolCallId,
+                toolName,
+                error: {
+                    code: 'E_APP_DISABLED',
+                    message: `App "${this.resolveAppName(appId) || appId}" is disabled for this topic`,
+                },
+            };
+        }
 
         // 3. 执行 Operation
         try {
@@ -414,6 +517,8 @@ export class AOTUIDrivenSource implements IDrivenSource {
      */
     onUpdate(callback: () => void): () => void {
         const signalListener = () => callback();
+        this.listeners.add(callback);
+
         // [Fix] output is a property, not a method
         const outputStream = this.desktop.output;
 
@@ -421,7 +526,10 @@ export class AOTUIDrivenSource implements IDrivenSource {
         outputStream.subscribe(signalListener);
 
         // 返回取消订阅函数
-        return () => outputStream.unsubscribe(signalListener);
+        return () => {
+            this.listeners.delete(callback);
+            outputStream.unsubscribe(signalListener);
+        };
     }
 
     /**

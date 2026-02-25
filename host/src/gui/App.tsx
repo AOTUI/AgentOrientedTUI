@@ -38,6 +38,8 @@ type TopicCapabilities = {
         enabled: boolean;
         items: Array<{ name: string; enabled: boolean }>;
     };
+    modelOverride?: string | null;
+    promptOverride?: string | null;
 };
 
 export function App() {
@@ -73,6 +75,14 @@ export function App() {
     const [canSendMessage, setCanSendMessage] = useState(false);
     const [sendBlockedReason, setSendBlockedReason] = useState<string | null>(null);
     const [topicCapabilities, setTopicCapabilities] = useState<TopicCapabilities | null>(null);
+    const [draftCapabilities, setDraftCapabilities] = useState<TopicCapabilities | null>(null);
+    const [topicModelOverride, setTopicModelOverride] = useState<string | null>(null);
+    const [topicPromptOverride, setTopicPromptOverride] = useState<string>('');
+    const [draftModelOverride, setDraftModelOverride] = useState<string | null>(null);
+    const [draftPromptOverride, setDraftPromptOverride] = useState<string>('');
+    const [promptTemplates, setPromptTemplates] = useState<Array<{ id: string; name: string; content: string }>>([]);
+    const [modelGroups, setModelGroups] = useState<Array<{ providerId: string; models: string[] }>>([]);
+    const [activeModelId, setActiveModelId] = useState<string | null>(null);
 
     // Init Theme
     useEffect(() => {
@@ -137,6 +147,88 @@ export function App() {
         }
     }, [bridge]);
 
+    const refreshPromptTemplates = useCallback(async () => {
+        try {
+            const rows = await bridge.getTrpcClient().prompts.getTemplates.query();
+            setPromptTemplates((rows as Array<{ id: string; name: string; content: string }>) || []);
+        } catch (error) {
+            console.error('[App] Failed to load prompt templates:', error);
+        }
+    }, [bridge]);
+
+    const refreshModelGroups = useCallback(async () => {
+        try {
+            const [allConfigs, activeConfig] = await Promise.all([
+                bridge.getAllLLMConfigs(),
+                bridge.getActiveLLMConfig(),
+            ]);
+
+            const configuredGroupsMap = new Map<string, Set<string>>();
+            (allConfigs || []).forEach((config) => {
+                const providerId = config?.providerId?.trim();
+                const model = config?.model?.trim();
+                if (!providerId || !model) {
+                    return;
+                }
+                if (!configuredGroupsMap.has(providerId)) {
+                    configuredGroupsMap.set(providerId, new Set<string>());
+                }
+                configuredGroupsMap.get(providerId)?.add(model);
+            });
+
+            const providerIds = Array.from(configuredGroupsMap.keys());
+            const groups = await Promise.all(providerIds.map(async (providerId) => {
+                const mergedModels = new Set(Array.from(configuredGroupsMap.get(providerId) || []));
+
+                try {
+                    const models = await bridge.getTrpcClient().modelRegistry.getModels.query({ providerId });
+                    (models as Array<{ id?: string; name?: string }>).forEach((item) => {
+                        const raw = item?.id || item?.name;
+                        if (!raw || typeof raw !== 'string') {
+                            return;
+                        }
+                        const normalized = raw.startsWith(`${providerId}/`) ? raw.slice(providerId.length + 1) : raw;
+                        if (normalized.trim()) {
+                            mergedModels.add(normalized.trim());
+                        }
+                    });
+                } catch (error) {
+                    console.warn(`[App] Failed to load models from registry for provider: ${providerId}`, error);
+                }
+
+                return {
+                    providerId,
+                    models: Array.from(mergedModels).sort((a, b) => a.localeCompare(b)),
+                };
+            }));
+
+            groups.sort((a, b) => a.providerId.localeCompare(b.providerId));
+
+            setModelGroups(groups);
+            setActiveModelId(
+                activeConfig?.providerId && activeConfig?.model
+                    ? `${activeConfig.providerId}:${activeConfig.model}`
+                    : null,
+            );
+        } catch (error) {
+            console.error('[App] Failed to load model groups:', error);
+        }
+    }, [bridge]);
+
+    const refreshDraftCapabilities = useCallback(async () => {
+        const projectPath = currentProjectId
+            ? bridge.getProjects().find((project) => project.id === currentProjectId)?.path
+            : undefined;
+
+        try {
+            const data = await bridge.getTrpcClient().sourceControl.getDraft.query({ projectPath });
+            setDraftCapabilities(data as TopicCapabilities);
+        } catch (error) {
+            console.error('[App] Failed to load draft capabilities:', error);
+            setDraftCapabilities(null);
+        }
+    }, [bridge, currentProjectId]);
+
     // Helper: Time Ago
     const formatTimeAgo = (timestamp: number) => {
         if (!timestamp) return '';
@@ -173,8 +265,10 @@ export function App() {
     useEffect(() => {
         if (!settingsPanelOpen && connected) {
             void refreshLLMReadiness();
+            void refreshPromptTemplates();
+            void refreshModelGroups();
         }
-    }, [settingsPanelOpen, connected, refreshLLMReadiness]);
+    }, [settingsPanelOpen, connected, refreshLLMReadiness, refreshPromptTemplates, refreshModelGroups]);
 
     // Subscribe
     useEffect(() => {
@@ -250,17 +344,23 @@ export function App() {
     // Actions
     const handleNewChat = useCallback(() => {
         if (!currentProjectId) return;
-        setActiveTopicId(null);
+
+        setViewMode('chat');
         setIsNewChat(true);
+        setActiveTopicId(null);
         setMessages([]);
         setTuiSnapshot('');
         setAgentThinking('');
         setAgentReasoning('');
-        setViewMode('chat');
-    }, [currentProjectId]);
+        setDraftModelOverride(null);
+        setDraftPromptOverride('');
+        void refreshDraftCapabilities();
+    }, [currentProjectId, refreshDraftCapabilities]);
 
     const handleSelectTopic = useCallback((topicId: string) => {
         setIsNewChat(false);
+        setDraftModelOverride(null);
+        setDraftPromptOverride('');
         bridge.setActiveTopic(topicId);
         setActiveTopicId(topicId);
         setMessages([...bridge.getMessages(topicId)]);
@@ -282,11 +382,38 @@ export function App() {
         // [UX Improvement] Implicitly create session if none exists
         if (!currentTopicId) {
             const title = content.length > 50 ? content.slice(0, 50) + '...' : content;
-            const newTopic = await bridge.createTopic(title, currentProjectId || undefined);
+            const sourceControls = draftCapabilities
+                ? {
+                    apps: {
+                        enabled: draftCapabilities.apps.enabled,
+                        disabledItems: draftCapabilities.apps.items.filter((item) => !item.enabled).map((item) => item.name),
+                    },
+                    mcp: {
+                        enabled: draftCapabilities.mcp.enabled,
+                        disabledItems: [
+                            ...draftCapabilities.mcp.groups.filter((group) => !group.enabled).map((group) => group.key),
+                            ...draftCapabilities.mcp.groups.flatMap((group) => group.items.filter((item) => !item.enabled).map((item) => item.key)),
+                        ],
+                    },
+                    skill: {
+                        enabled: draftCapabilities.skill.enabled,
+                        disabledItems: draftCapabilities.skill.items.filter((item) => !item.enabled).map((item) => item.name),
+                    },
+                }
+                : undefined;
+
+            const newTopic = await bridge.createTopic(
+                title,
+                currentProjectId || undefined,
+                {
+                    modelOverride: draftModelOverride || undefined,
+                    promptOverride: draftPromptOverride || undefined,
+                    sourceControls,
+                }
+            );
             if (newTopic) {
                 currentTopicId = newTopic.id;
                 setActiveTopicId(currentTopicId);
-                bridge.setActiveTopic(currentTopicId);
                 setIsNewChat(false);
             } else {
                 return;
@@ -307,7 +434,7 @@ export function App() {
             setSettingsPanelOpen(true);
             await refreshLLMReadiness();
         }
-    }, [bridge, activeTopicId, currentProjectId, canSendMessage, sendBlockedReason, showToast, refreshLLMReadiness]);
+    }, [bridge, activeTopicId, currentProjectId, canSendMessage, sendBlockedReason, showToast, refreshLLMReadiness, draftCapabilities, draftModelOverride, draftPromptOverride]);
 
     const handlePauseAgent = useCallback(() => {
         if (activeTopicId) bridge.pauseAgent(activeTopicId);
@@ -345,7 +472,10 @@ export function App() {
                 id: topicId,
                 projectPath,
             });
-            setTopicCapabilities(data as TopicCapabilities);
+            const typed = data as TopicCapabilities;
+            setTopicCapabilities(typed);
+            setTopicModelOverride(typed.modelOverride || null);
+            setTopicPromptOverride(typed.promptOverride || '');
         } catch (error) {
             console.error('[App] Failed to load topic capabilities:', error);
             setTopicCapabilities(null);
@@ -355,13 +485,26 @@ export function App() {
     useEffect(() => {
         if (!activeTopicId) {
             setTopicCapabilities(null);
+            setTopicModelOverride(null);
+            setTopicPromptOverride('');
+            void refreshDraftCapabilities();
             return;
         }
+        setDraftModelOverride(null);
+        setDraftPromptOverride('');
         void refreshTopicCapabilities(activeTopicId);
-    }, [activeTopicId, refreshTopicCapabilities]);
+    }, [activeTopicId, refreshTopicCapabilities, refreshDraftCapabilities]);
 
     const handleToggleCapabilityGroup = useCallback(async (source: 'apps' | 'mcp' | 'skill', enabled: boolean) => {
-        if (!activeTopicId) return;
+        if (!activeTopicId) {
+            setDraftCapabilities((prev) => {
+                if (!prev) return prev;
+                if (source === 'apps') return { ...prev, apps: { ...prev.apps, enabled } };
+                if (source === 'mcp') return { ...prev, mcp: { ...prev.mcp, enabled } };
+                return { ...prev, skill: { ...prev.skill, enabled } };
+            });
+            return;
+        }
         try {
             await bridge.getTrpcClient().sourceControl.setSourceEnabled.mutate({
                 id: activeTopicId,
@@ -375,7 +518,45 @@ export function App() {
     }, [bridge, activeTopicId, refreshTopicCapabilities]);
 
     const handleToggleCapabilityItem = useCallback(async (source: 'apps' | 'mcp' | 'skill', itemName: string, enabled: boolean) => {
-        if (!activeTopicId) return;
+        if (!activeTopicId) {
+            setDraftCapabilities((prev) => {
+                if (!prev) return prev;
+                if (source === 'apps') {
+                    return {
+                        ...prev,
+                        apps: {
+                            ...prev.apps,
+                            items: prev.apps.items.map((item) => item.name === itemName ? { ...item, enabled } : item),
+                        },
+                    };
+                }
+                if (source === 'skill') {
+                    return {
+                        ...prev,
+                        skill: {
+                            ...prev.skill,
+                            items: prev.skill.items.map((item) => item.name === itemName ? { ...item, enabled } : item),
+                        },
+                    };
+                }
+                return {
+                    ...prev,
+                    mcp: {
+                        ...prev.mcp,
+                        groups: prev.mcp.groups.map((group) => {
+                            if (group.key === itemName) {
+                                return { ...group, enabled };
+                            }
+                            return {
+                                ...group,
+                                items: group.items.map((item) => item.key === itemName ? { ...item, enabled } : item),
+                            };
+                        }),
+                    },
+                };
+            });
+            return;
+        }
         try {
             await bridge.getTrpcClient().sourceControl.setItemEnabled.mutate({
                 id: activeTopicId,
@@ -388,6 +569,38 @@ export function App() {
             console.error('[App] Failed to toggle capability item:', error);
         }
     }, [bridge, activeTopicId, refreshTopicCapabilities]);
+
+    const handleSelectTopicModel = useCallback(async (modelId: string) => {
+        if (!activeTopicId) {
+            setDraftModelOverride(modelId);
+            return;
+        }
+        setTopicModelOverride(modelId);
+        try {
+            await bridge.getTrpcClient().db.updateTopicConfig.mutate({ id: activeTopicId, modelOverride: modelId });
+        } catch (error) {
+            console.error('[App] Failed to persist topic model override:', error);
+        }
+    }, [activeTopicId, bridge]);
+
+    const handleChangeTopicPrompt = useCallback(async (prompt: string) => {
+        if (!activeTopicId) {
+            setDraftPromptOverride(prompt);
+            return;
+        }
+        setTopicPromptOverride(prompt);
+        try {
+            await bridge.getTrpcClient().db.updateTopicConfig.mutate({ id: activeTopicId, promptOverride: prompt });
+        } catch (error) {
+            console.error('[App] Failed to persist topic prompt override:', error);
+        }
+    }, [activeTopicId, bridge]);
+
+    const handleApplyPromptTemplate = useCallback((templateId: string) => {
+        const template = promptTemplates.find((item) => item.id === templateId);
+        if (!template) return;
+        void handleChangeTopicPrompt(template.content);
+    }, [promptTemplates, handleChangeTopicPrompt]);
 
     const handleDeleteTopic = useCallback(async () => {
         if (!activeTopicId) return;
@@ -453,6 +666,7 @@ export function App() {
                 sidebarOpen={sidebarOpen}
                 topics={topics}
                 activeTopicId={activeTopicId}
+                showDraftCurrent={isNewChat && !activeTopicId}
                 currentProjectPath={currentProject?.path ?? null}
                 theme={theme}
                 onNewChat={handleNewChat}
@@ -507,10 +721,17 @@ export function App() {
                                 displayAgentState={displayAgentState}
                                 onPauseAgent={handlePauseAgent}
                                 onResumeAgent={handleResumeAgent}
-                                topicCapabilities={topicCapabilities}
+                                topicCapabilities={activeTopicId ? topicCapabilities : draftCapabilities}
                                 onToggleCapabilityGroup={handleToggleCapabilityGroup}
                                 onToggleCapabilityItem={handleToggleCapabilityItem}
                                 capabilityHint="Temporary overrides for current topic only."
+                                modelGroups={modelGroups}
+                                selectedModel={(activeTopicId ? topicModelOverride : draftModelOverride) || activeModelId}
+                                onSelectModel={handleSelectTopicModel}
+                                promptTemplates={promptTemplates}
+                                topicPrompt={activeTopicId ? topicPromptOverride : draftPromptOverride}
+                                onChangeTopicPrompt={handleChangeTopicPrompt}
+                                onApplyPromptTemplate={handleApplyPromptTemplate}
                             />
                         ) : (
                             <div className="absolute inset-0 bg-[var(--color-bg-base)] rounded-2xl overflow-hidden border border-[var(--mat-border)]">

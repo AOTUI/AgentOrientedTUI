@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SettingsSidebar } from './SettingsSidebar.js';
 import { ModelTab } from './ModelTab.js';
+import { PromptTab } from './PromptTab.js';
 import { ThemeTab } from './ThemeTab.js';
 import { McpTab } from './mcp/McpTab.js';
 import { AppsTab } from './apps/AppsTab.js';
@@ -49,7 +50,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     currentProjectPath,
 }) => {
     // State
-    const [activeTab, setActiveTab] = useState<'model' | 'theme' | 'apps' | 'mcp' | 'skills'>('model');
+    const [activeTab, setActiveTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>('model');
 
     // Refs for focus trap
     const panelRef = useRef<HTMLDivElement>(null);
@@ -223,6 +224,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             key={activeTab}
                         >
                             {activeTab === 'model' && <ModelTab />}
+                            {activeTab === 'prompt' && <PromptTab />}
                             {activeTab === 'theme' && (
                                 <ThemeTab
                                     currentTheme={theme}
