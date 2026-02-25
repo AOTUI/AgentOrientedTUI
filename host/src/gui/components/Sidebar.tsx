@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from "@heroui/button";
 import { Tooltip } from "@heroui/tooltip";
 import { ScrollShadow } from "@heroui/scroll-shadow";
@@ -46,7 +46,70 @@ export function Sidebar({
     onSwitchProject,
     onOpenSettings,
 }: SidebarProps) {
-    const sortedTopics = [...topics].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+    const [recentExpanded, setRecentExpanded] = useState(false);
+    const [otherExpanded, setOtherExpanded] = useState(false);
+
+    const {
+        currentTopic,
+        recentTopics,
+        otherTopics,
+    } = useMemo(() => {
+        const sortedTopics = [...topics].sort((a, b) => (b.updatedAt ?? b.createdAt ?? 0) - (a.updatedAt ?? a.createdAt ?? 0));
+        const current = sortedTopics.find((topic) => topic.id === activeTopicId) ?? null;
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+        const remaining = sortedTopics.filter((topic) => topic.id !== activeTopicId);
+        const recent = remaining.filter((topic) => (topic.updatedAt ?? topic.createdAt ?? 0) >= weekAgo);
+        const other = remaining.filter((topic) => (topic.updatedAt ?? topic.createdAt ?? 0) < weekAgo);
+
+        return {
+            currentTopic: current,
+            recentTopics: recent,
+            otherTopics: other,
+        };
+    }, [topics, activeTopicId]);
+
+    const visibleRecentTopics = recentExpanded ? recentTopics : recentTopics.slice(0, 3);
+    const visibleOtherTopics = otherExpanded ? otherTopics : otherTopics.slice(0, 3);
+
+    const recentMoreCount = Math.max(0, recentTopics.length - 3);
+    const otherMoreCount = Math.max(0, otherTopics.length - 3);
+
+    const renderTopicRow = (topic: Topic, isCurrent: boolean = false) => {
+        const isActive = topic.id === activeTopicId;
+        const timeAgo = formatTimeAgo(topic.updatedAt ?? topic.createdAt);
+
+        return (
+            <div
+                key={topic.id}
+                className={`
+                    relative w-full h-8 px-2 rounded-[8px] cursor-pointer
+                    flex items-center justify-between
+                    transition-colors duration-200
+                    ${isActive ? 'bg-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.1)]' : 'bg-transparent'}
+                `}
+                onClick={() => onSelectTopic(topic.id)}
+            >
+                <span className={`truncate text-[13px] font-medium ${
+                    isActive
+                        ? 'text-[var(--color-accent)]'
+                        : 'text-[var(--color-text-secondary)]'
+                }`}>
+                    {topic.title}
+                </span>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                    {isCurrent ? (
+                        <span className="text-[11px] text-[var(--color-accent)]">Current</span>
+                    ) : (
+                        timeAgo && (
+                            <span className="text-[11px] text-[var(--color-text-tertiary)]">{timeAgo}</span>
+                        )
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <aside className={`
@@ -74,39 +137,63 @@ export function Sidebar({
             </div>
 
             <ScrollShadow className="flex-1 w-[260px] px-2 pb-6 overflow-y-auto scrollbar-hide">
-                <div className="space-y-1">
-                    {sortedTopics.map(topic => {
-                        const isActive = topic.id === activeTopicId;
-                        const timeAgo = formatTimeAgo(topic.updatedAt ?? topic.createdAt);
-                        return (
-                            <div
-                                key={topic.id}
-                                className={`
-                                    relative w-full h-8 px-2 rounded-[8px] cursor-pointer
-                                    flex items-center justify-between
-                                    transition-colors duration-200
-                                    ${isActive ? 'bg-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.1)]' : 'bg-transparent'}
-                                `}
-                                onClick={() => onSelectTopic(topic.id)}
-                            >
-                                {/* Title */}
-                                <span className={`truncate text-[13px] font-medium ${
-                                    isActive
-                                        ? 'text-[var(--color-accent)]'
-                                        : 'text-[var(--color-text-secondary)]'
-                                }`}>
-                                    {topic.title}
-                                </span>
-
-                                {/* Status dot + time ago */}
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                    {timeAgo && (
-                                        <span className="text-[11px] text-[var(--color-text-tertiary)]">{timeAgo}</span>
-                                    )}
-                                </div>
+                <div className="space-y-3">
+                    {currentTopic && (
+                        <div>
+                            <div className="px-2 pb-1 text-[10px] uppercase tracking-[0.03em] text-[var(--color-text-tertiary)]">
+                                Current
                             </div>
-                        );
-                    })}
+                            <div className="space-y-1">
+                                {renderTopicRow(currentTopic, true)}
+                            </div>
+                        </div>
+                    )}
+
+                    {recentTopics.length > 0 && (
+                        <div>
+                            <div className="px-2 pb-1 text-[10px] uppercase tracking-[0.03em] text-[var(--color-text-tertiary)]">
+                                Recent
+                            </div>
+                            <div
+                                data-testid="recent-list"
+                                className={`space-y-1 ${recentExpanded && recentTopics.length > 5 ? 'max-h-[11rem] overflow-y-auto pr-1' : ''}`}
+                            >
+                                {visibleRecentTopics.map((topic) => renderTopicRow(topic))}
+                            </div>
+                            {!recentExpanded && recentMoreCount > 0 && (
+                                <button
+                                    type="button"
+                                    className="mt-1 px-2 text-[12px] text-[var(--color-accent)] hover:text-[var(--color-text-primary)] transition-colors"
+                                    onClick={() => setRecentExpanded(true)}
+                                >
+                                    Show {recentMoreCount} More
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {otherTopics.length > 0 && (
+                        <div>
+                            <div className="px-2 pb-1 text-[10px] uppercase tracking-[0.03em] text-[var(--color-text-tertiary)]">
+                                Other
+                            </div>
+                            <div
+                                data-testid="other-list"
+                                className={`space-y-1 ${otherExpanded && otherTopics.length > 5 ? 'max-h-[11rem] overflow-y-auto pr-1' : ''}`}
+                            >
+                                {visibleOtherTopics.map((topic) => renderTopicRow(topic))}
+                            </div>
+                            {!otherExpanded && otherMoreCount > 0 && (
+                                <button
+                                    type="button"
+                                    className="mt-1 px-2 text-[12px] text-[var(--color-accent)] hover:text-[var(--color-text-primary)] transition-colors"
+                                    onClick={() => setOtherExpanded(true)}
+                                >
+                                    Show {otherMoreCount} More
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             </ScrollShadow>
 
