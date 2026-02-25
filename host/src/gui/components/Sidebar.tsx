@@ -9,6 +9,7 @@ interface SidebarProps {
     sidebarOpen: boolean;
     topics: Topic[];
     activeTopicId: string | null;
+    showDraftCurrent?: boolean;
     currentProjectPath?: string | null;
     theme: 'dark' | 'light';
     onNewChat: () => void;
@@ -38,6 +39,7 @@ export function Sidebar({
     sidebarOpen,
     topics,
     activeTopicId,
+    showDraftCurrent = false,
     currentProjectPath,
     theme,
     onNewChat,
@@ -138,13 +140,24 @@ export function Sidebar({
 
             <ScrollShadow className="flex-1 w-[260px] px-2 pb-6 overflow-y-auto scrollbar-hide">
                 <div className="space-y-3">
-                    {currentTopic && (
+                    {(currentTopic || showDraftCurrent) && (
                         <div>
                             <div className="px-2 pb-1 text-[10px] uppercase tracking-[0.03em] text-[var(--color-text-tertiary)]">
                                 Current
                             </div>
                             <div className="space-y-1">
-                                {renderTopicRow(currentTopic, true)}
+                                {currentTopic ? (
+                                    renderTopicRow(currentTopic, true)
+                                ) : (
+                                    <div
+                                        className="relative w-full h-8 px-2 rounded-[8px] flex items-center justify-between bg-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+                                    >
+                                        <span className="truncate text-[13px] font-medium text-[var(--color-accent)]">New Session</span>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <span className="text-[11px] text-[var(--color-accent)]">Current</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

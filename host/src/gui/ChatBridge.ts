@@ -257,9 +257,27 @@ export class ChatBridge {
 
     // ============ API - Topics ============
 
-    async createTopic(title: string, projectId?: string): Promise<Topic | null> {
+    async createTopic(
+        title: string,
+        projectId?: string,
+        options?: {
+            modelOverride?: string;
+            promptOverride?: string;
+            sourceControls?: {
+                apps: { enabled: boolean; disabledItems: string[] };
+                mcp: { enabled: boolean; disabledItems: string[] };
+                skill: { enabled: boolean; disabledItems: string[] };
+            };
+        }
+    ): Promise<Topic | null> {
         try {
-            const topic = await this.getTrpcClient().db.createTopic.mutate({ title, projectId });
+            const topic = await this.getTrpcClient().db.createTopic.mutate({
+                title,
+                projectId,
+                modelOverride: options?.modelOverride,
+                promptOverride: options?.promptOverride,
+                sourceControls: options?.sourceControls,
+            });
             this.topics.set(topic.id, topic);
             this.messages.set(topic.id, []);
             this.activeTopicId = topic.id;

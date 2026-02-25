@@ -13,6 +13,34 @@ export const IconSend = (props: IconProps) => <svg viewBox="0 0 24 24" fill="non
 export const IconDelete = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 export const IconFolder = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>;
 export const IconModel = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
+
+// Model: Lucide "brain" — official icon, verbatim paths, stroke-width tuned to 1.5
+export const IconBrain = (props: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}>
+    <path d="M12 18V5" />
+    <path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4" />
+    <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" />
+    <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77" />
+    <path d="M18 18a4 4 0 0 0 2-7.464" />
+    <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517" />
+    <path d="M6 18a4 4 0 0 1-2-7.464" />
+    <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" />
+  </svg>
+);
+
+// Prompt: The Spark Book — macOS 26 Intelligence Directive
+// Design: An open book representing the foundational knowledge/rules,
+// with a mathematically perfect 4-point AI sparkle emerging from the
+// center fold. The sparkle uses cubic Bézier curves to create tension,
+// contrasting with the sweeping, elegant curves of the open pages.
+export const IconPrompt = (props: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}>
+    <path d="M12 2 C12 4.2 10.2 6 8 6 C10.2 6 12 7.8 12 10 C12 7.8 13.8 6 16 6 C13.8 6 12 4.2 12 2 Z" />
+    <path d="M4 20C6.5 19 9.5 19 12 20.5V11C9.5 9.5 6.5 9.5 4 11v9z" />
+    <path d="M20 20C17.5 19 14.5 19 12 20.5V11C14.5 9.5 17.5 9.5 20 11v9z" />
+  </svg>
+);
+
 export const IconTheme = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" /></svg>;
 export const IconSettings = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" /></svg>;
 export const IconPlug = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M12 22v-5" /><path d="M9 8V2" /><path d="M15 8V2" /><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" /></svg>;
