@@ -77,16 +77,23 @@ apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app" "lite-browse
 
 for app in "${apps[@]}"; do
     if [ -d "$app" ]; then
-        echo "🔗 Linking $app..."
+        echo "🔗 Linking $app with tui..."
         cd "$app"
         
-        # Build the app first
+        # Build app to generate dist artifacts
         if [ -f "package.json" ]; then
-            pnpm build 2>/dev/null || echo "   (no build script, skipping)"
+            pnpm build
         fi
         
-        # Link using npm (since tui uses npm link internally)
-        npm link
+        # Ensure dist exists before linking
+        if [ ! -d "dist" ]; then
+            echo "❌ $app build completed but dist directory was not found"
+            echo "   Please check the build output path before running setup again"
+            exit 1
+        fi
+
+        # Link current app directory to tui
+        tui link .
         cd ..
         
         echo "✅ $app linked successfully"
@@ -94,19 +101,6 @@ for app in "${apps[@]}"; do
         echo "⚠️  $app directory not found, skipping..."
     fi
 done
-
-echo ""
-echo "🔗 Installing linked apps to host..."
-echo "----------------------------------------------"
-
-cd host
-
-for app in "${apps[@]}"; do
-    echo "🔗 Installing $app to host..."
-    npm link "$app" 2>/dev/null || echo "   (link may already exist)"
-done
-
-cd ..
 
 echo ""
 echo "✅ All apps linked successfully!"

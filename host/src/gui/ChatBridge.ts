@@ -663,6 +663,7 @@ export class ChatBridge {
             }
         }
 
+        const normalizedText = textParts.join('\n').trim();
         const reasoningBlock = reasoning ? `Reasoning:\n${reasoning}` : '';
 
         // 决定消息类型
@@ -686,6 +687,7 @@ export class ChatBridge {
                     toolCallId: toolCalls[0].toolCallId,
                     args: toolCalls[0].args,
                     input: toolCalls[0].input,
+                    text: normalizedText || undefined,
                     reasoning: reasoning || undefined
                 }
             };
@@ -824,6 +826,7 @@ export class ChatBridge {
 
         // Build displayable content from parts
         const contentParts: string[] = [];
+        const textParts: string[] = [];
         let reasoning = '';
         let hasToolCalls = false;
         let firstToolCall: { toolName?: string; toolCallId?: string; args?: unknown } | null = null;
@@ -832,6 +835,7 @@ export class ChatBridge {
         for (const part of parts) {
             if (part.partType === 'text') {
                 contentParts.push(part.textContent);
+                textParts.push(part.textContent);
             } else if (part.partType === 'reasoning') {
                 reasoning = part.textContent;
                 contentParts.push(`💭 Thinking: ${part.textContent}`);
@@ -874,6 +878,7 @@ export class ChatBridge {
                         toolCallId: firstToolCall.toolCallId,
                         args: firstToolCall.args,
                         input: firstToolCall.args,
+                        text: textParts.join('\n').trim() || undefined,
                     }
                     : {}),
                 ...(firstToolResult

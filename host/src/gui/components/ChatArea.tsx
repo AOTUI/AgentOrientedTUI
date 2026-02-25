@@ -70,6 +70,7 @@ type ToolTraceStep = {
 
 type TraceItem =
     | { kind: 'reasoning'; text: string }
+    | { kind: 'text'; text: string }
     | { kind: 'tool'; step: ToolTraceStep };
 
 const hasMeaningfulPayload = (value: unknown): boolean => {
@@ -284,6 +285,35 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         return trimmed;
     };
 
+    // 解析多部分消息内容
+    const parseMultiPartContent = (content: any): Array<{ type: string; text?: string; toolCallId?: string; toolName?: string; input?: any }> => {
+        if (!content) return [];
+        
+        // 如果是字符串，当作普通文本
+        if (typeof content === 'string') {
+            return [{ type: 'text', text: content }];
+        }
+        
+        // 如果是数组，解析每个部分
+        if (Array.isArray(content)) {
+            return content.map(part => {
+                if (part?.type === 'text' && part?.text) {
+                    return { type: 'text', text: part.text };
+                } else if (part?.type === 'tool-call' && part?.toolName) {
+                    return { 
+                        type: 'tool-call', 
+                        toolCallId: part.toolCallId,
+                        toolName: part.toolName,
+                        input: part.input
+                    };
+                }
+                return null;
+            }).filter(Boolean) as Array<{ type: string; text?: string; toolCallId?: string; toolName?: string; input?: any }>;
+        }
+        
+        return [];
+    };
+
     const renderLiveReasoningBlock = () => (
         <div className="flex justify-start">
             <Card className="max-w-[85%] bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm !border-0 shadow-none">
@@ -306,7 +336,10 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         }
 
         const toolItems = items.filter((item): item is { kind: 'tool'; step: ToolTraceStep } => item.kind === 'tool');
-        const reasoningItems = items.filter((item): item is { kind: 'reasoning'; text: string } => item.kind === 'reasoning' && item.text.trim().length > 0);
+        const contextItems = items.filter(
+            (item): item is { kind: 'reasoning' | 'text'; text: string } =>
+                (item.kind === 'reasoning' || item.kind === 'text') && item.text.trim().length > 0
+        );
         const isExpanded = expandedTraceKeys[key] ?? false;
         const lastToolCall = [...toolItems].reverse().find(item => item.step.status === 'called');
         const lastToolResult = [...toolItems].reverse().find(item => item.step.status === 'success' || item.step.status === 'error');
@@ -318,7 +351,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         });
 
         const collapsedItems: TraceItem[] = [
-            ...reasoningItems,
+            ...contextItems,
             ...(lastToolCall ? [lastToolCall] : []),
             ...(lastToolResult ? [lastToolResult] : []),
         ];
@@ -328,7 +361,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         const firstVisibleToolIndex = visibleItems.findIndex((item) => item.kind === 'tool');
 
         const renderTraceItem = (item: TraceItem, index: number) => {
-            if (item.kind === 'reasoning') {
+            if (item.kind === 'reasoning' || item.kind === 'text') {
                 if (!item.text.trim()) {
                     return null;
                 }
@@ -546,6 +579,12 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                         text: normalizedReasoning,
                                     });
                                     }
+                                }
+                                if (typeof msg.metadata?.text === 'string' && msg.metadata.text.trim()) {
+                                    traceItems.push({
+                                        kind: 'text',
+                                        text: msg.metadata.text.trim(),
+                                    });
                                 }
                                 traceItems.push({
                                     kind: 'tool',
