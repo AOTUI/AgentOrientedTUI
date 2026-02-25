@@ -83,6 +83,16 @@ export interface Topic {
     lastSnapshotTime?: number;
     // [RFC-025] Project Association
     projectId?: string;
+    /** Topic-level model override (e.g. provider:model) */
+    modelOverride?: string;
+    /** Topic-level prompt override (stored as plain text snapshot) */
+    promptOverride?: string;
+    /** Topic-level capability/source control override snapshot */
+    sourceControls?: {
+        apps: { enabled: boolean; disabledItems: string[] };
+        mcp: { enabled: boolean; disabledItems: string[] };
+        skill: { enabled: boolean; disabledItems: string[] };
+    };
 }
 
 export interface Project {

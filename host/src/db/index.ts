@@ -101,7 +101,10 @@ function initSchema() {
             summary TEXT DEFAULT NULL,
             stage TEXT DEFAULT NULL,
             last_snapshot_time INTEGER DEFAULT NULL,
-            project_id TEXT REFERENCES projects(id)
+            project_id TEXT REFERENCES projects(id),
+            model_override TEXT DEFAULT NULL,
+            prompt_override TEXT DEFAULT NULL,
+            source_controls TEXT DEFAULT NULL
         );
 
         CREATE TABLE IF NOT EXISTS messages (
@@ -242,6 +245,45 @@ function migrateSchema() {
         }
     }
 
+    // Topic model override
+    try {
+        db.exec("SELECT model_override FROM topics LIMIT 1");
+    } catch {
+        console.log('[DB] Migrating: Adding model_override to topics table');
+        try {
+            db.run("ALTER TABLE topics ADD COLUMN model_override TEXT DEFAULT NULL");
+            saveToDisk();
+        } catch (alterError) {
+            console.error('[DB] Migration failed:', alterError);
+        }
+    }
+
+    // Topic prompt override
+    try {
+        db.exec("SELECT prompt_override FROM topics LIMIT 1");
+    } catch {
+        console.log('[DB] Migrating: Adding prompt_override to topics table');
+        try {
+            db.run("ALTER TABLE topics ADD COLUMN prompt_override TEXT DEFAULT NULL");
+            saveToDisk();
+        } catch (alterError) {
+            console.error('[DB] Migration failed:', alterError);
+        }
+    }
+
+    // Topic source controls snapshot
+    try {
+        db.exec("SELECT source_controls FROM topics LIMIT 1");
+    } catch {
+        console.log('[DB] Migrating: Adding source_controls to topics table');
+        try {
+            db.run("ALTER TABLE topics ADD COLUMN source_controls TEXT DEFAULT NULL");
+            saveToDisk();
+        } catch (alterError) {
+            console.error('[DB] Migration failed:', alterError);
+        }
+    }
+
     // [Message System Optimization] Add message_type column
     try {
         db.exec("SELECT message_type FROM messages LIMIT 1");
@@ -294,7 +336,17 @@ function rowToTopic(row: any): Topic {
         summary: row.summary ?? undefined,
         stage: row.stage ?? undefined,
         lastSnapshotTime: row.last_snapshot_time ?? undefined,
-        projectId: row.project_id ?? undefined
+        projectId: row.project_id ?? undefined,
+        modelOverride: row.model_override ?? undefined,
+        promptOverride: row.prompt_override ?? undefined,
+        sourceControls: (() => {
+            if (!row.source_controls) return undefined;
+            try {
+                return JSON.parse(row.source_controls);
+            } catch {
+                return undefined;
+            }
+        })(),
     };
 }
 
@@ -361,11 +413,12 @@ function queryOne<T>(sql: string, params: any[] = [], mapper: (row: any) => T): 
 export function createTopic(topic: Topic): void {
     const db = getDb();
     db.run(`
-        INSERT INTO topics (id, title, created_at, updated_at, status, summary, stage, last_snapshot_time, project_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO topics (id, title, created_at, updated_at, status, summary, stage, last_snapshot_time, project_id, model_override, prompt_override, source_controls)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
         topic.id, topic.title, topic.createdAt, topic.updatedAt, topic.status,
-        topic.summary ?? null, topic.stage ?? null, topic.lastSnapshotTime ?? null, topic.projectId ?? null
+        topic.summary ?? null, topic.stage ?? null, topic.lastSnapshotTime ?? null, topic.projectId ?? null,
+        topic.modelOverride ?? null, topic.promptOverride ?? null, topic.sourceControls ? JSON.stringify(topic.sourceControls) : null
     ]);
     saveToDisk();
 }
@@ -390,6 +443,9 @@ export function updateTopic(id: string, updates: Partial<Topic>): void {
     if (updates.stage !== undefined) { fields.push('stage = ?'); values.push(updates.stage); }
     if (updates.lastSnapshotTime !== undefined) { fields.push('last_snapshot_time = ?'); values.push(updates.lastSnapshotTime); }
     if (updates.projectId !== undefined) { fields.push('project_id = ?'); values.push(updates.projectId); }
+    if (updates.modelOverride !== undefined) { fields.push('model_override = ?'); values.push(updates.modelOverride); }
+    if (updates.promptOverride !== undefined) { fields.push('prompt_override = ?'); values.push(updates.promptOverride); }
+    if (updates.sourceControls !== undefined) { fields.push('source_controls = ?'); values.push(updates.sourceControls ? JSON.stringify(updates.sourceControls) : null); }
 
     if (fields.length === 0) return;
 

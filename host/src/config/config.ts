@@ -77,6 +77,15 @@ export interface Info {
     paths?: string[]
     urls?: string[]
   }
+  prompts?: {
+    templates?: Array<{
+      id: string
+      name: string
+      content: string
+      updatedAt?: number
+      createdAt?: number
+    }>
+  }
   [key: string]: unknown
 }
 
