@@ -50,12 +50,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     currentProjectPath,
     initialTab,
 }) => {
-    // State
-    const [activeTab, setActiveTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>(initialTab ?? 'model');
+    // State - default to 'model' tab
+    const [activeTab, setActiveTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>('model');
 
-    // Jump to initialTab whenever the panel opens
+    // Update activeTab when panel opens or initialTab changes
     useEffect(() => {
-        if (isOpen && initialTab) setActiveTab(initialTab);
+        if (isOpen) {
+            setActiveTab(initialTab ?? 'model');
+        }
     }, [isOpen, initialTab]);
 
     // Refs for focus trap
@@ -226,8 +228,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     {/* Tab Content with fade transition - wrapped in error boundary */}
                     <SettingsErrorBoundary>
                         <div
-                            className="transition-opacity duration-200 ease-in-out min-h-0 flex-1 overflow-y-auto"
                             key={activeTab}
+                            className="transition-opacity duration-200 ease-in-out min-h-0 flex-1 overflow-y-auto"
                         >
                             {activeTab === 'model' && <ModelTab />}
                             {activeTab === 'prompt' && <PromptTab />}

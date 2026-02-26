@@ -119,6 +119,10 @@ export class LLMConfigService {
     async createConfig(input: LLMConfigInput): Promise<LLMConfigRecord> {
         const customProvider = await this.resolveCustomProvider(input.providerId);
 
+        if (input.providerId?.startsWith('custom:') && !customProvider) {
+            throw new Error(`Custom provider not found: ${input.providerId}`);
+        }
+
         // 如果提供了 providerId 但没有 baseUrl，自动从 ModelRegistry 获取
         if (input.providerId && !input.baseUrl) {
             input.baseUrl = customProvider?.baseUrl
@@ -155,6 +159,52 @@ export class LLMConfigService {
             providerId: record.providerId,
             baseUrl: record.baseUrl,
         });
+        return record;
+    }
+
+    /**
+     * 为自定义 Provider 创建模型配置（独立链路，不依赖 models.dev）
+     */
+    async createCustomModelConfig(input: {
+        customProviderId: string;
+        modelId: string;
+        name?: string;
+        temperature?: number;
+        maxSteps?: number;
+        setActive?: boolean;
+    }): Promise<LLMConfigRecord> {
+        const customProvider = await this.resolveCustomProvider(input.customProviderId);
+        if (!customProvider) {
+            throw new Error(`Custom provider not found: ${input.customProviderId}`);
+        }
+
+        const modelId = input.modelId.trim();
+        if (!modelId) {
+            throw new Error('modelId is required for custom provider config creation.');
+        }
+
+        const record = await this.createConfig({
+            name: input.name?.trim() || `${customProvider.name} / ${modelId}`,
+            model: modelId,
+            providerId: customProvider.id,
+            baseUrl: customProvider.baseUrl,
+            apiKey: customProvider.apiKey,
+            temperature: input.temperature ?? 0.7,
+            maxSteps: input.maxSteps ?? 10,
+            skipValidation: true,
+        });
+
+        if (input.setActive) {
+            this.setActiveConfig(record.id);
+        }
+
+        this.logger.info('Custom provider model config created', {
+            id: record.id,
+            customProviderId: customProvider.id,
+            modelId,
+            setActive: input.setActive ?? false,
+        });
+
         return record;
     }
 
@@ -304,6 +354,10 @@ export class LLMConfigService {
         const nextModel = updates.model ?? existing.model;
         const nextBaseUrl = updates.baseUrl ?? existing.baseUrl;
         const customProvider = await this.resolveCustomProvider(nextProviderId);
+
+        if (nextProviderId?.startsWith('custom:') && !customProvider) {
+            throw new Error(`Custom provider not found: ${nextProviderId}`);
+        }
 
         const mergedUpdates: Partial<LLMConfigInput> = { ...updates };
 

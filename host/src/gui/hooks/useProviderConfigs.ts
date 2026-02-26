@@ -45,6 +45,14 @@ export interface UseProviderConfigsResult {
     isLoading: boolean;
     error: Error | null;
     addProvider: (config: NewProviderConfig) => Promise<void>;
+    addCustomProviderModel: (input: {
+        customProviderId: string;
+        modelId: string;
+        name?: string;
+        temperature?: number;
+        maxSteps?: number;
+        setActive?: boolean;
+    }) => Promise<void>;
     updateProvider: (id: number, updates: ProviderUpdates) => Promise<void>;
     deleteProvider: (id: number) => Promise<void>;
     setActiveProvider: (id: number) => Promise<void>;
@@ -144,6 +152,28 @@ export function useProviderConfigs(): UseProviderConfigsResult {
     }, [bridge, loadProviders]);
 
     /**
+     * Add model config under a custom provider via dedicated backend route
+     */
+    const addCustomProviderModel = useCallback(async (input: {
+        customProviderId: string;
+        modelId: string;
+        name?: string;
+        temperature?: number;
+        maxSteps?: number;
+        setActive?: boolean;
+    }): Promise<void> => {
+        try {
+            setError(null);
+            await bridge.createCustomModelConfig(input);
+            await loadProviders();
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error);
+            throw error;
+        }
+    }, [bridge, loadProviders]);
+
+    /**
      * Update existing provider via tRPC
      */
     const updateProvider = useCallback(async (id: number, updates: ProviderUpdates): Promise<void> => {
@@ -227,6 +257,7 @@ export function useProviderConfigs(): UseProviderConfigsResult {
         isLoading,
         error,
         addProvider,
+        addCustomProviderModel,
         updateProvider,
         deleteProvider,
         setActiveProvider,

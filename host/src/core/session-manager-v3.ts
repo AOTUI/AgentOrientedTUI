@@ -205,12 +205,29 @@ export class SessionManagerV3 extends EventEmitter {
         }
 
         const modelOverride = topic?.modelOverride?.trim();
-        const effectiveLLMConfig = (() => {
+        const effectiveLLMConfig = await (async () => {
             if (!modelOverride) return llmConfig;
 
-            const colonIndex = modelOverride.indexOf(':');
-            const overrideProviderId = colonIndex > 0 ? modelOverride.slice(0, colonIndex) : llmConfig.provider?.id;
-            const overrideModelId = colonIndex > 0 ? modelOverride.slice(colonIndex + 1) : modelOverride;
+            // Custom provider IDs are "custom:XXX", so the full model string is
+            // "custom:XXX:model-name". We must split at the SECOND colon, not the first.
+            let overrideProviderId: string | undefined;
+            let overrideModelId: string;
+
+            if (modelOverride.startsWith('custom:')) {
+                const secondColon = modelOverride.indexOf(':', 'custom:'.length);
+                if (secondColon > 0) {
+                    overrideProviderId = modelOverride.slice(0, secondColon);
+                    overrideModelId   = modelOverride.slice(secondColon + 1);
+                } else {
+                    // e.g. "custom:my-provider" with no model — treat whole thing as provider
+                    overrideProviderId = modelOverride;
+                    overrideModelId   = '';
+                }
+            } else {
+                const colonIndex = modelOverride.indexOf(':');
+                overrideProviderId = colonIndex > 0 ? modelOverride.slice(0, colonIndex) : llmConfig.provider?.id;
+                overrideModelId   = colonIndex > 0 ? modelOverride.slice(colonIndex + 1) : modelOverride;
+            }
 
             const allConfigs = this.llmConfigService.getAllConfigs();
             const providerConfigs = allConfigs.filter((record) => record.providerId === overrideProviderId);
@@ -223,6 +240,47 @@ export class SessionManagerV3 extends EventEmitter {
                 return normalizedRecordModel === overrideModelId;
             });
             const providerConfigRecord = exactProviderModelConfig || providerConfigs[0];
+
+            // Custom provider records (providerId = "custom:xxx") must be converted to
+            // runtime protocol providers (openai/anthropic). Otherwise AI SDK registry
+            // splits at the first colon and looks up "custom" instead of "custom:xxx".
+            if (overrideProviderId?.startsWith('custom:') && providerConfigRecord) {
+                const customProviders = await this.llmConfigService.listCustomProviders();
+                const customProvider = customProviders.find((provider) => provider.id === overrideProviderId);
+
+                if (customProvider) {
+                    const recordModel = (providerConfigRecord.model || '').trim();
+                    let normalizedRecordModel = recordModel;
+
+                    const slashPrefix = `${overrideProviderId}/`;
+                    const colonPrefix = `${overrideProviderId}:`;
+                    if (normalizedRecordModel.startsWith(slashPrefix)) {
+                        normalizedRecordModel = normalizedRecordModel.slice(slashPrefix.length);
+                    } else if (normalizedRecordModel.startsWith(colonPrefix)) {
+                        normalizedRecordModel = normalizedRecordModel.slice(colonPrefix.length);
+                    }
+
+                    const protocolPrefix = `${customProvider.protocol}:`;
+                    if (normalizedRecordModel.startsWith(protocolPrefix)) {
+                        normalizedRecordModel = normalizedRecordModel.slice(protocolPrefix.length);
+                    }
+
+                    const resolvedModelName = (overrideModelId || normalizedRecordModel).trim();
+
+                    return {
+                        ...llmConfig,
+                        model: `${customProvider.protocol}:${resolvedModelName}`,
+                        provider: {
+                            id: customProvider.protocol,
+                            baseURL: providerConfigRecord.baseUrl || customProvider.baseUrl,
+                        },
+                        apiKey: providerConfigRecord.apiKey || customProvider.apiKey || llmConfig.apiKey,
+                        temperature: providerConfigRecord.temperature,
+                        maxSteps: providerConfigRecord.maxSteps,
+                    };
+                }
+            }
+
             const providerResolvedConfig = providerConfigRecord ? toLLMConfig(providerConfigRecord) : null;
 
             return {

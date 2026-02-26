@@ -265,7 +265,57 @@ private async collectMessages(): Promise<ModelMessage[]> {
             }
         }
 
-        return reordered;
+        const protocolSafe: ModelMessage[] = [];
+        let pendingToolCallIds: Set<string> | null = null;
+
+        for (const message of reordered) {
+            if (message.role === 'assistant') {
+                protocolSafe.push(message);
+                const callIds = getToolCallIds(message);
+                pendingToolCallIds = callIds.length > 0 ? new Set(callIds) : null;
+                continue;
+            }
+
+            if (message.role === 'tool') {
+                if (!Array.isArray(message.content) || message.content.length === 0) {
+                    this.logger.warn('Dropping malformed tool message with empty content');
+                    continue;
+                }
+
+                if (!pendingToolCallIds || pendingToolCallIds.size === 0) {
+                    this.logger.warn('Dropping orphan tool message without pending assistant tool-call');
+                    continue;
+                }
+
+                const pendingIds = pendingToolCallIds;
+
+                const matchedParts = (message.content as any[]).filter((part: any) => (
+                    part?.type === 'tool-result'
+                    && typeof part.toolCallId === 'string'
+                    && pendingIds.has(part.toolCallId)
+                ));
+
+                if (matchedParts.length === 0) {
+                    this.logger.warn('Dropping tool message because no toolCallId matches pending assistant tool-calls');
+                    continue;
+                }
+
+                for (const part of matchedParts as any[]) {
+                    pendingToolCallIds.delete(part.toolCallId);
+                }
+
+                protocolSafe.push({
+                    ...message,
+                    content: matchedParts,
+                } as ModelMessage);
+                continue;
+            }
+
+            pendingToolCallIds = null;
+            protocolSafe.push(message);
+        }
+
+        return protocolSafe;
     }
 
     /**

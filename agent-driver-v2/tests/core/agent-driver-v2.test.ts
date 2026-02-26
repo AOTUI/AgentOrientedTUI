@@ -113,6 +113,81 @@ describe('AgentDriverV2', () => {
         });
     });
 
+    it('应该丢弃没有前置 assistant tool-call 的孤儿 tool message', async () => {
+        source1 = new MockDrivenSource(
+            'Source1',
+            [
+                {
+                    role: 'assistant',
+                    content: [{ type: 'tool-call', toolCallId: 'tc_1', toolName: 'tool1', input: {} }],
+                    timestamp: 100,
+                } as any,
+                {
+                    role: 'tool',
+                    content: [{ type: 'tool-result', toolCallId: 'tc_1', toolName: 'tool1', output: { type: 'json', value: { ok: true } } }],
+                    timestamp: 110,
+                } as any,
+                {
+                    role: 'tool',
+                    content: [{ type: 'tool-result', toolCallId: 'tc_orphan', toolName: 'tool1', output: { type: 'json', value: { ok: true } } }],
+                    timestamp: 120,
+                } as any,
+            ],
+            { tool1: { type: 'function', description: 'Tool 1', parameters: { type: 'object', properties: {} } } }
+        );
+
+        const localDriver = new AgentDriverV2({
+            sources: [source1],
+            llm: { model: 'gpt-4' },
+            workLoop: { debounceMs: 10 },
+        });
+
+        const messages = await localDriver['collectMessages']();
+        localDriver.stop();
+        localDriver.dispose();
+
+        const toolMessages = messages.filter((m) => m.role === 'tool');
+        expect(toolMessages).toHaveLength(1);
+        expect((toolMessages[0].content as any[])[0].toolCallId).toBe('tc_1');
+    });
+
+    it('应该在混合 tool-result 时仅保留与前置 tool-call 匹配的结果', async () => {
+        source1 = new MockDrivenSource(
+            'Source1',
+            [
+                {
+                    role: 'assistant',
+                    content: [{ type: 'tool-call', toolCallId: 'tc_1', toolName: 'tool1', input: {} }],
+                    timestamp: 100,
+                } as any,
+                {
+                    role: 'tool',
+                    content: [
+                        { type: 'tool-result', toolCallId: 'tc_1', toolName: 'tool1', output: { type: 'json', value: { ok: true } } },
+                        { type: 'tool-result', toolCallId: 'tc_orphan', toolName: 'tool1', output: { type: 'json', value: { ok: false } } },
+                    ],
+                    timestamp: 110,
+                } as any,
+            ],
+            { tool1: { type: 'function', description: 'Tool 1', parameters: { type: 'object', properties: {} } } }
+        );
+
+        const localDriver = new AgentDriverV2({
+            sources: [source1],
+            llm: { model: 'gpt-4' },
+            workLoop: { debounceMs: 10 },
+        });
+
+        const messages = await localDriver['collectMessages']();
+        localDriver.stop();
+        localDriver.dispose();
+
+        const toolMessages = messages.filter((m) => m.role === 'tool');
+        expect(toolMessages).toHaveLength(1);
+        expect((toolMessages[0].content as any[])).toHaveLength(1);
+        expect((toolMessages[0].content as any[])[0].toolCallId).toBe('tc_1');
+    });
+
     it('应该正确聚合工具', async () => {
         const tools = await driver['collectTools']();
 

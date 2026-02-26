@@ -313,6 +313,30 @@ export interface ProviderRowProps {
     onDeleteProvider: (provider: ProviderConfig) => void;
     /** Callback when add provider button is clicked */
     onAddProvider?: () => void;
+    // ── Custom provider extensions ──
+    /** Custom providers to render in the same row */
+    customProviders?: CustomProviderRecord[];
+    /** ID of the currently-selected custom provider */
+    selectedCustomProviderId?: string | null;
+    /** Callback when a custom provider card is selected */
+    onSelectCustomProvider?: (id: string) => void;
+    /** Callback when a custom provider card's delete button is clicked */
+    onDeleteCustomProvider?: (provider: CustomProviderRecord) => void;
+    /** Callback when a custom provider card's edit button is clicked */
+    onEditCustomProvider?: (provider: CustomProviderRecord) => void;
+    /** Set of custom provider IDs that have at least one active model config */
+    activeCustomProviderIds?: Set<string>;
+}
+
+/**
+ * CustomProviderCard Component Props
+ * Used inline inside ProviderRow for custom provider cards.
+ */
+export interface CustomProviderCardProps {
+    provider: CustomProviderRecord;
+    isSelected: boolean;
+    onSelect: () => void;
+    onDelete: () => void;
 }
 
 /**
@@ -325,6 +349,8 @@ export interface ProviderCardProps {
     isSelected: boolean;
     /** Whether this is the active provider */
     isActive: boolean;
+    /** When true, shows a "Custom" badge instead of the "Active" badge */
+    isCustom?: boolean;
     /** Callback when card is clicked */
     onSelect: () => void;
     /** Callback when edit button is clicked */
@@ -379,8 +405,10 @@ export interface AddProviderModalProps {
     isOpen: boolean;
     /** Callback when modal should close */
     onClose: () => void;
-    /** Callback when provider is saved */
+    /** Callback when a Template provider is saved (models.dev one) */
     onSave: (config: NewProviderConfig) => Promise<void>;
+    /** Callback when a Custom provider is saved */
+    onSaveCustom?: (input: NewCustomProviderInput) => Promise<void>;
 }
 
 /**
@@ -441,4 +469,81 @@ export interface ProviderSearchBarProps {
     searchQuery: string;
     /** Callback when search query changes */
     onSearchChange: (query: string) => void;
+}
+
+// ============================================================================
+// Custom Provider Types (V3)
+// ============================================================================
+
+export type CustomProviderProtocol = 'openai' | 'anthropic';
+
+/**
+ * A user-defined custom LLM provider.
+ * Stored in ~/.aotui/config/custom-providers.json
+ */
+export interface CustomProviderRecord {
+    id: string;           // "custom:<normalized-name>"
+    name: string;
+    baseUrl: string;
+    protocol: CustomProviderProtocol;
+    apiKey?: string;
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface NewCustomProviderInput {
+    name: string;
+    baseUrl: string;
+    protocol: CustomProviderProtocol;
+    apiKey?: string;
+}
+
+export interface CustomProviderUpdates {
+    name?: string;
+    baseUrl?: string;
+    protocol?: CustomProviderProtocol;
+    apiKey?: string;
+}
+
+/**
+ * Unified view-model that represents either a Template or Custom provider
+ * in the mixed provider list of ModelTab.
+ */
+export type UnifiedProviderKind = 'template' | 'custom';
+
+export interface UnifiedProvider {
+    kind: UnifiedProviderKind;
+    /** Sort key — use updatedAt from the underlying record */
+    updatedAt: number;
+    /** Template provider data (present when kind === 'template') */
+    templateConfig?: ProviderConfig;
+    /** Custom provider data (present when kind === 'custom') */
+    customConfig?: CustomProviderRecord;
+}
+
+/**
+ * CustomProviderDetail Component Props
+ */
+export interface CustomProviderDetailProps {
+    provider: CustomProviderRecord;
+    /** LLMConfigRecords linked to this custom provider (providerId === provider.id) */
+    linkedConfigs: ProviderConfig[];
+    /** Whether this custom provider has an active linked config */
+    isActive: boolean;
+    onUpdate: (id: string, updates: CustomProviderUpdates) => Promise<void>;
+    onDelete: (id: string) => void;
+    /** Called when a model config is created for this custom provider */
+    onAddModel: (config: { name: string; model: string; apiKey: string }) => Promise<void>;
+    /** Called when a model config is deleted */
+    onDeleteModel: (configId: number) => Promise<void>;
+    /** Called to activate a model config */
+    onActivateModel: (configId: number) => Promise<void>;
+}
+
+/**
+ * AddCustomProviderFormProps — used inside AddProviderModal's Customize tab
+ */
+export interface AddCustomProviderFormProps {
+    onSave: (input: NewCustomProviderInput) => Promise<void>;
+    isSaving: boolean;
 }

@@ -50,22 +50,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 <span className={`text-[13px] ${activeTab === 'model' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Model</span>
             </button>
 
-            {/* Theme Tab Button */}
-            <button
-                onClick={() => onTabChange('theme')}
-                role="tab"
-                aria-selected={activeTab === 'theme'}
-                aria-controls="theme-tab-panel"
-                id="theme-tab"
-                className={`${baseBtnClass} ${activeTab === 'theme' ? activeBtnClass : inactiveBtnClass}`}
-            >
-                <IconTheme
-                    className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
-                    aria-hidden="true"
-                />
-                <span className={`text-[13px] ${activeTab === 'theme' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Theme</span>
-            </button>
-
+            {/* Prompt Tab Button */}
             <button
                 onClick={() => onTabChange('prompt')}
                 role="tab"
@@ -97,6 +82,22 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 <span className={`text-[13px] ${activeTab === 'apps' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Apps</span>
             </button>
 
+            {/* Skills Tab Button */}
+            <button
+                onClick={() => onTabChange('skills')}
+                role="tab"
+                aria-selected={activeTab === 'skills'}
+                aria-controls="skills-tab-panel"
+                id="skills-tab"
+                className={`${baseBtnClass} ${activeTab === 'skills' ? activeBtnClass : inactiveBtnClass}`}
+            >
+                <IconTerminal
+                    className={`w-4 h-4 ${activeTab === 'skills' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
+                    aria-hidden="true"
+                />
+                <span className={`text-[13px] ${activeTab === 'skills' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Skills</span>
+            </button>
+
             {/* MCP Tab Button */}
             <button
                 onClick={() => onTabChange('mcp')}
@@ -113,20 +114,20 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 <span className={`text-[13px] ${activeTab === 'mcp' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>MCP</span>
             </button>
 
-            {/* Skills Tab Button */}
+            {/* Theme Tab Button */}
             <button
-                onClick={() => onTabChange('skills')}
+                onClick={() => onTabChange('theme')}
                 role="tab"
-                aria-selected={activeTab === 'skills'}
-                aria-controls="skills-tab-panel"
-                id="skills-tab"
-                className={`${baseBtnClass} ${activeTab === 'skills' ? activeBtnClass : inactiveBtnClass}`}
+                aria-selected={activeTab === 'theme'}
+                aria-controls="theme-tab-panel"
+                id="theme-tab"
+                className={`${baseBtnClass} ${activeTab === 'theme' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconTerminal
-                    className={`w-4 h-4 ${activeTab === 'skills' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
+                <IconTheme
+                    className={`w-4 h-4 ${activeTab === 'theme' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
-                <span className={`text-[13px] ${activeTab === 'skills' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Skills</span>
+                <span className={`text-[13px] ${activeTab === 'theme' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Theme</span>
             </button>
         </nav>
     );

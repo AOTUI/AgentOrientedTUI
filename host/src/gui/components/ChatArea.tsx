@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
-import { IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconMCP, IconBrain, IconPrompt } from './Icons.js';
+import { IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconMCP, IconBrain, IconPrompt, IconWrench } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import type { Message } from '../../types.js';
@@ -50,7 +50,7 @@ interface ChatAreaProps {
     onToggleCapabilityGroup?: (source: 'apps' | 'mcp' | 'skill', enabled: boolean) => void;
     onToggleCapabilityItem?: (source: 'apps' | 'mcp' | 'skill', itemName: string, enabled: boolean) => void;
     capabilityHint?: string | null;
-    modelGroups?: Array<{ providerId: string; models: string[] }>;
+    modelGroups?: Array<{ providerId: string; models: string[]; displayName?: string }>;
     selectedModel?: string | null;
     onSelectModel?: (modelId: string) => void;
     promptTemplates?: Array<{ id: string; name: string; content: string }>;
@@ -68,10 +68,107 @@ type ToolTraceStep = {
     isError?: boolean;
 };
 
+// A tool round pairs a tool call with its result
+type ToolRound = {
+    toolCallId?: string;
+    toolName: string;
+    callArgs?: unknown;
+    result?: unknown;
+    status: 'pending' | 'success' | 'error';  // pending = call only, success/error = has result
+    isLatest: boolean;  // whether this is the latest round
+};
+
 type TraceItem =
     | { kind: 'reasoning'; text: string }
     | { kind: 'text'; text: string }
-    | { kind: 'tool'; step: ToolTraceStep };
+    | { kind: 'tool'; step: ToolTraceStep }  // Internal format during collection
+    | { kind: 'toolRound'; round: ToolRound };  // Final format after pairing
+
+// Max length for a single parameter before truncation
+const MAX_PARAM_LENGTH = 500;
+
+/**
+ * Safely stringify any value to a string.
+ * Handles edge cases where JSON.stringify returns undefined:
+ * - undefined values
+ * - Symbol values
+ * - Function values
+ * - Circular references (throws error, caught here)
+ */
+const safeStringify = (value: unknown, indent: number | string = 2): string => {
+    if (value === undefined) {
+        return 'undefined';
+    }
+    if (value === null) {
+        return 'null';
+    }
+    if (typeof value === 'symbol') {
+        return value.toString();
+    }
+    if (typeof value === 'function') {
+        return `[Function: ${value.name || 'anonymous'}]`;
+    }
+    try {
+        const result = JSON.stringify(value, null, indent);
+        // JSON.stringify returns undefined for undefined, Symbol, and functions
+        // But we already handled those cases above, so this is extra safety
+        return result === undefined ? 'undefined' : result;
+    } catch (error) {
+        // Handle circular references and other stringify errors
+        if (error instanceof TypeError && error.message.includes('circular')) {
+            return '[Circular Reference]';
+        }
+        return `[Unable to stringify: ${error instanceof Error ? error.message : String(error)}]`;
+    }
+};
+
+// Truncate a single parameter value
+const truncateSingleValue = (value: unknown, maxLength: number = MAX_PARAM_LENGTH): string => {
+    if (value === undefined || value === null) {
+        return '';
+    }
+    
+    const str = typeof value === 'string' ? value : safeStringify(value);
+    
+    if (str.length <= maxLength) {
+        return str;
+    }
+    
+    return str.slice(0, maxLength) + '\n... (truncated)';
+};
+
+// Truncate parameters by key - only truncate long params, keep short ones intact
+const truncateValue = (value: unknown, maxLength: number = MAX_PARAM_LENGTH): string => {
+    // If it's a string, truncate directly
+    if (typeof value === 'string') {
+        return truncateSingleValue(value, maxLength);
+    }
+    
+    if (value === undefined || value === null) {
+        return '';
+    }
+    
+    // If it's an object with keys, truncate each key's value independently
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        const obj = value as Record<string, unknown>;
+        const result: Record<string, unknown> = {};
+        
+        for (const [key, val] of Object.entries(obj)) {
+            // Use safeStringify to handle all edge cases
+            const valStr = typeof val === 'string' ? val : safeStringify(val);
+            if (valStr.length > maxLength) {
+                result[key] = valStr.slice(0, maxLength) + '\n... (truncated)';
+            } else {
+                result[key] = val;
+            }
+        }
+        
+        return JSON.stringify(result, null, 2);
+    }
+    
+    // For arrays or other types, use simple truncation
+    return truncateSingleValue(value, maxLength);
+};
 
 const hasMeaningfulPayload = (value: unknown): boolean => {
     if (value === undefined || value === null) {
@@ -122,7 +219,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
             models: group.models.filter((model) => {
                 if (!modelSearch.trim()) return true;
                 const q = modelSearch.toLowerCase();
-                return group.providerId.toLowerCase().includes(q) || model.toLowerCase().includes(q);
+                const providerMatch = group.providerId.toLowerCase().includes(q)
+                    || (group.displayName ?? '').toLowerCase().includes(q);
+                return providerMatch || model.toLowerCase().includes(q);
             }),
         }))
         .filter((group) => group.models.length > 0);
@@ -330,128 +429,218 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         </div>
     );
 
+    // Build tool rounds from trace items (pair tool-call with tool-result)
+    const buildToolRoundsFromItems = (items: TraceItem[]): TraceItem[] => {
+        const result: TraceItem[] = [];
+        const callMap = new Map<string, { args?: unknown; toolName: string; index: number }>();
+        
+        // First pass: collect all tool calls
+        items.forEach((item, index) => {
+            if (item.kind === 'tool') {
+                if (item.step.status === 'called' && item.step.toolCallId) {
+                    callMap.set(item.step.toolCallId, {
+                        args: item.step.args,
+                        toolName: item.step.toolName,
+                        index,
+                    });
+                }
+            }
+        });
+        
+        // Second pass: build rounds
+        const processedCalls = new Set<string>();
+        let roundIndex = 0;
+        
+        items.forEach((item) => {
+            if (item.kind === 'reasoning') {
+                result.push(item);
+            } else if (item.kind === 'text') {
+                result.push(item);
+            } else if (item.kind === 'tool') {
+                const step = item.step;
+                if (step.status === 'called') {
+                    const toolCallId = step.toolCallId;
+                    if (toolCallId && !processedCalls.has(toolCallId)) {
+                        processedCalls.add(toolCallId);
+                        // Find matching result (type predicate narrows to the 'tool' variant)
+                        const matchingResult = items.find(
+                            (i): i is Extract<TraceItem, { kind: 'tool' }> =>
+                                i.kind === 'tool' &&
+                                i.step.toolCallId === toolCallId &&
+                                (i.step.status === 'success' || i.step.status === 'error')
+                        );
+                        
+                        result.push({
+                            kind: 'toolRound',
+                            round: {
+                                toolCallId,
+                                toolName: step.toolName || 'Unknown Tool',
+                                callArgs: step.args,
+                                result: matchingResult?.step?.result,
+                                status: matchingResult ? (matchingResult.step.status === 'error' ? 'error' : 'success') : 'pending',
+                                isLatest: false, // Will update later
+                            },
+                        });
+                        roundIndex++;
+                    }
+                }
+                // Skip tool results - they're already paired with calls
+            }
+        });
+        
+        // Mark the last round as latest
+        const toolRounds = result.filter(i => i.kind === 'toolRound');
+        if (toolRounds.length > 0) {
+            (toolRounds[toolRounds.length - 1] as { kind: 'toolRound'; round: ToolRound }).round.isLatest = true;
+        }
+        
+        return result;
+    };
+
     const renderTraceBlock = (key: string, items: TraceItem[]) => {
         if (items.length === 0) {
             return null;
         }
 
-        const toolItems = items.filter((item): item is { kind: 'tool'; step: ToolTraceStep } => item.kind === 'tool');
-        const contextItems = items.filter(
-            (item): item is { kind: 'reasoning' | 'text'; text: string } =>
-                (item.kind === 'reasoning' || item.kind === 'text') && item.text.trim().length > 0
-        );
-        const isExpanded = expandedTraceKeys[key] ?? false;
-        const lastToolCall = [...toolItems].reverse().find(item => item.step.status === 'called');
-        const lastToolResult = [...toolItems].reverse().find(item => item.step.status === 'success' || item.step.status === 'error');
-        const callInputById = new Map<string, unknown>();
-        toolItems.forEach((item) => {
-            if (item.step.status === 'called' && item.step.toolCallId && hasMeaningfulPayload(item.step.args)) {
-                callInputById.set(item.step.toolCallId, item.step.args);
-            }
-        });
+        const toolRounds = items.filter((item): item is { kind: 'toolRound'; round: ToolRound } => item.kind === 'toolRound');
+        const isRunning = toolRounds.length > 0 && toolRounds[toolRounds.length - 1].round.status === 'pending';
 
-        const collapsedItems: TraceItem[] = [
-            ...contextItems,
-            ...(lastToolCall ? [lastToolCall] : []),
-            ...(lastToolResult ? [lastToolResult] : []),
-        ];
-        const visibleItems = isExpanded || collapsedItems.length === 0 ? items : collapsedItems;
-        const isRunning = toolItems.length > 0 && toolItems[toolItems.length - 1].step.status === 'called';
-        const hiddenToolCount = Math.max(0, toolItems.length - ((lastToolCall ? 1 : 0) + (lastToolResult ? 1 : 0)));
-        const firstVisibleToolIndex = visibleItems.findIndex((item) => item.kind === 'tool');
+        // Render a single reasoning item (collapsible with brain icon)
+        const renderReasoningItem = (item: { kind: 'reasoning'; text: string }, index: number) => {
+            const reasoningExpandedKey = `${key}-reasoning-${index}`;
+            const isReasoningExpanded = expandedTraceKeys[reasoningExpandedKey] ?? false;
 
-        const renderTraceItem = (item: TraceItem, index: number) => {
-            if (item.kind === 'reasoning' || item.kind === 'text') {
-                if (!item.text.trim()) {
-                    return null;
-                }
-                const nextItem = visibleItems[index + 1];
-                const showFoldedBarAfter = !isExpanded && hiddenToolCount > 0 && !!nextItem;
+            return (
+                <div key={`reasoning-${index}`} className="space-y-1">
+                    {/* Reasoning header - always visible, clickable to expand/collapse */}
+                    <button
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
+                        onClick={() => {
+                            setExpandedTraceKeys(prev => ({
+                                ...prev,
+                                [reasoningExpandedKey]: !prev[reasoningExpandedKey]
+                            }));
+                        }}
+                        aria-label={isReasoningExpanded ? 'Collapse reasoning' : 'Expand reasoning'}
+                    >
+                        <IconBrain className="w-3 h-3 text-[var(--color-accent)]" />
+                        <span className="font-medium">Reasoning</span>
+                        <span className="text-[var(--color-text-tertiary)] text-[9px]">
+                            {isReasoningExpanded ? '▼' : '▶'}
+                        </span>
+                    </button>
 
-                return (
-                    <React.Fragment key={`trace-reasoning-${index}`}>
-                        <div className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-2 rounded-xl bg-[var(--mat-toolchain-block-bg)]">
+                    {/* Expanded reasoning content - no bubble, just left border */}
+                    {isReasoningExpanded && (
+                        <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 ml-3 text-[10px] leading-5 text-[var(--color-text-secondary)]">
                             <MarkdownRenderer content={item.text} />
                         </div>
-                        {showFoldedBarAfter && (
-                            <div className="flex items-center gap-2 px-2 py-1 rounded-xl bg-[var(--mat-toolchain-bar-bg)] text-[11px] text-[var(--color-text-secondary)]">
-                                <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
-                                <span className="font-medium">Folded Toolcalls</span>
-                                <span className="h-[1px] flex-1 bg-[var(--color-border)]" />
-                            </div>
-                        )}
-                    </React.Fragment>
-                );
-            }
+                    )}
+                </div>
+            );
+        };
 
-            const step = item.step;
-            const derivedInput = hasMeaningfulPayload(step.args)
-                ? step.args
-                : (step.toolCallId ? callInputById.get(step.toolCallId) : undefined);
-            const hasInput = step.status === 'called' && hasMeaningfulPayload(derivedInput);
-            const hasOutput = hasMeaningfulPayload(step.result);
-            const showOutput = step.status !== 'called' && hasOutput;
-            const dotClass = step.status === 'called'
-                ? 'bg-[var(--color-accent)]'
-                : step.status === 'error'
-                    ? 'bg-[var(--color-danger)]'
-                    : 'bg-[var(--color-success)]';
-            const isLatestToolCall =
-                lastToolCall?.step === step ||
-                (
-                    !!lastToolCall?.step.toolCallId &&
-                    !!step.toolCallId &&
-                    lastToolCall.step.toolCallId === step.toolCallId &&
-                    step.status === 'called'
-                );
-            const summaryTitle = step.status === 'called'
-                ? `Call ${step.toolName} tool`
-                : step.status === 'error'
+        // Render a single text item (always visible)
+        const renderTextItem = (item: { kind: 'text'; text: string }, index: number) => (
+            <div key={`text-${index}`} className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-2 rounded-xl bg-[var(--mat-toolchain-block-bg)]">
+                <MarkdownRenderer content={item.text} />
+            </div>
+        );
+
+        // Render a tool round (call + result paired)
+        const renderToolRound = (item: { kind: 'toolRound'; round: ToolRound }, index: number) => {
+            const round = item.round;
+            const toolExpandedKey = `${key}-tool-${index}`;
+            // Only expand input for the latest round by default
+            const isToolExpanded = expandedTraceKeys[toolExpandedKey] ?? round.isLatest;
+
+            const statusLabel = round.status === 'pending'
+                ? 'Running'
+                : round.status === 'error'
                     ? 'Failed'
                     : 'Succeeded';
 
             return (
-                <details
-                    key={`${step.toolCallId || step.toolName}-${index}`}
-                    className="group"
-                    open={step.status === 'called'}
-                    data-latest-toolcall-anchor={isLatestToolCall ? 'true' : undefined}
-                >
-                    <summary className="flex items-center justify-between gap-3 cursor-pointer list-none">
-                        <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-secondary)]">
-                            <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-                            <span className="font-medium text-[var(--color-text-secondary)]">{summaryTitle}</span>
+                <div key={`tool-round-${round.toolCallId || index}`} className="space-y-0">
+                    {/* Tool round header - always visible */}
+                    <div className="flex items-center gap-1.5 px-2 py-1">
+                        {/* Icon - centered with toolname + status column */}
+                        <IconWrench className="w-3 h-3 text-[var(--color-text-tertiary)] shrink-0 mt-2" />
+                        {/* Tool name and status column */}
+                        <div className="flex-1 min-w-0">
+                            <button
+                                className="inline-flex items-center gap-1.5 text-[10px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                                onClick={() => {
+                                    setExpandedTraceKeys(prev => ({
+                                        ...prev,
+                                        [toolExpandedKey]: !prev[toolExpandedKey]
+                                    }));
+                                }}
+                                aria-label={isToolExpanded ? 'Collapse tool' : 'Expand tool'}
+                            >
+                                <span className="font-medium truncate">{round.toolName}</span>
+                                <span className="text-[var(--color-text-tertiary)] text-[9px]">
+                                    {isToolExpanded ? '▼' : '▶'}
+                                </span>
+                            </button>
+                            {/* Status label - directly below tool name */}
+                            {round.status !== 'pending' && (
+                                <div className={`text-[9px] leading-tight ${round.status === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}`}>
+                                    {statusLabel}
+                                </div>
+                            )}
                         </div>
-                    </summary>
-                    {(hasInput || showOutput) && (
-                        <div className="mt-2 pl-3 text-[10px] leading-5 text-[var(--color-text-secondary)] space-y-2 opacity-85">
-                            {hasInput && (
+                    </div>
+
+                    {/* Tool round content - expanded state with left border like reasoning */}
+                    {isToolExpanded && (
+                        <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 ml-3 space-y-2">
+                            {/* Input - only show for latest round or if explicitly expanded */}
+                            {(round.isLatest || isToolExpanded) && hasMeaningfulPayload(round.callArgs) && (
                                 <div>
-                                    <div className="text-[12px] font-medium text-[var(--color-text-secondary)]">Input</div>
-                                    <pre className="font-mono text-[10px] leading-4 whitespace-pre-wrap break-words">
-                                        {typeof derivedInput === 'string' ? derivedInput : JSON.stringify(derivedInput, null, 2)}
+                                    <div className="text-[10px] font-medium text-[var(--color-text-secondary)] mb-1">Input</div>
+                                    <pre className="font-mono text-[10px] leading-4 whitespace-pre-wrap break-words text-[var(--color-text-secondary)] overflow-x-auto">
+                                        {truncateValue(round.callArgs)}
                                     </pre>
                                 </div>
                             )}
-                            {showOutput && (
+                            {/* Output */}
+                            {round.status !== 'pending' && hasMeaningfulPayload(round.result) && (
                                 <div>
-                                    <div className="text-[12px] font-medium text-[var(--color-text-secondary)]">Output</div>
-                                    {typeof step.result === 'string' ? (
-                                        <div className="text-[11px] leading-5">
-                                            <MarkdownRenderer content={step.result} />
+                                    <div className="text-[10px] font-medium text-[var(--color-text-secondary)] mb-1">Output</div>
+                                    {typeof round.result === 'string' ? (
+                                        <div className="text-[10px] leading-5 text-[var(--color-text-secondary)] overflow-x-auto">
+                                            <MarkdownRenderer content={truncateValue(round.result)} />
                                         </div>
                                     ) : (
-                                        <pre className="font-mono text-[10px] leading-4 whitespace-pre-wrap break-words">
-                                            {JSON.stringify(step.result, null, 2)}
+                                        <pre className="font-mono text-[10px] leading-4 whitespace-pre-wrap break-words text-[var(--color-text-secondary)] overflow-x-auto">
+                                            {truncateValue(round.result)}
                                         </pre>
                                     )}
                                 </div>
                             )}
                         </div>
                     )}
-                </details>
+                </div>
             );
         };
+
+        // Build content - preserve original order!
+        const contentItems: React.ReactNode[] = [];
+
+        items.forEach((item, index) => {
+            if (item.kind === 'reasoning') {
+                if (item.text.trim()) {
+                    contentItems.push(renderReasoningItem(item, index));
+                }
+            } else if (item.kind === 'text') {
+                if (item.text.trim()) {
+                    contentItems.push(renderTextItem(item, index));
+                }
+            } else if (item.kind === 'toolRound') {
+                contentItems.push(renderToolRound(item, index));
+            }
+        });
 
         return (
             <div key={key} data-trace-key={key} className="flex justify-start">
@@ -464,43 +653,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                             </div>
                         </div>
 
-                        {!isExpanded && hiddenToolCount > 0 && (
-                            <div className="h-1.5 mb-3 rounded-full bg-[var(--mat-toolchain-bar-bg)] overflow-hidden">
-                                <div className={`h-full w-1/3 rounded-full ${isRunning ? 'bg-[var(--color-text-secondary)]' : 'bg-[var(--color-accent)] opacity-40'}`} />
-                            </div>
-                        )}
-
                         <div className="space-y-2">
-                            {visibleItems.map((item, index) => (
-                                <React.Fragment key={`trace-item-${index}`}>
-                                    {!isExpanded && index === firstVisibleToolIndex && firstVisibleToolIndex >= 0 && hiddenToolCount > 0 && (
-                                        <button
-                                                className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-full bg-[var(--mat-toolchain-bar-bg)] text-[11px] text-[var(--color-text-secondary)]"
-                                            onClick={() => toggleTraceExpand(key)}
-                                            aria-label="Click to expand tool chain"
-                                        >
-                                            <span className="px-1.5 py-0.5 rounded bg-[var(--mat-toolchain-block-bg)] text-[var(--color-text-secondary)]">
-                                                +{hiddenToolCount} hidden
-                                            </span>
-                                            <span className="normal-case tracking-normal">click to expand</span>
-                                        </button>
-                                    )}
-                                    {renderTraceItem(item, index)}
-                                </React.Fragment>
-                            ))}
+                            {contentItems}
                         </div>
-
-                        {isExpanded && (
-                            <div className="mt-3 sticky bottom-2 z-10 flex justify-end">
-                                <button
-                                    className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                                    onClick={() => toggleTraceExpand(key)}
-                                    aria-label="Collapse tool chain"
-                                >
-                                    Collapse Toolchain
-                                </button>
-                            </div>
-                        )}
                     </CardBody>
                 </Card>
             </div>
@@ -544,7 +699,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                     let traceItems: TraceItem[] = [];
 
                     const flushTrace = (key: string) => {
-                        const node = renderTraceBlock(key, traceItems);
+                        // Transform tool items into tool rounds before rendering
+                        const transformedItems = buildToolRoundsFromItems(traceItems);
+                        const node = renderTraceBlock(key, transformedItems);
                         if (node) {
                             rendered.push(node);
                         }
@@ -819,7 +976,15 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                                     <div className="space-y-2 max-h-[380px] overflow-y-auto pr-2">
                                                         {filteredModelGroups.map((group) => (
                                                             <div key={`model-group-${group.providerId}`} className="rounded-xl bg-[var(--mat-content-card-hover-bg)] p-2 mr-1 min-h-[118px]">
-                                                                <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">{group.providerId}</div>
+                                                                <div className="flex items-center gap-1.5 mb-1">
+                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">{group.displayName ?? group.providerId}</div>
+                                                                    {group.providerId.startsWith('custom:') && (
+                                                                        <span className="px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-[0.04em]
+                                                                            bg-[var(--color-accent)]/15 text-[var(--color-accent)] border border-[var(--color-accent)]/20">
+                                                                            Custom
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 <div className="space-y-1 max-h-[98px] overflow-y-auto pr-1">
                                                                     {group.models.map((model) => {
                                                                         const fullId = `${group.providerId}:${model}`;

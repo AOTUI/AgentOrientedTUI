@@ -38,11 +38,12 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
     provider,
     isSelected,
     isActive,
+    isCustom = false,
     onSelect,
     onEdit,
     onDelete,
 }) => {
-    const ariaLabel = `${provider.customName} provider${isActive ? ' (active)' : ''}${isSelected ? ' (selected)' : ''}`;
+    const ariaLabel = `${provider.customName} provider${isCustom ? ' (custom)' : ''}${isActive ? ' (active)' : ''}${isSelected ? ' (selected)' : ''}`;
     return (
         /* Outer wrapper: card box + name label below */
         <div className="flex flex-col items-center gap-1.5 select-none" role="listitem">
@@ -54,7 +55,9 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                     rounded-[16px] border transition-all duration-200 ease-[var(--ease-spring)]
                     cursor-pointer overflow-hidden
                     mat-content hover:bg-[var(--mat-content-card-hover-bg)]
-                    border-[var(--mat-border)]
+                    ${isSelected
+                        ? 'border-[var(--color-accent)]'
+                        : 'border-[var(--mat-border)]'}
                 `}
                 onClick={onSelect}
                 role="radio"
@@ -121,7 +124,6 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 ${isSelected ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}
             `}>
                 {provider.customName}
-            </span>
-        </div>
+            </span>        </div>
     );
 };

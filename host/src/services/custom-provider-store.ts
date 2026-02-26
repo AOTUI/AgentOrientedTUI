@@ -136,7 +136,11 @@ export class CustomProviderStore {
     }
 
     private normalizeId(raw: string): string {
-        const normalized = raw
+        const candidate = raw.trim().toLowerCase().startsWith('custom:')
+            ? raw.trim().slice('custom:'.length)
+            : raw;
+
+        const normalized = candidate
             .trim()
             .toLowerCase()
             .replace(/[^a-z0-9_-]+/g, '-')

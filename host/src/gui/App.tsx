@@ -82,7 +82,7 @@ export function App() {
     const [draftModelOverride, setDraftModelOverride] = useState<string | null>(null);
     const [draftPromptOverride, setDraftPromptOverride] = useState<string>('');
     const [promptTemplates, setPromptTemplates] = useState<Array<{ id: string; name: string; content: string }>>([]);
-    const [modelGroups, setModelGroups] = useState<Array<{ providerId: string; models: string[] }>>([]);
+    const [modelGroups, setModelGroups] = useState<Array<{ providerId: string; models: string[]; displayName?: string }>>([]);
     const [activeModelId, setActiveModelId] = useState<string | null>(null);
 
     // Init Theme
@@ -161,10 +161,16 @@ export function App() {
 
     const refreshModelGroups = useCallback(async () => {
         try {
-            const [allConfigs, activeConfig] = await Promise.all([
+            const [allConfigs, activeConfig, customProvidersList] = await Promise.all([
                 bridge.getAllLLMConfigs(),
                 bridge.getActiveLLMConfig(),
+                bridge.listCustomProviders().catch(() => [] as Array<{ id: string; name: string }>),
             ]);
+
+            // Build a map of custom provider id → display name
+            const customNameMap = new Map<string, string>(
+                (customProvidersList).map((cp: { id: string; name: string }) => [cp.id, cp.name])
+            );
 
             const configuredGroupsMap = new Map<string, Set<string>>();
             (allConfigs || []).forEach((config) => {
@@ -182,26 +188,30 @@ export function App() {
             const providerIds = Array.from(configuredGroupsMap.keys());
             const groups = await Promise.all(providerIds.map(async (providerId) => {
                 const mergedModels = new Set(Array.from(configuredGroupsMap.get(providerId) || []));
+                const isCustom = providerId.startsWith('custom:');
 
-                try {
-                    const models = await bridge.getTrpcClient().modelRegistry.getModels.query({ providerId });
-                    (models as Array<{ id?: string; name?: string }>).forEach((item) => {
-                        const raw = item?.id || item?.name;
-                        if (!raw || typeof raw !== 'string') {
-                            return;
-                        }
-                        const normalized = raw.startsWith(`${providerId}/`) ? raw.slice(providerId.length + 1) : raw;
-                        if (normalized.trim()) {
-                            mergedModels.add(normalized.trim());
-                        }
-                    });
-                } catch (error) {
-                    console.warn(`[App] Failed to load models from registry for provider: ${providerId}`, error);
+                if (!isCustom) {
+                    try {
+                        const models = await bridge.getTrpcClient().modelRegistry.getModels.query({ providerId });
+                        (models as Array<{ id?: string; name?: string }>).forEach((item) => {
+                            const raw = item?.id || item?.name;
+                            if (!raw || typeof raw !== 'string') {
+                                return;
+                            }
+                            const normalized = raw.startsWith(`${providerId}/`) ? raw.slice(providerId.length + 1) : raw;
+                            if (normalized.trim()) {
+                                mergedModels.add(normalized.trim());
+                            }
+                        });
+                    } catch (error) {
+                        console.warn(`[App] Failed to load models from registry for provider: ${providerId}`, error);
+                    }
                 }
 
                 return {
                     providerId,
                     models: Array.from(mergedModels).sort((a, b) => a.localeCompare(b)),
+                    displayName: customNameMap.get(providerId),
                 };
             }));
 

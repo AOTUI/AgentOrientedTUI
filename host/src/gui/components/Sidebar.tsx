@@ -16,7 +16,7 @@ interface SidebarProps {
     onSelectTopic: (topicId: string) => void;
     toggleTheme: () => void;
     onSwitchProject: () => void;
-    onOpenSettings?: () => void;
+    onOpenSettings?: (tab?: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
     getTopicState: (topicId: string) => string;
     getTopicPaused?: (topicId: string) => boolean;
 }
@@ -244,7 +244,7 @@ export function Sidebar({
                                 isIconOnly
                                 variant="light"
                                 size="sm"
-                                onClick={onOpenSettings}
+                                onClick={() => onOpenSettings('model')}
                                 className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors data-[hover=true]:bg-transparent flex items-center justify-center"
                             >
                                 <IconSettings />

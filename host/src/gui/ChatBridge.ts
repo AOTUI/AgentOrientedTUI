@@ -1106,6 +1106,46 @@ export class ChatBridge {
     async setActiveLLMConfig(id: number): Promise<void> {
         await this.getTrpcClient().llmConfig.setActive.mutate({ id });
     }
+
+    // ============ Custom Provider Methods ============
+
+    async listCustomProviders(): Promise<any[]> {
+        return this.getTrpcClient().llmConfig.customProvidersList.query();
+    }
+
+    async createCustomProvider(input: {
+        id?: string;
+        name: string;
+        baseUrl: string;
+        protocol: 'openai' | 'anthropic';
+        apiKey?: string;
+    }): Promise<any> {
+        return this.getTrpcClient().llmConfig.customProvidersCreate.mutate(input);
+    }
+
+    async updateCustomProvider(id: string, data: {
+        name?: string;
+        baseUrl?: string;
+        protocol?: 'openai' | 'anthropic';
+        apiKey?: string;
+    }): Promise<any> {
+        return this.getTrpcClient().llmConfig.customProvidersUpdate.mutate({ id, data });
+    }
+
+    async deleteCustomProvider(id: string): Promise<void> {
+        await this.getTrpcClient().llmConfig.customProvidersDelete.mutate({ id });
+    }
+
+    async createCustomModelConfig(input: {
+        customProviderId: string;
+        modelId: string;
+        name?: string;
+        temperature?: number;
+        maxSteps?: number;
+        setActive?: boolean;
+    }): Promise<any> {
+        return this.getTrpcClient().llmConfig.customModelConfigsCreate.mutate(input);
+    }
 }
 
 // Export singleton getter

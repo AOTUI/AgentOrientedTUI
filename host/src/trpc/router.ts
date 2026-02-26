@@ -288,6 +288,9 @@ const llmConfigRouter = router({
             maxSteps: z.number(),
         }))
         .mutation(async ({ input, ctx }) => {
+            if (input.providerId.startsWith('custom:')) {
+                throw new Error('Use llmConfig.customModelConfigsCreate for custom providers.');
+            }
             return ctx.llmConfigService.createConfig(input);
         }),
     update: publicProcedure
@@ -348,6 +351,18 @@ const llmConfigRouter = router({
         .input(z.object({ id: z.string() }))
         .mutation(async ({ input, ctx }) => {
             return ctx.llmConfigService.deleteCustomProvider(input.id);
+        }),
+    customModelConfigsCreate: publicProcedure
+        .input(z.object({
+            customProviderId: z.string().min(1),
+            modelId: z.string().min(1),
+            name: z.string().optional(),
+            temperature: z.number().optional(),
+            maxSteps: z.number().optional(),
+            setActive: z.boolean().optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            return ctx.llmConfigService.createCustomModelConfig(input);
         }),
 });
 

@@ -2,6 +2,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createProviderRegistry, customProvider } from 'ai';
 import type { LLMConfig } from './interfaces.js';
@@ -75,6 +76,14 @@ function buildProvider(
         case 'xai':
             return createOpenAI({ apiKey, baseURL: customBaseURL || 'https://api.x.ai/v1', headers });
         case 'openai':
+            if (customBaseURL && !isOpenAIResponsesEndpoint(customBaseURL)) {
+                return createOpenAICompatible({
+                    name: 'openai-compatible',
+                    apiKey,
+                    baseURL: customBaseURL,
+                    headers,
+                });
+            }
             return createOpenAI({ apiKey, baseURL: customBaseURL, headers });
         case 'openrouter':
             return createOpenRouter({
@@ -93,8 +102,22 @@ function buildProvider(
                 );
             }
 
-            return createOpenAI({ apiKey, baseURL, headers });
+            return createOpenAICompatible({
+                name: providerId,
+                apiKey,
+                baseURL,
+                headers,
+            });
         }
+    }
+}
+
+function isOpenAIResponsesEndpoint(baseURL: string): boolean {
+    try {
+        const { hostname } = new URL(baseURL);
+        return hostname === 'api.openai.com';
+    } catch {
+        return false;
     }
 }
 

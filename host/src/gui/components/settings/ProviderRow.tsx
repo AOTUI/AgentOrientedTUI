@@ -8,7 +8,24 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ProviderCard } from './ProviderCard.js';
 import { sortProviders } from '../../hooks/useProviderConfigs.js';
-import type { ProviderRowProps } from './types.js';
+import type { ProviderRowProps, CustomProviderRecord, ProviderConfig } from './types.js';
+
+/**
+ * Adapt a CustomProviderRecord to the ProviderConfig shape that ProviderCard accepts.
+ * The resulting object is only used for display — numeric `id` is never used as a DB key.
+ */
+const customToConfig = (cp: CustomProviderRecord): ProviderConfig => ({
+    id: 0,
+    providerId: `custom:${cp.id}`,
+    customName: cp.name,
+    apiKey: '',
+    isActive: false,
+    model: '',
+    temperature: 0,
+    maxSteps: 0,
+    createdAt: 0,
+    updatedAt: 0,
+});
 
 const IconPlus = (props: React.SVGProps<SVGSVGElement>) => (
     <svg
@@ -41,6 +58,9 @@ const AddProviderButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
     </div>
 );
 
+// ── Inline card for Custom Providers ──────────────────────────────────────────
+
+
 
 /**
  * ProviderRow Component
@@ -57,9 +77,17 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
     onEditProvider,
     onDeleteProvider,
     onAddProvider,
+    customProviders = [],
+    selectedCustomProviderId = null,
+    onSelectCustomProvider,
+    onDeleteCustomProvider,
+    onEditCustomProvider,
+    activeCustomProviderIds,
 }) => {
     // Sort providers with active first
     const sortedProviders = sortProviders(providers);
+
+    const totalCount = sortedProviders.length + customProviders.length;
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isOverflowing, setIsOverflowing] = useState(false);
@@ -72,7 +100,7 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
 
     useEffect(() => {
         measureOverflow();
-    }, [measureOverflow, sortedProviders.length]);
+    }, [measureOverflow, totalCount]);
 
     useEffect(() => {
         const element = scrollRef.current;
@@ -94,7 +122,7 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
     }, [measureOverflow]);
 
     // Handle empty state
-    if (sortedProviders.length === 0) {
+    if (totalCount === 0) {
         return (
             <div className="provider-row-container" role="status" aria-live="polite">
                 <div
@@ -139,7 +167,7 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
                     paddingBottom: '8px',
                     paddingRight: isOverflowing && onAddProvider ? '108px' : '0px',
                     scrollBehavior: 'smooth',
-                    WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+                    WebkitOverflowScrolling: 'touch',
                 }}
             >
                 {sortedProviders.map((provider) => (
@@ -154,6 +182,19 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
                     />
                 ))}
 
+                {customProviders.map((cp) => (
+                    <ProviderCard
+                        key={cp.id}
+                        provider={customToConfig(cp)}
+                        isSelected={cp.id === selectedCustomProviderId}
+                        isActive={activeCustomProviderIds?.has(cp.id) ?? false}
+                        isCustom={true}
+                        onSelect={() => onSelectCustomProvider?.(cp.id)}
+                        onEdit={() => onEditCustomProvider?.(cp)}
+                        onDelete={() => onDeleteCustomProvider?.(cp)}
+                    />
+                ))}
+
                 {onAddProvider && !isOverflowing && (
                     <div className="shrink-0" role="listitem" aria-label="Add provider">
                         <AddProviderButton onClick={onAddProvider} />
@@ -162,8 +203,19 @@ export const ProviderRow: React.FC<ProviderRowProps> = ({
             </div>
 
             {onAddProvider && isOverflowing && (
-                <div className="absolute right-0 top-0 bottom-0 pointer-events-none flex items-start">
-                    <div className="pointer-events-auto" role="listitem" aria-label="Add provider">
+                <div className="absolute right-0 top-0 bottom-0 pointer-events-none flex items-start justify-end"
+                    style={{ width: '156px' }}
+                >
+                    {/* Frosted-glass fade — blocks the cards scrolling beneath the button */}
+                    <div className="absolute inset-0 rounded-r-[inherit]"
+                        style={{
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            maskImage: 'linear-gradient(to right, transparent 0%, black 40%)',
+                            WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 40%)',
+                        }}
+                    />
+                    <div className="pointer-events-auto relative z-10" role="listitem" aria-label="Add provider">
                         <AddProviderButton onClick={onAddProvider} />
                     </div>
                 </div>

@@ -5,8 +5,9 @@
  * Integrates all sub-components and manages state.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useProviderConfigs } from '../../hooks/useProviderConfigs.js';
+import { useCustomProviders } from '../../hooks/useCustomProviders.js';
 import { useModels } from '../../hooks/useModels.js';
 import { useToast } from './hooks/useToast.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
@@ -15,12 +16,15 @@ import { ProviderSearchBar } from './ProviderSearchBar.js';
 import { ProviderRow } from './ProviderRow.js';
 import { ModelSearchBar } from './ModelSearchBar.js';
 import { ModelList } from './ModelList.js';
+import { AddModelsToProviderModal } from './AddModelsToProviderModal.js';
 import { AddProviderModal } from './AddProviderModal.js';
 import { EditProviderModal } from './EditProviderModal.js';
+import { EditCustomProviderModal } from './EditCustomProviderModal.js';
+import { CustomModelList } from './CustomModelList.js';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog.js';
 import { LoadingState } from './LoadingState.js';
 import { ToastNotification } from './ToastNotification.js';
-import type { ProviderConfig, NewProviderConfig, ProviderUpdates } from './types.js';
+import type { ProviderConfig, NewProviderConfig, ProviderUpdates, NewCustomProviderInput, CustomProviderRecord } from './types.js';
 
 /**
  * ModelTab Component
@@ -38,10 +42,20 @@ export const ModelTab: React.FC = () => {
         isLoading: isLoadingProviders,
         error: providerError,
         addProvider,
+        addCustomProviderModel,
         updateProvider,
         deleteProvider,
         setActiveProvider,
     } = useProviderConfigs();
+
+    // Custom provider management hook
+    const {
+        customProviders,
+        isLoading: isLoadingCustomProviders,
+        createCustomProvider,
+        updateCustomProvider,
+        deleteCustomProvider,
+    } = useCustomProviders();
 
     // Toast notifications hook
     const { toast, showSuccess, showError, showWarning, clearToast } = useToast();
@@ -51,11 +65,19 @@ export const ModelTab: React.FC = () => {
 
     // Local state for UI interactions
     const [selectedProviderConfigId, setSelectedProviderConfigId] = useState<number | null>(null);
+    const [selectedCustomProviderId, setSelectedCustomProviderId] = useState<string | null>(null);
     const [providerSearchQuery, setProviderSearchQuery] = useState('');
     const [modelSearchQuery, setModelSearchQuery] = useState('');
     const [showAddProviderModal, setShowAddProviderModal] = useState(false);
     const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
     const [deletingProvider, setDeletingProvider] = useState<ProviderConfig | null>(null);
+    const [deletingCustomProvider, setDeletingCustomProvider] = useState<CustomProviderRecord | null>(null);
+    // Shown right after a Custom Provider is created — lets user add model IDs immediately
+    const [postCreateProvider, setPostCreateProvider] = useState<CustomProviderRecord | null>(null);
+    // Edit modal for an existing Custom Provider (triggered from card edit button)
+    const [editingCustomProvider, setEditingCustomProvider] = useState<CustomProviderRecord | null>(null);
+    // Add Model modal shown for the currently-selected Custom Provider
+    const [showAddModelForSelected, setShowAddModelForSelected] = useState(false);
 
     // Get selected provider's providerId for fetching models
     const selectedProvider = providers.find(p => p.id === selectedProviderConfigId);
@@ -77,21 +99,33 @@ export const ModelTab: React.FC = () => {
         }
     }, [modelsError, showWarning]);
 
-    // Set initial selected provider to active provider
+    // Set initial selected provider to active provider (including custom providers)
+    // Wait for both providers and customProviders to load before initializing
     useEffect(() => {
-        if (providers.length > 0 && !selectedProviderConfigId) {
-            const activeProvider = providers.find(p => p.isActive);
-            if (activeProvider) {
-                setSelectedProviderConfigId(activeProvider.id);
-            }
+        // Skip if still loading or already have a selection
+        if (isLoadingProviders || isLoadingCustomProviders) return;
+        if (providers.length === 0 || (selectedProviderConfigId || selectedCustomProviderId)) return;
+        
+        // Find active provider
+        const activeProvider = providers.find(p => p.isActive);
+        if (!activeProvider) return;
+        
+        // Set selection based on provider type
+        if (activeProvider.providerId.startsWith('custom:')) {
+            // Custom provider: store the full "custom:xxx" id (matches CustomProviderRecord.id)
+            setSelectedCustomProviderId(activeProvider.providerId);
+        } else {
+            // Template provider: set selection by DB id
+            setSelectedProviderConfigId(activeProvider.id);
         }
-    }, [providers, selectedProviderConfigId]);
+    }, [providers, customProviders, isLoadingProviders, isLoadingCustomProviders, selectedProviderConfigId, selectedCustomProviderId]);
 
     /**
-     * Handle provider selection
+     * Handle provider selection (template provider)
      */
     const handleSelectProvider = useCallback((providerConfigId: number) => {
         setSelectedProviderConfigId(providerConfigId);
+        setSelectedCustomProviderId(null);   // clear custom selection
         // Clear model search when provider changes
         setModelSearchQuery('');
         
@@ -110,7 +144,7 @@ export const ModelTab: React.FC = () => {
     }, []);
 
     /**
-     * Handle save new provider
+     * Handle save new template provider
      */
     const handleSaveNewProvider = useCallback(async (config: NewProviderConfig) => {
         try {
@@ -125,6 +159,145 @@ export const ModelTab: React.FC = () => {
             throw error;
         }
     }, [addProvider, showSuccess, showError, announce]);
+
+    /**
+     * Handle save new custom provider
+     */
+    const handleSaveCustomProvider = useCallback(async (input: NewCustomProviderInput) => {
+        try {
+            const created = await createCustomProvider(input);
+            setShowAddProviderModal(false);
+            announce(`${input.name} custom provider created`, 'polite');
+            // Open the follow-up "Add Models" dialog instead of going straight to detail
+            setPostCreateProvider(created);
+        } catch (error) {
+            console.error('Failed to create custom provider:', error);
+            showError('Failed to create custom provider. Please try again.');
+            announce('Failed to create custom provider', 'assertive');
+            throw error;
+        }
+    }, [createCustomProvider, showError, announce]);
+
+    /**
+     * Called from AddModelsToProviderModal when user adds a model to the just-created provider
+     */
+    const handleAddModelToPostCreateProvider = useCallback(async (modelId: string) => {
+        if (!postCreateProvider) return;
+        await addCustomProviderModel({
+            customProviderId: postCreateProvider.id,
+            modelId,
+            name: `${postCreateProvider.name} / ${modelId}`,
+        });
+    }, [postCreateProvider, addCustomProviderModel]);
+
+    /**
+     * Called when user finishes (Done / Open Provider) in the post-create dialog
+     */
+    const handlePostCreateDone = useCallback(() => {
+        if (postCreateProvider) {
+            showSuccess(`Custom provider "${postCreateProvider.name}" ready`);
+            setSelectedCustomProviderId(postCreateProvider.id);
+            setSelectedProviderConfigId(null);
+        }
+        setPostCreateProvider(null);
+    }, [postCreateProvider, showSuccess]);
+
+    /**
+     * Handle selecting a custom provider card
+     */
+    const handleSelectCustomProvider = useCallback((id: string) => {
+        setSelectedCustomProviderId(id);
+        setSelectedProviderConfigId(null);
+        setModelSearchQuery('');
+    }, []);
+
+    /**
+     * Handle edit custom provider (opens edit modal from card)
+     */
+    const handleEditCustomProvider = useCallback((cp: CustomProviderRecord) => {
+        setEditingCustomProvider(cp);
+    }, []);
+
+    /**
+     * Handle delete custom provider request (opens confirmation dialog)
+     */
+    const handleDeleteCustomProviderRequest = useCallback((cp: CustomProviderRecord) => {
+        setDeletingCustomProvider(cp);
+    }, []);
+
+    /**
+     * Handle confirm custom provider deletion
+     */
+    const handleConfirmDeleteCustomProvider = useCallback(async () => {
+        if (!deletingCustomProvider) return;
+        try {
+            await deleteCustomProvider(deletingCustomProvider.id);
+            if (selectedCustomProviderId === deletingCustomProvider.id) {
+                setSelectedCustomProviderId(null);
+            }
+            setDeletingCustomProvider(null);
+            showSuccess(`Custom provider "${deletingCustomProvider.name}" deleted`);
+            announce(`${deletingCustomProvider.name} custom provider deleted`, 'polite');
+        } catch (error) {
+            console.error('Failed to delete custom provider:', error);
+            showError('Failed to delete custom provider.');
+        }
+    }, [deletingCustomProvider, deleteCustomProvider, selectedCustomProviderId, showSuccess, showError, announce]);
+
+    /**
+     * Handle update custom provider (from CustomProviderDetail inline edit)
+     */
+    const handleUpdateCustomProvider = useCallback(async (id: string, updates: Parameters<typeof updateCustomProvider>[1]) => {
+        try {
+            await updateCustomProvider(id, updates);
+            showSuccess('Custom provider updated');
+        } catch (error) {
+            console.error('Failed to update custom provider:', error);
+            showError('Failed to update custom provider.');
+            throw error;
+        }
+    }, [updateCustomProvider, showSuccess, showError]);
+
+    /**
+     * Handle adding a model to the currently selected custom provider
+     */
+    const handleAddModelToSelectedProvider = useCallback(async (modelId: string) => {
+        if (!selectedCustomProviderId) return;
+        const cp = customProviders.find(c => c.id === selectedCustomProviderId);
+        await addCustomProviderModel({
+            customProviderId: selectedCustomProviderId,
+            modelId,
+            name: `${cp?.name ?? ''} / ${modelId}`,
+        });
+    }, [selectedCustomProviderId, customProviders, addCustomProviderModel]);
+
+    /**
+     * Handle deleting a model config under a custom provider
+     */
+    const handleDeleteModelFromCustomProvider = useCallback(async (configId: number) => {
+        try {
+            await deleteProvider(configId);
+            showSuccess('Model removed');
+        } catch (error) {
+            console.error('Failed to remove model:', error);
+            showError('Failed to remove model.');
+            throw error;
+        }
+    }, [deleteProvider, showSuccess, showError]);
+
+    /**
+     * Handle activating a model config under a custom provider
+     */
+    const handleActivateModelOfCustomProvider = useCallback(async (configId: number) => {
+        try {
+            await setActiveProvider(configId);
+            showSuccess('Model activated');
+        } catch (error) {
+            console.error('Failed to activate model:', error);
+            showError('Failed to activate model.');
+            throw error;
+        }
+    }, [setActiveProvider, showSuccess, showError]);
 
     /**
      * Handle edit provider button click
@@ -210,11 +383,37 @@ export const ModelTab: React.FC = () => {
     }, [selectedProviderConfigId, providers, models, updateProvider, setActiveProvider, showSuccess, showError, announce]);
 
     // Filter providers based on search query
-    const filteredProviders = filterProviders(providers, providerSearchQuery);
+    // Exclude custom: provider records — those LLMConfigRecords are linked to CustomProviderRecord entries
+    // and are already represented in the customProviders section of ProviderRow.
+    const filteredProviders = filterProviders(
+        providers.filter(p => !p.providerId.startsWith('custom:')),
+        providerSearchQuery,
+    );
 
     // Filter models based on search query
     const filteredModels = filterModels(models, modelSearchQuery);
     const effectiveActiveModelId = selectedProvider?.isActive ? (selectedProvider.model || activeModelId) : null;
+
+    // Derived: selected custom provider record + its linked ProviderConfigs
+    const selectedCustomProvider = selectedCustomProviderId
+        ? customProviders.find(cp => cp.id === selectedCustomProviderId) ?? null
+        : null;
+    // ProviderConfigs linked to the selected custom provider: selectedCustomProviderId is already "custom:xxx"
+    const linkedConfigs = selectedCustomProviderId
+        ? providers.filter(p => p.providerId === selectedCustomProviderId)
+        : [];
+    const customProviderIsActive = linkedConfigs.some(c => c.isActive);
+
+    // Derive which custom providers have at least one active model config
+    // Uses full "custom:xxx" ids to match CustomProviderRecord.id used by ProviderRow
+    const activeCustomProviderIds = useMemo(
+        () => new Set(
+            providers
+                .filter(p => p.providerId.startsWith('custom:') && p.isActive)
+                .map(p => p.providerId)   // keep full "custom:xxx" to match CustomProviderRecord.id
+        ),
+        [providers],
+    );
 
     // Handle loading state
     if (isLoadingProviders) {
@@ -259,41 +458,76 @@ export const ModelTab: React.FC = () => {
                         onEditProvider={handleEditProvider}
                         onDeleteProvider={handleDeleteProvider}
                         onAddProvider={handleAddProvider}
+                        customProviders={customProviders}
+                        selectedCustomProviderId={selectedCustomProviderId}
+                        onSelectCustomProvider={handleSelectCustomProvider}
+                        onDeleteCustomProvider={handleDeleteCustomProviderRequest}
+                        onEditCustomProvider={handleEditCustomProvider}
+                        activeCustomProviderIds={activeCustomProviderIds}
                     />
                 </div>
             </div>
 
-            {/* Model search bar */}
+            {/* Models section — heading always visible; right side switches between search and add-model */}
             <div>
                 <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-center mb-2 sm:mb-3">
                     <h3 className="text-[11px] sm:text-[13px] font-medium text-[var(--color-text-secondary)]">
-                        Models Of {selectedProviderName}
+                        Models Of {selectedCustomProvider ? selectedCustomProvider.name : selectedProviderName}
                     </h3>
-                    <div className="w-full sm:w-[220px] sm:justify-self-end">
-                        <ModelSearchBar
-                            searchQuery={modelSearchQuery}
-                            onSearchChange={setModelSearchQuery}
-                            disabled={!selectedProviderId}
-                        />
+                    <div className="w-full sm:w-[220px] sm:justify-self-end flex justify-end">
+                        {selectedCustomProviderId ? (
+                            <button
+                                onClick={() => setShowAddModelForSelected(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium
+                                    border border-[var(--mat-border)]
+                                    text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]
+                                    hover:border-[var(--color-accent)]/40 hover:bg-[var(--mat-content-card-hover-bg)]
+                                    transition-all duration-150"
+                            >
+                                + Add Model
+                            </button>
+                        ) : (
+                            <ModelSearchBar
+                                searchQuery={modelSearchQuery}
+                                onSearchChange={setModelSearchQuery}
+                                disabled={!selectedProviderId}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Model list */}
-            <div className="min-h-0 flex-1">
-                <ModelList
-                    models={filteredModels}
-                    activeModelId={effectiveActiveModelId}
-                    onSelectModel={handleSelectModel}
-                    isLoading={isLoadingModels}
-                />
-            </div>
+            {/* Model list content — CustomModelList for custom providers, ModelList for template providers */}
+            {selectedCustomProviderId ? (
+                <div className="min-h-0 flex-1">
+                    <CustomModelList
+                        configs={linkedConfigs}
+                        onActivate={handleActivateModelOfCustomProvider}
+                        onDelete={handleDeleteModelFromCustomProvider}
+                        onAddModel={() => setShowAddModelForSelected(true)}
+                    />
+                </div>
+            ) : selectedProviderId ? (
+                <div className="min-h-0 flex-1">
+                    <ModelList
+                        models={filteredModels}
+                        activeModelId={effectiveActiveModelId}
+                        onSelectModel={handleSelectModel}
+                        isLoading={isLoadingModels}
+                    />
+                </div>
+            ) : (
+                <div className="flex items-center justify-center py-16 text-[var(--color-text-tertiary)]">
+                    No provider selected. Please select a provider from the list above.
+                </div>
+            )}
 
             {/* Add Provider Modal */}
             <AddProviderModal
                 isOpen={showAddProviderModal}
                 onClose={() => setShowAddProviderModal(false)}
                 onSave={handleSaveNewProvider}
+                onSaveCustom={handleSaveCustomProvider}
             />
 
             {/* Edit Provider Modal */}
@@ -304,13 +538,50 @@ export const ModelTab: React.FC = () => {
                 onSave={handleSaveProviderUpdates}
             />
 
-            {/* Delete Confirmation Dialog */}
+            {/* Delete Confirmation Dialog (template providers) */}
             <DeleteConfirmDialog
                 isOpen={!!deletingProvider}
                 providerName={deletingProvider?.customName || ''}
                 isActive={deletingProvider?.isActive || false}
                 onClose={() => setDeletingProvider(null)}
                 onConfirm={handleConfirmDelete}
+            />
+
+            {/* Post-create: add model IDs immediately after custom provider creation */}
+            {postCreateProvider && (
+                <AddModelsToProviderModal
+                    isOpen={true}
+                    provider={postCreateProvider}
+                    onAddModel={handleAddModelToPostCreateProvider}
+                    onDone={handlePostCreateDone}
+                />
+            )}
+
+            {/* Edit Custom Provider modal (triggered from card edit button) */}
+            <EditCustomProviderModal
+                isOpen={!!editingCustomProvider}
+                provider={editingCustomProvider}
+                onClose={() => setEditingCustomProvider(null)}
+                onSave={handleUpdateCustomProvider}
+            />
+
+            {/* Add Model modal for the currently-selected Custom Provider */}
+            {showAddModelForSelected && selectedCustomProvider && (
+                <AddModelsToProviderModal
+                    isOpen={true}
+                    provider={selectedCustomProvider}
+                    onAddModel={handleAddModelToSelectedProvider}
+                    onDone={() => setShowAddModelForSelected(false)}
+                />
+            )}
+
+            {/* Delete Confirmation Dialog (custom providers) */}
+            <DeleteConfirmDialog
+                isOpen={!!deletingCustomProvider}
+                providerName={deletingCustomProvider?.name || ''}
+                isActive={customProviderIsActive}
+                onClose={() => setDeletingCustomProvider(null)}
+                onConfirm={handleConfirmDeleteCustomProvider}
             />
 
             {/* Toast Notification */}
