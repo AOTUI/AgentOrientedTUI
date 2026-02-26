@@ -334,6 +334,9 @@ export class SessionManagerV3 extends EventEmitter {
                 };
                 this.emit('message', event);
             },
+            onRunError: (error) => {
+                this.handleAgentRunError(topicId, error);
+            },
         });
 
         const controls = this.getOrInitSourceControls(topicId);
@@ -938,6 +941,83 @@ export class SessionManagerV3 extends EventEmitter {
             type,
             role: message.role,
         });
+    }
+
+    private handleAgentRunError(topicId: string, error: Error): void {
+        const { category, userFacingMessage } = this.classifyAgentError(error);
+
+        this.logger.warn('Agent run failed; emitting user-visible error message', {
+            topicId,
+            category,
+            error: error.message,
+        });
+
+        const assistantErrorMessage = {
+            role: 'assistant',
+            content: userFacingMessage,
+            metadata: {
+                isAgentError: true,
+                errorCategory: category,
+                rawError: error.message,
+            },
+        } as unknown as ModelMessage;
+
+        this.handleMessage(topicId, 'assistant', assistantErrorMessage);
+    }
+
+    private classifyAgentError(error: Error): {
+        category: 'provider' | 'network' | 'rate_limit' | 'unknown';
+        userFacingMessage: string;
+    } {
+        const raw = error.message || 'Unknown error';
+        const normalized = raw.toLowerCase();
+
+        if (
+            normalized.includes('api key') ||
+            normalized.includes('unauthorized') ||
+            normalized.includes('invalid_api_key') ||
+            normalized.includes('authentication') ||
+            normalized.includes('forbidden') ||
+            normalized.includes('401') ||
+            normalized.includes('403')
+        ) {
+            return {
+                category: 'provider',
+                userFacingMessage: `LLM 调用失败：Provider 认证异常（API Key 或模型配置不可用）。\n请打开 Settings 检查 Provider、Model 与 API Key 后重试。\n\n技术详情：${raw}`,
+            };
+        }
+
+        if (
+            normalized.includes('network') ||
+            normalized.includes('fetch failed') ||
+            normalized.includes('enotfound') ||
+            normalized.includes('econnrefused') ||
+            normalized.includes('etimedout') ||
+            normalized.includes('socket hang up') ||
+            normalized.includes('internet')
+        ) {
+            return {
+                category: 'network',
+                userFacingMessage: `LLM 调用失败：网络不可用或请求超时。\n请检查网络连接、代理配置或稍后重试。\n\n技术详情：${raw}`,
+            };
+        }
+
+        if (
+            normalized.includes('rate limit') ||
+            normalized.includes('too many requests') ||
+            normalized.includes('quota') ||
+            normalized.includes('429')
+        ) {
+            return {
+                category: 'rate_limit',
+                userFacingMessage: `LLM 调用失败：请求频率/额度受限。\n请稍后重试，或切换到其他可用模型。\n\n技术详情：${raw}`,
+            };
+        }
+
+        return {
+            category: 'unknown',
+            userFacingMessage: `LLM 调用失败：${raw}\n请检查当前 Provider 配置或稍后重试。`,
+        };
     }
 
     /**

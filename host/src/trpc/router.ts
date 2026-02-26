@@ -316,6 +316,39 @@ const llmConfigRouter = router({
         .mutation(async ({ input, ctx }) => {
             ctx.llmConfigService.setActiveConfig(input.id);
         }),
+    customProvidersList: publicProcedure
+        .query(async ({ ctx }) => {
+            return ctx.llmConfigService.listCustomProviders();
+        }),
+    customProvidersCreate: publicProcedure
+        .input(z.object({
+            id: z.string().optional(),
+            name: z.string().min(1),
+            baseUrl: z.string().min(1),
+            protocol: z.enum(['openai', 'anthropic']),
+            apiKey: z.string().optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            return ctx.llmConfigService.createCustomProvider(input);
+        }),
+    customProvidersUpdate: publicProcedure
+        .input(z.object({
+            id: z.string(),
+            data: z.object({
+                name: z.string().optional(),
+                baseUrl: z.string().optional(),
+                protocol: z.enum(['openai', 'anthropic']).optional(),
+                apiKey: z.string().optional(),
+            }),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            return ctx.llmConfigService.updateCustomProvider(input.id, input.data);
+        }),
+    customProvidersDelete: publicProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            return ctx.llmConfigService.deleteCustomProvider(input.id);
+        }),
 });
 
 const modelRegistryRouter = router({

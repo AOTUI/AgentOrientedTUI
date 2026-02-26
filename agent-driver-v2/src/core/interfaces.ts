@@ -196,6 +196,13 @@ export interface AgentDriverV2Config {
 
     /** 状态变化监听器 (可选，用于调试) */
     onStateChange?: (oldState: AgentState, newState: AgentState) => void;
+
+    /**
+     * 工作循环错误监听器
+     *
+     * 当 AgentDriver 在 run loop 中遇到异常（如 LLM 调用失败、网络异常等）时触发。
+     */
+    onRunError?: (error: Error) => void;
 }
 
 

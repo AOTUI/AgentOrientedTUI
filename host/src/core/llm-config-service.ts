@@ -17,6 +17,11 @@ import * as llmConfigDb from '../db/llm-config-db.js';
 import { getDb } from '../db/index.js';
 import { Logger } from '../utils/logger.js';
 import type { ModelRegistry } from '../services/model-registry.js';
+import {
+    CustomProviderStore,
+    type CustomProviderRecord,
+    type CustomProviderProtocol,
+} from '../services/custom-provider-store.js';
 
 /**
  * LLM Config Service
@@ -24,10 +29,12 @@ import type { ModelRegistry } from '../services/model-registry.js';
 export class LLMConfigService {
     private logger: Logger;
     private modelRegistry: ModelRegistry;
+    private customProviderStore: CustomProviderStore;
 
     constructor(modelRegistry: ModelRegistry) {
         this.logger = new Logger('LLMConfigService');
         this.modelRegistry = modelRegistry;
+        this.customProviderStore = new CustomProviderStore();
     }
 
     /**
@@ -44,9 +51,13 @@ export class LLMConfigService {
             return null;
         }
 
+        const customProvider = await this.resolveCustomProvider(record.providerId);
+
         // 如果配置有 providerId 但没有 baseUrl，尝试自动填充
         if (record.providerId && !record.baseUrl) {
-            const filledBaseUrl = await this.resolveBaseUrl(record.providerId, record.baseUrl);
+            const filledBaseUrl = customProvider?.baseUrl
+                ? customProvider.baseUrl
+                : await this.resolveBaseUrl(record.providerId, record.baseUrl);
             if (filledBaseUrl) {
                 record.baseUrl = filledBaseUrl;
 
@@ -62,8 +73,12 @@ export class LLMConfigService {
             providerId: record.providerId,
             baseUrl: record.baseUrl,
         });
-        const llmConfig = toLLMConfig(record);
-        const toolCallCapability = await this.resolveToolCallCapability(record.providerId, record.model);
+        const llmConfig = customProvider
+            ? this.toCustomLLMConfig(record, customProvider)
+            : toLLMConfig(record);
+        const toolCallCapability = customProvider
+            ? undefined
+            : await this.resolveToolCallCapability(record.providerId, record.model);
         if (toolCallCapability !== undefined) {
             llmConfig.modelCapabilities = {
                 ...llmConfig.modelCapabilities,
@@ -102,13 +117,21 @@ export class LLMConfigService {
      * 创建新的 LLM 配置
      */
     async createConfig(input: LLMConfigInput): Promise<LLMConfigRecord> {
+        const customProvider = await this.resolveCustomProvider(input.providerId);
+
         // 如果提供了 providerId 但没有 baseUrl，自动从 ModelRegistry 获取
         if (input.providerId && !input.baseUrl) {
-            input.baseUrl = await this.resolveBaseUrl(input.providerId, input.baseUrl);
+            input.baseUrl = customProvider?.baseUrl
+                ? customProvider.baseUrl
+                : await this.resolveBaseUrl(input.providerId, input.baseUrl);
+        }
+
+        if (!input.apiKey && customProvider?.apiKey) {
+            input.apiKey = customProvider.apiKey;
         }
 
         // 验证模型（如果提供了 providerId）
-        if (input.providerId) {
+        if (input.providerId && !customProvider) {
             const isValid = await this.validateModel(
                 input.providerId,
                 input.model,
@@ -280,15 +303,22 @@ export class LLMConfigService {
         const nextProviderId = updates.providerId ?? existing.providerId;
         const nextModel = updates.model ?? existing.model;
         const nextBaseUrl = updates.baseUrl ?? existing.baseUrl;
+        const customProvider = await this.resolveCustomProvider(nextProviderId);
 
         const mergedUpdates: Partial<LLMConfigInput> = { ...updates };
 
         if (nextProviderId && !nextBaseUrl) {
-            mergedUpdates.baseUrl = await this.resolveBaseUrl(nextProviderId, nextBaseUrl);
+            mergedUpdates.baseUrl = customProvider?.baseUrl
+                ? customProvider.baseUrl
+                : await this.resolveBaseUrl(nextProviderId, nextBaseUrl);
+        }
+
+        if ((updates.apiKey === undefined || updates.apiKey === '') && customProvider?.apiKey) {
+            mergedUpdates.apiKey = customProvider.apiKey;
         }
 
         // 当 provider 或 model 发生变化时，重新校验模型
-        if (nextProviderId && (updates.providerId !== undefined || updates.model !== undefined)) {
+        if (nextProviderId && !customProvider && (updates.providerId !== undefined || updates.model !== undefined)) {
             const isValid = await this.validateModel(nextProviderId, nextModel, false);
             if (!isValid) {
                 throw new Error(
@@ -402,6 +432,7 @@ export class LLMConfigService {
      * 从 models.dev 获取完整的 Provider 列表
      */
     async getAvailableProviders(): Promise<ProviderInfo[]> {
+        const customProviders = await this.customProviderStore.list();
         try {
             // 动态导入 ModelRegistry (避免循环依赖)
             const { ModelRegistry } = await import('../services/model-registry.js');
@@ -432,6 +463,15 @@ export class LLMConfigService {
                     id: provider.id,
                     name: provider.name,
                     requiresApiKey: provider.requiresApiKey,
+                });
+            }
+
+            for (const provider of customProviders) {
+                providers.push({
+                    id: provider.id,
+                    name: provider.name,
+                    defaultBaseUrl: provider.baseUrl,
+                    requiresApiKey: true,
                 });
             }
 
@@ -466,8 +506,94 @@ export class LLMConfigService {
                     requiresApiKey: true,
                     models: ['grok-beta'],
                 },
+                ...customProviders.map((provider) => ({
+                    id: provider.id,
+                    name: provider.name,
+                    defaultBaseUrl: provider.baseUrl,
+                    requiresApiKey: true,
+                })),
             ];
         }
+    }
+
+    async listCustomProviders(): Promise<CustomProviderRecord[]> {
+        return this.customProviderStore.list();
+    }
+
+    async createCustomProvider(input: {
+        name: string;
+        baseUrl: string;
+        protocol: CustomProviderProtocol;
+        apiKey?: string;
+        id?: string;
+    }): Promise<CustomProviderRecord> {
+        return this.customProviderStore.create(input);
+    }
+
+    async updateCustomProvider(
+        id: string,
+        updates: Partial<{
+            name: string;
+            baseUrl: string;
+            protocol: CustomProviderProtocol;
+            apiKey?: string;
+        }>
+    ): Promise<CustomProviderRecord> {
+        return this.customProviderStore.update(id, updates);
+    }
+
+    async deleteCustomProvider(id: string): Promise<void> {
+        return this.customProviderStore.delete(id);
+    }
+
+    private async resolveCustomProvider(providerId?: string): Promise<CustomProviderRecord | null> {
+        if (!providerId) {
+            return null;
+        }
+        return this.customProviderStore.getById(providerId);
+    }
+
+    private toCustomLLMConfig(record: LLMConfigRecord, provider: CustomProviderRecord): LLMConfig {
+        const normalizedModel = this.normalizeModelForProtocol(record.model, record.providerId, provider.protocol);
+        return {
+            model: `${provider.protocol}:${normalizedModel}`,
+            apiKey: record.apiKey || provider.apiKey,
+            provider: {
+                id: provider.protocol,
+                baseURL: record.baseUrl || provider.baseUrl,
+            },
+            temperature: record.temperature,
+            maxSteps: record.maxSteps,
+        };
+    }
+
+    private normalizeModelForProtocol(
+        model: string,
+        storedProviderId: string | undefined,
+        protocol: CustomProviderProtocol
+    ): string {
+        const trimmed = model.trim();
+        if (!trimmed) {
+            return trimmed;
+        }
+
+        if (storedProviderId) {
+            const slashPrefix = `${storedProviderId}/`;
+            const colonPrefix = `${storedProviderId}:`;
+            if (trimmed.startsWith(slashPrefix)) {
+                return trimmed.slice(slashPrefix.length);
+            }
+            if (trimmed.startsWith(colonPrefix)) {
+                return trimmed.slice(colonPrefix.length);
+            }
+        }
+
+        const protocolPrefix = `${protocol}:`;
+        if (trimmed.startsWith(protocolPrefix)) {
+            return trimmed.slice(protocolPrefix.length);
+        }
+
+        return trimmed;
     }
 }
 

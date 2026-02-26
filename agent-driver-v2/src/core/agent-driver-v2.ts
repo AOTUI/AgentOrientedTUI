@@ -622,6 +622,10 @@ private async collectMessages(): Promise<ModelMessage[]> {
 
         } catch (error) {
             this.logger.error('Error in run loop:', error);
+            if (this.config.onRunError) {
+                const normalizedError = error instanceof Error ? error : new Error(String(error));
+                this.config.onRunError(normalizedError);
+            }
             await this.setState('idle');
         }
     }

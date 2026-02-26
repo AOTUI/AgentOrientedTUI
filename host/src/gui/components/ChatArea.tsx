@@ -553,6 +553,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
                     messages.forEach((msg, index) => {
                         const isAgent = msg.role === 'assistant';
+                        const isAgentError = isAgent && Boolean(msg.metadata?.isAgentError);
                         const messageType = msg.messageType || 'text';
                         const isReasoning = messageType === 'reasoning';
                         const isToolCall = messageType === 'tool_call';
@@ -624,20 +625,33 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 <Card
                                     className={`
                                         max-w-[85%] !border-0 shadow-none
-                                        ${isAgent
+                                        ${isAgentError
+                                            ? 'bg-[var(--mat-content-card-bg)] rounded-2xl rounded-tl-sm border border-[var(--color-danger,#FF453A)]'
+                                            : isAgent
                                             ? 'bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm'
                                             : 'bg-[var(--mat-lg-clear-accent-bg)] rounded-2xl rounded-tr-sm'}
                                     `}
                                 >
                                     <CardBody className="p-4 overflow-hidden">
                                         <div className={`flex items-center gap-2 mb-2 text-[12px] font-medium ${isAgent ? 'text-[var(--color-text-tertiary)]' : 'text-[var(--color-text-tertiary)]'}`}>
-                                            <span>{isAgent ? 'System Agent' : 'User Command'}</span>
+                                            <span>{isAgentError ? 'System Agent Error' : isAgent ? 'System Agent' : 'User Command'}</span>
                                             <span>•</span>
                                             <span className="font-system text-[11px] opacity-70">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                         </div>
                                         <div className="text-[13px] leading-6 text-[var(--color-text-primary)]">
                                             <MarkdownRenderer content={msg.content} />
                                         </div>
+                                        {isAgentError && (
+                                            <div className="mt-3 flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onOpenSettings?.('model')}
+                                                    className="text-[12px] px-2.5 py-1.5 rounded-full bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-primary)] hover:opacity-90"
+                                                >
+                                                    Open Settings
+                                                </button>
+                                            </div>
+                                        )}
                                     </CardBody>
                                 </Card>
                             </div>
