@@ -150,8 +150,21 @@ export class LLMClient {
 
     /**
      * 调用 LLM
+     *
+     * @param messages - 消息列表
+     * @param tools - 工具定义
+     * @param callbacks - 流式回调 (可选)
+     * @param callbacks.onTextDelta - 当 LLM 逐 token 输出文本时触发
+     * @param callbacks.onReasoningDelta - 当 LLM 逐 token 输出推理时触发
      */
-    async call(messages: ModelMessage[], tools: Record<string, Tool>): Promise<LLMResponse> {
+    async call(
+        messages: ModelMessage[],
+        tools: Record<string, Tool>,
+        callbacks?: {
+            onTextDelta?: (delta: string) => void;
+            onReasoningDelta?: (delta: string) => void;
+        }
+    ): Promise<LLMResponse> {
         try {
             const shouldDisableTools =
                 this.config.modelCapabilities?.toolCall === false &&
@@ -182,29 +195,64 @@ export class LLMClient {
 
             const result = await this.streamWithOpenRouterFallback(model, messages, effectiveTools);
 
-            // 🔍 尝试读取 reasoning（不同 Provider/SDK 可能字段不同）
-            let reasoningText: string | undefined;
+            let text: string;
             let reasoningParts: Array<{ type: 'reasoning'; text: string }> = [];
-            try {
-                const reasoningValue = (result as any).reasoning;
-                if (reasoningValue) {
-                    const resolvedReasoning = typeof reasoningValue === 'string'
-                        ? reasoningValue
-                        : await reasoningValue;
-                    if (Array.isArray(resolvedReasoning)) {
-                        reasoningParts = resolvedReasoning
-                            .filter((part) => part && typeof part === 'object' && part.type === 'reasoning')
-                            .map((part) => ({ type: 'reasoning' as const, text: String(part.text ?? '') }));
-                    } else {
-                        reasoningText = String(resolvedReasoning);
+
+            const isStreaming = !!(callbacks?.onTextDelta || callbacks?.onReasoningDelta);
+
+            if (isStreaming) {
+                // ═══════════════════════════════════════════════
+                //  流式模式: 通过 fullStream 实时消费所有部分
+                //
+                //  关键: 不能在消费 textStream 之前 await result.reasoning,
+                //  因为 AI SDK 的 Promise 属性会先内部消费整个 stream 再 resolve,
+                //  导致 textStream 被提前耗尽，streaming delta 永远不会触发。
+                //  使用 fullStream 同时获取 reasoning + text delta，一次完成。
+                // ═══════════════════════════════════════════════
+                text = '';
+                let reasoningAccum = '';
+                for await (const part of result.fullStream) {
+                    switch (part.type) {
+                        case 'text-delta':
+                            text += (part as any).text ?? '';
+                            if ((part as any).text) callbacks.onTextDelta?.((part as any).text);
+                            break;
+                        case 'reasoning-delta':
+                            reasoningAccum += (part as any).text ?? '';
+                            if ((part as any).text) callbacks.onReasoningDelta?.((part as any).text);
+                            break;
+                        // tool-call, finish 等由 await result.toolCalls 后续处理
                     }
                 }
-            } catch (error) {
-                this.logger.debug('Failed to read reasoning from LLM result', { error });
-            }
-
-            if (reasoningParts.length === 0 && reasoningText && reasoningText.trim().length > 0) {
-                reasoningParts = [{ type: 'reasoning', text: reasoningText }];
+                if (reasoningAccum) {
+                    reasoningParts = [{ type: 'reasoning', text: reasoningAccum }];
+                }
+            } else {
+                // ═══════════════════════════════════════════════
+                //  非流式模式: 先提取 reasoning，再等待完整文本
+                // ═══════════════════════════════════════════════
+                let reasoningText: string | undefined;
+                try {
+                    const reasoningValue = (result as any).reasoning;
+                    if (reasoningValue) {
+                        const resolvedReasoning = typeof reasoningValue === 'string'
+                            ? reasoningValue
+                            : await reasoningValue;
+                        if (Array.isArray(resolvedReasoning)) {
+                            reasoningParts = resolvedReasoning
+                                .filter((part: any) => part && typeof part === 'object' && part.type === 'reasoning')
+                                .map((part: any) => ({ type: 'reasoning' as const, text: String(part.text ?? '') }));
+                        } else {
+                            reasoningText = String(resolvedReasoning);
+                        }
+                    }
+                } catch (error) {
+                    this.logger.debug('Failed to read reasoning from LLM result', { error });
+                }
+                if (reasoningParts.length === 0 && reasoningText && reasoningText.trim().length > 0) {
+                    reasoningParts = [{ type: 'reasoning', text: reasoningText }];
+                }
+                text = await result.text;
             }
 
             const reasoningString = reasoningParts.length > 0
@@ -217,12 +265,10 @@ export class LLMClient {
                 console.log('=====================\n');
             }
 
-            // 等待完整响应 (await 所有 Promise)
-            const text = await result.text;
+            // stream 已被完整消费，以下 Promise 均已 resolve
             const toolCalls = (await result.toolCalls).map((tc) => ({
                 toolCallId: tc.toolCallId,
                 toolName: tc.toolName,
-                // AI SDK v6 使用 args 字段
                 args: (tc as any).args ?? (tc as any).input,
             }));
             const finishReason = await result.finishReason;

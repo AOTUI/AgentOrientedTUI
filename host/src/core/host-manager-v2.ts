@@ -87,6 +87,7 @@ export class HostManagerV2 {
                 message: event.message,
                 topicId: event.topicId,
                 state: (event as { state?: string }).state,
+                delta: (event as { delta?: string }).delta,
             });
         });
         

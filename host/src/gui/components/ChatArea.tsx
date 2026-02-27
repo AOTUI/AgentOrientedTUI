@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
@@ -194,11 +194,17 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const capPanelRef = useRef<HTMLDivElement>(null);
+    // true  = user is at (or very near) the bottom → auto-scroll is allowed
+    // false = user has scrolled up to read history → do NOT hijack their position
+    const isAtBottomRef = useRef(true);
+    // Fingerprint of the first message id — used to detect a session switch
+    const sessionFingerprintRef = useRef<string>('');
     const [inputValue, setInputValue] = React.useState('');
     const [expandedTraceKeys, setExpandedTraceKeys] = React.useState<Record<string, boolean>>({});
     const [openCapPanel, setOpenCapPanel] = React.useState<'agent' | 'model' | 'prompt' | 'apps' | 'skills' | 'mcp' | null>(null);
     const [modelSearch, setModelSearch] = React.useState('');
     const [promptSearch, setPromptSearch] = React.useState('');
+    const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
 
     // Close capability panels when clicking outside
     useEffect(() => {
@@ -357,13 +363,40 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         }
     }, [inputValue]);
 
-    // Scroll to bottom on new messages or thinking update
+    // Track whether the user is at the bottom of the scroll area.
+    // Uses { passive: true } so it never blocks scrolling.
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const scrollArea = scrollAreaRef.current;
+        if (!scrollArea) return;
+        const onScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = scrollArea;
+            // Allow a 80 px slack so nearly-at-bottom still counts
+            isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 80;
+        };
+        scrollArea.addEventListener('scroll', onScroll, { passive: true });
+        return () => scrollArea.removeEventListener('scroll', onScroll);
+    }, []);
+
+    // Auto-scroll to bottom on new content, but ONLY when:
+    //   • the user hasn't manually scrolled up, OR
+    //   • the active session just changed (re-pin to bottom for the new session)
+    useEffect(() => {
+        // Detect a session switch by comparing the id of the first message.
+        // When the user navigates to a different topic, messages[0].id changes.
+        const fingerprint = messages[0]?.id ?? '';
+        if (fingerprint !== sessionFingerprintRef.current) {
+            sessionFingerprintRef.current = fingerprint;
+            // Always scroll to bottom when switching sessions
+            isAtBottomRef.current = true;
+        }
+
+        if (isAtBottomRef.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [messages, agentThinking, agentReasoning]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             if (inputValue.trim()) {
                 onSendMessage(inputValue.trim());
@@ -508,13 +541,17 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         const toolRounds = items.filter((item): item is { kind: 'toolRound'; round: ToolRound } => item.kind === 'toolRound');
         const isRunning = toolRounds.length > 0 && toolRounds[toolRounds.length - 1].round.status === 'pending';
 
+        // Index of the last reasoning item — that one defaults to expanded
+        const lastReasoningIndex = items.reduce((acc, item, idx) => item.kind === 'reasoning' ? idx : acc, -1);
+
         // Render a single reasoning item (collapsible with brain icon)
         const renderReasoningItem = (item: { kind: 'reasoning'; text: string }, index: number) => {
             const reasoningExpandedKey = `${key}-reasoning-${index}`;
-            const isReasoningExpanded = expandedTraceKeys[reasoningExpandedKey] ?? false;
+            const isLatestReasoning = index === lastReasoningIndex;
+            const isReasoningExpanded = expandedTraceKeys[reasoningExpandedKey] ?? isLatestReasoning;
 
             return (
-                <div key={`reasoning-${index}`} className="space-y-1">
+                <div key={`reasoning-${index}`}>
                     {/* Reasoning header - always visible, clickable to expand/collapse */}
                     <button
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
@@ -535,7 +572,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
                     {/* Expanded reasoning content - no bubble, just left border */}
                     {isReasoningExpanded && (
-                        <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 ml-3 text-[10px] leading-5 text-[var(--color-text-secondary)]">
+                        <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 mt-1 ml-3 text-[10px] leading-5 text-[var(--color-text-secondary)]">
                             <MarkdownRenderer content={item.text} />
                         </div>
                     )}
@@ -545,7 +582,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
         // Render a single text item (always visible)
         const renderTextItem = (item: { kind: 'text'; text: string }, index: number) => (
-            <div key={`text-${index}`} className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-2 rounded-xl bg-[var(--mat-toolchain-block-bg)]">
+            <div key={`text-${index}`} className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-1 rounded-xl bg-[var(--mat-toolchain-block-bg)]">
                 <MarkdownRenderer content={item.text} />
             </div>
         );
@@ -564,40 +601,35 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                     : 'Succeeded';
 
             return (
-                <div key={`tool-round-${round.toolCallId || index}`} className="space-y-0">
-                    {/* Tool round header - always visible */}
+                <div key={`tool-round-${round.toolCallId || index}`}>
+                    {/* Tool round header - always visible, single row */}
                     <div className="flex items-center gap-1.5 px-2 py-1">
-                        {/* Icon - centered with toolname + status column */}
-                        <IconWrench className="w-3 h-3 text-[var(--color-text-tertiary)] shrink-0 mt-2" />
-                        {/* Tool name and status column */}
-                        <div className="flex-1 min-w-0">
-                            <button
-                                className="inline-flex items-center gap-1.5 text-[10px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
-                                onClick={() => {
-                                    setExpandedTraceKeys(prev => ({
-                                        ...prev,
-                                        [toolExpandedKey]: !prev[toolExpandedKey]
-                                    }));
-                                }}
-                                aria-label={isToolExpanded ? 'Collapse tool' : 'Expand tool'}
-                            >
-                                <span className="font-medium truncate">{round.toolName}</span>
-                                <span className="text-[var(--color-text-tertiary)] text-[9px]">
-                                    {isToolExpanded ? '▼' : '▶'}
-                                </span>
-                            </button>
-                            {/* Status label - directly below tool name */}
+                        <IconWrench className="w-3 h-3 text-[var(--color-text-tertiary)] shrink-0" />
+                        <button
+                            className="inline-flex items-center gap-1.5 text-[10px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors min-w-0 flex-1"
+                            onClick={() => {
+                                setExpandedTraceKeys(prev => ({
+                                    ...prev,
+                                    [toolExpandedKey]: !prev[toolExpandedKey]
+                                }));
+                            }}
+                            aria-label={isToolExpanded ? 'Collapse tool' : 'Expand tool'}
+                        >
+                            <span className="font-medium truncate">{round.toolName}</span>
                             {round.status !== 'pending' && (
-                                <div className={`text-[9px] leading-tight ${round.status === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}`}>
+                                <span className={`text-[9px] shrink-0 ${round.status === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}`}>
                                     {statusLabel}
-                                </div>
+                                </span>
                             )}
-                        </div>
+                            <span className="text-[var(--color-text-tertiary)] text-[9px] shrink-0 ml-auto">
+                                {isToolExpanded ? '▼' : '▶'}
+                            </span>
+                        </button>
                     </div>
 
                     {/* Tool round content - expanded state with left border like reasoning */}
                     {isToolExpanded && (
-                        <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 ml-3 space-y-2">
+                        <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 mt-1 ml-3 space-y-2">
                             {/* Input - only show for latest round or if explicitly expanded */}
                             {(round.isLatest || isToolExpanded) && hasMeaningfulPayload(round.callArgs) && (
                                 <div>
@@ -713,6 +745,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
 
                     messages.forEach((msg, index) => {
                         const isAgent = msg.role === 'assistant';
+                        // eslint-disable-next-line react-hooks/rules-of-hooks -- this is inside a stable render closure, not a conditional
                         const isAgentError = isAgent && Boolean(msg.metadata?.isAgentError);
                         const messageType = msg.messageType || 'text';
                         const isReasoning = messageType === 'reasoning';
@@ -780,7 +813,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         const messageNode = (
                             <div
                                 key={msg.id}
-                                className={`flex ${isAgent ? 'justify-start' : 'justify-end'}`}
+                                className={`group flex ${isAgent ? 'justify-start' : 'justify-end'}`}
                             >
                                 <Card
                                     className={`
@@ -797,6 +830,20 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                             <span>{isAgentError ? 'System Agent Error' : isAgent ? 'System Agent' : 'User Command'}</span>
                                             <span>•</span>
                                             <span className="font-system text-[11px] opacity-70">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                            {!isAgent && (
+                                                <button
+                                                    type="button"
+                                                    title="Copy message"
+                                                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                                    onClick={() => {
+                                                        void navigator.clipboard.writeText(msg.content || '');
+                                                        setCopiedMsgId(msg.id);
+                                                        setTimeout(() => setCopiedMsgId(id => id === msg.id ? null : id), 1500);
+                                                    }}
+                                                >
+                                                    {copiedMsgId === msg.id ? 'Copied!' : 'Copy'}
+                                                </button>
+                                            )}
                                         </div>
                                         <div className="text-[13px] leading-6 text-[var(--color-text-primary)]">
                                             <MarkdownRenderer content={msg.content} />

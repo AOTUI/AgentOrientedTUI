@@ -590,8 +590,11 @@ private async collectMessages(): Promise<ModelMessage[]> {
                 toolsCount: Object.keys(tools).length,
             });
 
-            // 2. 调用 LLM
-            const response = await this.llmClient.call(messages, tools);
+            // 2. 调用 LLM (若配置了流式回调，实时推送增量文本/推理)
+            const response = await this.llmClient.call(messages, tools, {
+                onTextDelta: this.config.onTextDelta,
+                onReasoningDelta: this.config.onReasoningDelta,
+            });
 
             this.logger.info('LLM response:', {
                 textLength: response.text.length,
