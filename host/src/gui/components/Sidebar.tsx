@@ -16,7 +16,7 @@ interface SidebarProps {
     onSelectTopic: (topicId: string) => void;
     toggleTheme: () => void;
     onSwitchProject: () => void;
-    onOpenSettings?: (tab?: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
+    onOpenSettings?: (tab?: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
     getTopicState: (topicId: string) => string;
     getTopicPaused?: (topicId: string) => boolean;
 }
@@ -58,7 +58,7 @@ export function Sidebar({
     } = useMemo(() => {
         const sortedTopics = [...topics].sort((a, b) => (b.updatedAt ?? b.createdAt ?? 0) - (a.updatedAt ?? a.createdAt ?? 0));
         const current = sortedTopics.find((topic) => topic.id === activeTopicId) ?? null;
-        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const weekAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
 
         const remaining = sortedTopics.filter((topic) => topic.id !== activeTopicId);
         const recent = remaining.filter((topic) => (topic.updatedAt ?? topic.createdAt ?? 0) >= weekAgo);
@@ -129,11 +129,11 @@ export function Sidebar({
                         <span className="text-[12px] font-bold uppercase tracking-[0.02em]">Sessions</span>
                     </div>
                     <Button
-                        className="h-7 min-w-0 px-2.5 font-medium bg-[var(--mat-lg-clear-bg)] text-[var(--color-accent)] border border-[var(--mat-border)] hover:bg-[var(--mat-lg-regular-bg)] hover:border-[var(--mat-border-highlight)] transition-all flex items-center justify-center gap-1.5 rounded-full"
+                        className="h-7 min-w-0 px-2.5 font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20 hover:bg-[var(--color-accent)]/20 transition-all flex items-center justify-center gap-1.5 rounded-lg"
                         onClick={onNewChat}
                     >
                         <IconNewChat className="w-3.5 h-3.5" />
-                        <span className="text-[12px] leading-none">New</span>
+                        <span className="text-[12px] leading-none">New Session</span>
                     </Button>
                 </div>
             </div>
@@ -244,7 +244,7 @@ export function Sidebar({
                                 isIconOnly
                                 variant="light"
                                 size="sm"
-                                onClick={() => onOpenSettings('model')}
+                                onClick={() => onOpenSettings()}
                                 className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors data-[hover=true]:bg-transparent flex items-center justify-center"
                             >
                                 <IconSettings />

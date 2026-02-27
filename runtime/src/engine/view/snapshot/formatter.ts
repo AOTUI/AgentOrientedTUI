@@ -15,6 +15,7 @@ import type {
     FormattedSnapshotResult,
     StructuredSnapshot,
     AppStateFragment,
+    ViewStateFragment,
 } from '../../../spi/index.js';
 import { SYSTEM_INSTRUCTION, SYSTEM_INSTRUCTION_PURE, formatTimestamp, formatAppStatus } from './templates.js';
 
@@ -102,6 +103,7 @@ export class SnapshotFormatter implements ISnapshotFormatter {
 
         // 2. Build <application> sections for each running app
         const appStates: AppStateFragment[] = [];
+        const viewStates: ViewStateFragment[] = [];
         for (const fragment of fragments) {
             parts.push(this.buildApplicationSection(fragment, metadata));
 
@@ -115,6 +117,21 @@ export class SnapshotFormatter implements ISnapshotFormatter {
                 timestamp: fragment.timestamp,
                 role: appInfo?.promptRole
             });
+
+            if (fragment.views && fragment.views.length > 0) {
+                for (const view of fragment.views) {
+                    viewStates.push({
+                        appId: fragment.appId,
+                        appName: appInfo?.name ?? fragment.appId,
+                        viewId: view.viewId,
+                        viewType: view.viewType,
+                        viewName: view.viewName,
+                        markup: view.markup,
+                        timestamp: view.timestamp,
+                        role: appInfo?.promptRole,
+                    });
+                }
+            }
 
             // Merge indexMap with appId namespace
             // fragment.indexMap keys are in "viewId:refId" format
@@ -142,7 +159,8 @@ export class SnapshotFormatter implements ISnapshotFormatter {
         const structured: StructuredSnapshot = {
             systemInstruction: SYSTEM_INSTRUCTION_PURE,
             desktopState: this.buildDesktopStateOnly(metadata),
-            appStates
+            appStates,
+            viewStates,
         };
 
         return {

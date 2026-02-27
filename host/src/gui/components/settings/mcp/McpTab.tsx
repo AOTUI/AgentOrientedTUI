@@ -97,7 +97,7 @@ export const McpTab: React.FC = () => {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
                 <div>
                     <h3 className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-                        Model Context Protocol Nodes
+                        Model Context Protocol Servers
                     </h3>
                     <p className="text-[13px] text-[var(--color-text-tertiary)] mt-1">
                         Connect external tools, databases, and capabilities to your LLM using MCP servers.

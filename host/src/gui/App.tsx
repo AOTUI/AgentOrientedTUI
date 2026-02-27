@@ -2,7 +2,7 @@
  * system-chat GUI - Main App Component
  * Immersive Dark Tech Style: Glassmorphism + FUI + Subdued Colors
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useChatBridge } from './ChatBridge.js';
 import { TuiDesktopViewer } from './components/TuiDesktopViewer.js';
 import type { Topic, Message, Project } from '../types.js';
@@ -16,6 +16,8 @@ import { ChatArea } from './components/ChatArea.js';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal.js';
 import { Toast } from './components/Toast.js';
 import { SettingsPanel } from './components/settings/SettingsPanel.js';
+import type { AgentConfig } from './components/settings/agent/AgentTab.js';
+import { buildMcpToolItemKey } from '../core/source-control-keys.js';
 
 type ViewMode = 'chat' | 'tui';
 
@@ -50,7 +52,7 @@ export function App() {
     const [viewMode, setViewMode] = useState<ViewMode>('chat');
     const [isNewChat, setIsNewChat] = useState(false);
     const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
-    const [settingsInitialTab, setSettingsInitialTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills' | undefined>(undefined);
+    const [settingsInitialTab, setSettingsInitialTab] = useState<'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills' | undefined>(undefined);
 
     // Theme
     const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -71,6 +73,7 @@ export function App() {
     const [agentState, setAgentState] = useState('IDLE');
     const [agentPaused, setAgentPaused] = useState(false);
     const [displayAgentState, setDisplayAgentState] = useState<'sleeping' | 'idle' | 'working' | 'paused'>('sleeping');
+    const syncedAgentTopicIdRef = useRef<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [canSendMessage, setCanSendMessage] = useState(false);
@@ -84,6 +87,9 @@ export function App() {
     const [promptTemplates, setPromptTemplates] = useState<Array<{ id: string; name: string; content: string }>>([]);
     const [modelGroups, setModelGroups] = useState<Array<{ providerId: string; models: string[]; displayName?: string }>>([]);
     const [activeModelId, setActiveModelId] = useState<string | null>(null);
+    const [agents, setAgents] = useState<AgentConfig[]>([]);
+    const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+    const [draftAgentId, setDraftAgentId] = useState<string | null>(null);
 
     // Init Theme
     useEffect(() => {
@@ -97,7 +103,7 @@ export function App() {
     };
 
     const openSettings = (tab?: string) => {
-        if (tab) setSettingsInitialTab(tab as 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills');
+        if (tab) setSettingsInitialTab(tab as 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills');
         else setSettingsInitialTab(undefined);
         setSettingsPanelOpen(true);
     };
@@ -173,7 +179,7 @@ export function App() {
             );
 
             const configuredGroupsMap = new Map<string, Set<string>>();
-            (allConfigs || []).forEach((config) => {
+            (allConfigs || []).forEach((config: any) => {
                 const providerId = config?.providerId?.trim();
                 const model = config?.model?.trim();
                 if (!providerId || !model) {
@@ -236,11 +242,62 @@ export function App() {
         try {
             const data = await bridge.getTrpcClient().sourceControl.getDraft.query({ projectPath });
             setDraftCapabilities(data as TopicCapabilities);
+            return data as TopicCapabilities;
         } catch (error) {
             console.error('[App] Failed to load draft capabilities:', error);
             setDraftCapabilities(null);
+            return null;
         }
     }, [bridge, currentProjectId]);
+
+    /** Apply an agent's capability config to draft capabilities (source-level + item-level). */
+    const applyAgentConfigToDraftCaps = useCallback((agent: AgentConfig, caps: TopicCapabilities | null) => {
+        if (!caps) return;
+        const enabledAppsSet = new Set(agent.enabledApps || []);
+        const enabledMCPsSet = new Set(agent.enabledMCPs || []);
+        const disabledToolsSet = new Set(agent.disabledMcpTools || []);
+        const enabledSkillNames = new Set(Object.values(agent.enabledSkills || {}).flat());
+        setDraftModelOverride(agent.modelId || null);
+        setDraftPromptOverride(agent.prompt || '');
+        setDraftCapabilities({
+            ...caps,
+            apps: {
+                enabled: enabledAppsSet.size > 0,
+                items: caps.apps.items.map((item) => ({ ...item, enabled: enabledAppsSet.has(item.name) })),
+            },
+            skill: {
+                enabled: enabledSkillNames.size > 0,
+                items: caps.skill.items.map((item) => ({ ...item, enabled: enabledSkillNames.has(item.name) })),
+            },
+            mcp: {
+                enabled: enabledMCPsSet.size > 0,
+                groups: caps.mcp.groups.map((group) => ({
+                    ...group,
+                    enabled: enabledMCPsSet.has(group.serverName),
+                    items: group.items.map((item) => {
+                        const canonicalKey = buildMcpToolItemKey(group.serverName, item.name);
+                        const legacyScopedKey = `${group.serverName}::${item.name}`;
+                        const legacyUnscopedKey = item.name;
+                        const isDisabled = disabledToolsSet.has(item.key)
+                            || disabledToolsSet.has(canonicalKey)
+                            || disabledToolsSet.has(legacyScopedKey)
+                            || disabledToolsSet.has(legacyUnscopedKey);
+                        return { ...item, enabled: !isDisabled };
+                    }),
+                })),
+            },
+        });
+    }, []);
+
+    const refreshAgents = useCallback(async () => {
+        try {
+            const data = await bridge.getAgents();
+            setAgents(data.list || []);
+            setDraftAgentId(data.activeAgentId || null);
+        } catch (error) {
+            console.error('[App] Failed to load agents:', error);
+        }
+    }, [bridge]);
 
     // Helper: Time Ago
     const formatTimeAgo = (timestamp: number) => {
@@ -280,9 +337,25 @@ export function App() {
             void refreshLLMReadiness();
             void refreshPromptTemplates();
             void refreshModelGroups();
-            void refreshDraftCapabilities();
+            // Load draft caps + agents, then apply agent config if active
+            (async () => {
+                const [freshCaps, agentData] = await Promise.all([
+                    refreshDraftCapabilities(),
+                    bridge.getAgents().catch(() => null),
+                ]);
+                if (agentData) {
+                    setAgents(agentData.list || []);
+                    setDraftAgentId(agentData.activeAgentId || null);
+                    const activeAgent = agentData.activeAgentId
+                        ? (agentData.list || []).find((a: AgentConfig) => a.id === agentData.activeAgentId)
+                        : null;
+                    if (activeAgent && freshCaps) {
+                        applyAgentConfigToDraftCaps(activeAgent, freshCaps);
+                    }
+                }
+            })();
         }
-    }, [settingsPanelOpen, connected, refreshLLMReadiness, refreshPromptTemplates, refreshModelGroups, refreshDraftCapabilities]);
+    }, [settingsPanelOpen, connected, refreshLLMReadiness, refreshPromptTemplates, refreshModelGroups, refreshDraftCapabilities, bridge, applyAgentConfigToDraftCaps]);
 
     // Subscribe
     useEffect(() => {
@@ -297,6 +370,7 @@ export function App() {
                     const activeTopic = bridge.getTopic(activeId);
                     if (!activeTopic || activeTopic.projectId !== currentProjectId) {
                         setActiveTopicId(null);
+                        setSelectedAgentId(null);
                         setMessages([]);
                         setTuiSnapshot('');
                         setAgentThinking('');
@@ -310,6 +384,7 @@ export function App() {
             } else {
                 setTopics([]);
                 setActiveTopicId(null);
+                setSelectedAgentId(null);
                 setMessages([]);
                 setTuiSnapshot('');
                 setAgentThinking('');
@@ -327,6 +402,10 @@ export function App() {
             const active = bridge.getActiveTopicId();
             setActiveTopicId(active);
             if (active) {
+                if (syncedAgentTopicIdRef.current !== active) {
+                    setSelectedAgentId(bridge.getTopic(active)?.agentId || null);
+                    syncedAgentTopicIdRef.current = active;
+                }
                 setMessages([...bridge.getMessages(active)]);
                 setTuiSnapshot(bridge.getSnapshot(active));
                 setAgentThinking(bridge.getAgentThinking(active));
@@ -334,6 +413,9 @@ export function App() {
                 setAgentState(bridge.getAgentState(active));
                 setAgentPaused(bridge.isAgentPaused(active));
                 setDisplayAgentState(bridge.getDisplayAgentState(active));
+            } else {
+                syncedAgentTopicIdRef.current = null;
+                setSelectedAgentId(null);
             }
         });
 
@@ -356,11 +438,12 @@ export function App() {
     }, [viewMode, tuiSnapshot]);
 
     // Actions
-    const handleNewChat = useCallback(() => {
+    const handleNewChat = useCallback(async () => {
         if (!currentProjectId) return;
 
         setViewMode('chat');
         setIsNewChat(true);
+        bridge.clearActiveTopic();
         setActiveTopicId(null);
         setMessages([]);
         setTuiSnapshot('');
@@ -368,13 +451,21 @@ export function App() {
         setAgentReasoning('');
         setDraftModelOverride(null);
         setDraftPromptOverride('');
-        void refreshDraftCapabilities();
-    }, [currentProjectId, refreshDraftCapabilities]);
+        setSelectedAgentId(null);
+        const activeAgent = agents.find(a => a.id === draftAgentId) || null;
+        setDraftAgentId(activeAgent?.id || null);
+        // Refresh draft capabilities, then re-apply agent config if active
+        const freshCaps = await refreshDraftCapabilities();
+        if (activeAgent && freshCaps) {
+            applyAgentConfigToDraftCaps(activeAgent, freshCaps);
+        }
+    }, [currentProjectId, refreshDraftCapabilities, agents, draftAgentId, applyAgentConfigToDraftCaps, bridge]);
 
     const handleSelectTopic = useCallback((topicId: string) => {
         setIsNewChat(false);
         setDraftModelOverride(null);
         setDraftPromptOverride('');
+        setSelectedAgentId(bridge.getTopic(topicId)?.agentId || null);
         bridge.setActiveTopic(topicId);
         setActiveTopicId(topicId);
         setMessages([...bridge.getMessages(topicId)]);
@@ -422,12 +513,14 @@ export function App() {
                 {
                     modelOverride: draftModelOverride || undefined,
                     promptOverride: draftPromptOverride || undefined,
+                    agentId: draftAgentId || undefined,
                     sourceControls,
                 }
             );
             if (newTopic) {
                 currentTopicId = newTopic.id;
                 setActiveTopicId(currentTopicId);
+                setSelectedAgentId(draftAgentId);
                 setIsNewChat(false);
             } else {
                 return;
@@ -448,7 +541,7 @@ export function App() {
             setSettingsPanelOpen(true);
             await refreshLLMReadiness();
         }
-    }, [bridge, activeTopicId, currentProjectId, canSendMessage, sendBlockedReason, showToast, refreshLLMReadiness, draftCapabilities, draftModelOverride, draftPromptOverride]);
+    }, [bridge, activeTopicId, currentProjectId, canSendMessage, sendBlockedReason, showToast, refreshLLMReadiness, draftCapabilities, draftModelOverride, draftPromptOverride, draftAgentId]);
 
     const handlePauseAgent = useCallback(() => {
         if (activeTopicId) bridge.pauseAgent(activeTopicId);
@@ -463,7 +556,9 @@ export function App() {
         await bridge.deleteTopic(topicId);
 
         if (topicId === activeTopicId) {
+            bridge.clearActiveTopic();
             setActiveTopicId(null);
+            setSelectedAgentId(null);
             setMessages([]);
             setTuiSnapshot('');
             setAgentThinking('');
@@ -592,6 +687,7 @@ export function App() {
         setTopicModelOverride(modelId);
         try {
             await bridge.getTrpcClient().db.updateTopicConfig.mutate({ id: activeTopicId, modelOverride: modelId });
+            bridge.patchTopic(activeTopicId, { modelOverride: modelId });
         } catch (error) {
             console.error('[App] Failed to persist topic model override:', error);
         }
@@ -605,10 +701,110 @@ export function App() {
         setTopicPromptOverride(prompt);
         try {
             await bridge.getTrpcClient().db.updateTopicConfig.mutate({ id: activeTopicId, promptOverride: prompt });
+            bridge.patchTopic(activeTopicId, { promptOverride: prompt });
         } catch (error) {
             console.error('[App] Failed to persist topic prompt override:', error);
         }
     }, [activeTopicId, bridge]);
+
+    const handleSelectAgent = useCallback(async (agentId: string | null) => {
+        const agent = agentId ? agents.find(a => a.id === agentId) : null;
+
+        if (!activeTopicId) {
+            // ── Draft path: update local draft state ──
+            setDraftAgentId(agentId);
+            setSelectedAgentId(null);
+            if (agent) {
+                // Use the shared helper that sets source-level enabled + item-level
+                applyAgentConfigToDraftCaps(agent, draftCapabilities);
+            } else {
+                // No agent selected — reset overrides, restore defaults
+                setDraftModelOverride(null);
+                setDraftPromptOverride('');
+                void refreshDraftCapabilities();
+            }
+            return;
+        }
+
+        // ── Active topic path: persist via tRPC ──
+        try {
+            const trpc = bridge.getTrpcClient();
+            // 1. Model + prompt + agentId
+            await trpc.db.updateTopicConfig.mutate({
+                id: activeTopicId,
+                agentId: agentId || undefined,
+                modelOverride: agent?.modelId || undefined,
+                promptOverride: agent?.prompt ?? undefined,
+            });
+            setSelectedAgentId(agentId);
+            bridge.patchTopic(activeTopicId, {
+                agentId: agentId || undefined,
+                modelOverride: agent?.modelId || undefined,
+                promptOverride: agent?.prompt ?? undefined,
+            });
+
+            if (agent) {
+                // 2. Source-level toggles: enable/disable each driven source
+                const enabledAppsSet = new Set(agent.enabledApps || []);
+                const enabledSkillNames = new Set(Object.values(agent.enabledSkills || {}).flat());
+                const enabledMCPsSet = new Set(agent.enabledMCPs || []);
+                const disabledToolsSet = new Set(agent.disabledMcpTools || []);
+
+                await trpc.sourceControl.setSourceEnabled.mutate({ id: activeTopicId, source: 'apps', enabled: enabledAppsSet.size > 0 });
+                await trpc.sourceControl.setSourceEnabled.mutate({ id: activeTopicId, source: 'skill', enabled: enabledSkillNames.size > 0 });
+                await trpc.sourceControl.setSourceEnabled.mutate({ id: activeTopicId, source: 'mcp', enabled: enabledMCPsSet.size > 0 });
+
+                // 3. Item-level toggles
+                const currentCaps = topicCapabilities;
+                if (currentCaps) {
+                    for (const item of currentCaps.apps.items) {
+                        const shouldEnable = enabledAppsSet.has(item.name);
+                        if (item.enabled !== shouldEnable) {
+                            await trpc.sourceControl.setItemEnabled.mutate({
+                                id: activeTopicId, source: 'apps', itemName: item.name, enabled: shouldEnable,
+                            });
+                        }
+                    }
+                    for (const item of currentCaps.skill.items) {
+                        const shouldEnable = enabledSkillNames.has(item.name);
+                        if (item.enabled !== shouldEnable) {
+                            await trpc.sourceControl.setItemEnabled.mutate({
+                                id: activeTopicId, source: 'skill', itemName: item.name, enabled: shouldEnable,
+                            });
+                        }
+                    }
+                    for (const group of currentCaps.mcp.groups) {
+                        const serverShouldEnable = enabledMCPsSet.has(group.serverName);
+                        if (group.enabled !== serverShouldEnable) {
+                            await trpc.sourceControl.setItemEnabled.mutate({
+                                id: activeTopicId, source: 'mcp', itemName: group.key, enabled: serverShouldEnable,
+                            });
+                        }
+                        for (const item of group.items) {
+                            const canonicalKey = buildMcpToolItemKey(group.serverName, item.name);
+                            const legacyScopedKey = `${group.serverName}::${item.name}`;
+                            const legacyUnscopedKey = item.name;
+                            const toolShouldEnable = !(
+                                disabledToolsSet.has(item.key)
+                                || disabledToolsSet.has(canonicalKey)
+                                || disabledToolsSet.has(legacyScopedKey)
+                                || disabledToolsSet.has(legacyUnscopedKey)
+                            );
+                            if (item.enabled !== toolShouldEnable) {
+                                await trpc.sourceControl.setItemEnabled.mutate({
+                                    id: activeTopicId, source: 'mcp', itemName: item.key, enabled: toolShouldEnable,
+                                });
+                            }
+                        }
+                    }
+                }
+                // Refresh capabilities after batch updates
+                await refreshTopicCapabilities(activeTopicId);
+            }
+        } catch (error) {
+            console.error('[App] Failed to apply agent config:', error);
+        }
+    }, [activeTopicId, bridge, agents, topicCapabilities, draftCapabilities, refreshTopicCapabilities, refreshDraftCapabilities, applyAgentConfigToDraftCaps]);
 
     const handleApplyPromptTemplate = useCallback((templateId: string) => {
         const template = promptTemplates.find((item) => item.id === templateId);
@@ -747,6 +943,9 @@ export function App() {
                                 topicPrompt={activeTopicId ? topicPromptOverride : draftPromptOverride}
                                 onChangeTopicPrompt={handleChangeTopicPrompt}
                                 onApplyPromptTemplate={handleApplyPromptTemplate}
+                                agents={agents}
+                                selectedAgentId={activeTopicId ? selectedAgentId : draftAgentId}
+                                onSelectAgent={handleSelectAgent}
                             />
                         ) : (
                             <div className="absolute inset-0 rounded-2xl overflow-hidden border border-transparent">

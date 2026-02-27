@@ -79,6 +79,19 @@ export interface ISnapshotFragment {
     readonly timestamp?: number;
 
     /**
+     * View 级别片段（可选）
+     *
+     * 由 Worker Runtime 计算并推送，支持细粒度时间排序。
+     */
+    readonly views?: ReadonlyArray<{
+        viewId: string;
+        viewType: string;
+        viewName?: string;
+        markup: string;
+        timestamp: number;
+    }>;
+
+    /**
      * [RFC-007] View tree markdown for Application Info section
      *
      * Format:

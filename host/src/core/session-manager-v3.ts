@@ -204,7 +204,53 @@ export class SessionManagerV3 extends EventEmitter {
             throw new Error('No active LLM config found. Please configure an LLM provider first.');
         }
 
-        const modelOverride = topic?.modelOverride?.trim();
+        // [Agent Customization] Apply Agent Snapshot if agentId is present
+        let effectiveModelOverride = topic?.modelOverride?.trim();
+        let effectivePromptOverride = topic?.promptOverride?.trim();
+        let effectiveSourceControls = topic?.sourceControls;
+
+        if (topic?.agentId) {
+            const config = await Config.get();
+            const agents = (config as any).agents || { list: [] };
+            const agent = agents.list.find((a: any) => a.id === topic.agentId);
+            if (agent) {
+                if (agent.modelId) effectiveModelOverride = agent.modelId;
+                if (agent.prompt) effectivePromptOverride = agent.prompt;
+                
+                // Merge agent tools into effectiveSourceControls
+                const mergedControls: any = { ...effectiveSourceControls };
+                
+                // 1. Apps
+                if (agent.enabledApps && Array.isArray(agent.enabledApps)) {
+                    // We don't have direct access to app registry here, so we'll just enable the category
+                    // and let the source handle it if possible, or just enable all for now
+                    mergedControls.apps = {
+                        enabled: true,
+                        disabledItems: []
+                    };
+                }
+                
+                // 2. Skills
+                if (agent.enabledSkills && Object.keys(agent.enabledSkills).length > 0) {
+                    mergedControls.skill = {
+                        enabled: true,
+                        disabledItems: []
+                    };
+                }
+                
+                // 3. MCPs
+                if (agent.enabledMCPs && Array.isArray(agent.enabledMCPs)) {
+                    mergedControls.mcp = {
+                        enabled: true,
+                        disabledItems: []
+                    };
+                }
+                
+                effectiveSourceControls = mergedControls;
+            }
+        }
+
+        const modelOverride = effectiveModelOverride;
         const effectiveLLMConfig = await (async () => {
             if (!modelOverride) return llmConfig;
 
@@ -296,7 +342,7 @@ export class SessionManagerV3 extends EventEmitter {
             };
         })();
 
-        const effectiveSystemPrompt = topic?.promptOverride?.trim() || this.getSystemPrompt();
+        const effectiveSystemPrompt = effectivePromptOverride || this.getSystemPrompt();
 
         // 3. 创建 DrivenSources
         const systemPromptSource = new SystemPromptDrivenSource({

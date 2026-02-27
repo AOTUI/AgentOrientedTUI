@@ -151,15 +151,13 @@ In GUIs, **pages** organize visual information for human eyes. In TUIs, **Views*
 
 **Example Structure:**
 ```xml
-<application id="wechat" name="WeChat">
-  <view id="contacts" name="Contact List">
-    <!-- Contact data here -->
-  </view>
-  
-  <view id="chat_wills" name="Chat with Wills">
-    <!-- Conversation data here -->
-  </view>
-</application>
+\<view id="contacts" type="ContactList" name="Contact List" app_id="wechat" app_name="WeChat"\>
+  \<!-- Contact data here --\>
+\</view\>
+
+\<view id="chat_wills" type="ChatDetail" name="Chat with Wills" app_id="wechat" app_name="WeChat"\>
+  \<!-- Conversation data here --\>
+\</view\>
 ```
 
 ### Principle 2: Markdown as the Rendering Language
@@ -226,25 +224,23 @@ Let's walk through a complete TUI interaction:
 The application sends this TUI snapshot to the LLM:
 
 ```xml
-<application id="wechat" name="WeChat Messenger">
-  <view id="contacts" name="Contact List">
-    ## Contacts (3 total)
-    
-    - [Wills Guo](Contact:contacts[0]) — Online
-    - [Emma Chen](Contact:contacts[1]) — Away  
-    - [Alex Johnson](Contact:contacts[2]) — Offline
-    
-    ### Available Operations
-    - **Open Chat**: Select a contact to start conversation
-    - **Search**: `search_contacts(query: string)`
-  </view>
-</application>
+\<view id="contacts" type="ContactList" name="Contact List" app_id="wechat" app_name="WeChat Messenger"\>
+  ## Contacts (3 total)
 
-<tools>
+  - [Wills Guo](Contact:contacts[0]) — Online
+  - [Emma Chen](Contact:contacts[1]) — Away  
+  - [Alex Johnson](Contact:contacts[2]) — Offline
+
+  ### Available Operations
+  - **Open Chat**: Select a contact to start conversation
+  - **Search**: `search_contacts(query: string)`
+\</view\>
+
+\<tools\>
   - open_chat(contact: Contact) — Opens 1-on-1 chat view
   - send_message(recipient: Contact, message: string) — Sends a message
   - search_contacts(query: string) — Filters contact list
-</tools>
+\</tools\>
 ```
 
 ### Step 2: LLM Decides to Act
@@ -279,18 +275,16 @@ The application:
 The application sends an updated snapshot:
 
 ```xml
-<application id="wechat" name="WeChat Messenger">
-  <view id="chat_wills" name="Chat with Wills Guo">
-    ## Conversation with [Wills](Contact:contacts[0])
-    
-    ### Messages
-    - [You](User:currentUser): Hello! — *Just now*
-    
-    ### Available Operations
-    - **Send Message**: `send_message(message: string)` (recipient auto-filled)
-    - **Back to Contacts**: `close_view()`
-  </view>
-</application>
+\<view id="chat_wills" type="ChatDetail" name="Chat with Wills Guo" app_id="wechat" app_name="WeChat Messenger"\>
+  ## Conversation with [Wills](Contact:contacts[0])
+
+  ### Messages
+  - [You](User:currentUser): Hello! — *Just now*
+
+  ### Available Operations
+  - **Send Message**: `send_message(message: string)` (recipient auto-filled)
+  - **Back to Contacts**: `close_view()`
+\</view\>
 ```
 
 **Notice:**
@@ -324,12 +318,12 @@ The application sends an updated snapshot:
 }
 
 // The View updates automatically:
-<view id="chat">
+\<view id="chat"\>
   ### Messages (Showing 1-50 of 200)
   - [Message 1](Message:messages[0])
   - [Message 2](Message:messages[1])
   ...
-</view>
+\</view\>
 ```
 
 **Rationale:**
@@ -352,7 +346,7 @@ The LLM doesn't need to "track" changes; it simply processes the latest snapshot
 Unlike GUIs where context is implicit (cursor position, focused element), TUI context must be **explicit**:
 
 ```markdown
-<view id="chat_wills">
+\<view id="chat_wills"\>
   ## Active Context
   - **Chatting with**: [Wills Guo](Contact:contacts[0])
   - **Current Topic**: Project deadline discussion
@@ -360,7 +354,7 @@ Unlike GUIs where context is implicit (cursor position, focused element), TUI co
   ### Quick Actions
   - `send_message(message: string)` — No need to specify recipient
   - `share_file()` — Will share with Wills automatically
-</view>
+\</view\>
 ```
 
 The application tracks context, reducing cognitive load for the LLM.
@@ -384,26 +378,26 @@ You might wonder: *"If we're building for text-only LLMs, why use HTML/JavaScrip
 ```
 ┌─────────────────────────────────────────┐
 │  Developer Writes: React/Preact JSX    │
-│  <View id="contacts">                   │
-│    <Operation name="send_message">      │
-│  </View>                                │
+│  \<View id="contacts"\>                   │
+│    \<Operation name="send_message"\>      │
+│  \</View\>                                │
 └────────────┬────────────────────────────┘
              │
              ▼
 ┌─────────────────────────────────────────┐
 │  Runtime Renders: HTML in Worker       │
-│  <div id="contacts" data-view="...">    │
-│    <button data-operation="...">        │
-│  </div>                                 │
+│  \<div id="contacts" data-view="..."\>    │
+│    \<button data-operation="..."\>        │
+│  \</div\>                                 │
 └────────────┬────────────────────────────┘
              │
              ▼
 ┌─────────────────────────────────────────┐
 │  Transformer Converts: Markdown TUI     │
-│  <view id="contacts">                   │
+│  \<view id="contacts"\>                   │
 │    ## Contacts                          │
 │    - [Wills](Contact:contacts[0])       │
-│  </view>                                │
+│  \</view\>                                │
 └────────────┬────────────────────────────┘
              │
              ▼
@@ -436,7 +430,7 @@ In a conversation with an LLM:
   },
   {
     "role": "user",
-    "content": "<application>...</application>\n\nUser request: Send a message to Wills"
+    "content": "\<view id=\"chat_wills\" type=\"ChatDetail\" name=\"Chat with Wills\" app_id=\"wechat\" app_name=\"WeChat\"\>...\</view\>\n\nUser request: Send a message to Wills"
   }
 ]
 ```

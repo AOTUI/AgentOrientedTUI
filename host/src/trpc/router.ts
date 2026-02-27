@@ -66,6 +66,7 @@ const dbRouter = router({
             projectId: z.string().optional(),
             modelOverride: z.string().optional(),
             promptOverride: z.string().optional(),
+            agentId: z.string().optional(),
             contextCompaction: z.object({
                 enabled: z.boolean().optional(),
                 minMessages: z.number().int().positive().optional(),
@@ -90,6 +91,7 @@ const dbRouter = router({
                 projectId: input.projectId,
                 modelOverride: input.modelOverride,
                 promptOverride: input.promptOverride,
+                agentId: input.agentId,
                 contextCompaction: input.contextCompaction,
                 sourceControls: input.sourceControls,
             };
@@ -118,6 +120,7 @@ const dbRouter = router({
             id: z.string(),
             modelOverride: z.string().optional(),
             promptOverride: z.string().optional(),
+            agentId: z.string().optional(),
             contextCompaction: z.object({
                 enabled: z.boolean().optional(),
                 minMessages: z.number().int().positive().optional(),
@@ -134,6 +137,7 @@ const dbRouter = router({
             db.updateTopic(input.id, {
                 modelOverride: input.modelOverride,
                 promptOverride: input.promptOverride,
+                agentId: input.agentId,
                 contextCompaction: input.contextCompaction,
                 sourceControls: input.sourceControls,
                 updatedAt: Date.now(),
@@ -965,6 +969,48 @@ const promptTemplateSchema = z.object({
     updatedAt: z.number().optional(),
 });
 
+const agentConfigSchema = z.object({
+    id: z.string(),
+    name: z.string().min(1).max(120),
+    prompt: z.string(),
+    modelId: z.string(),
+    enabledApps: z.array(z.string()),
+    enabledSkills: z.record(z.string(), z.array(z.string())),
+    enabledMCPs: z.array(z.string()),
+    disabledMcpTools: z.array(z.string()).optional().default([]),
+    skin: z.object({
+        working: z.string().optional(),
+        idle: z.string().optional(),
+        sleeping: z.string().optional(),
+        pause: z.string().optional(),
+    }),
+});
+
+const agentsRouter = router({
+    getAgents: publicProcedure
+        .query(async () => {
+            const config = await Config.getGlobal();
+            return {
+                list: config.agents?.list ?? [],
+                activeAgentId: config.agents?.activeAgentId ?? null,
+            };
+        }),
+    saveAgents: publicProcedure
+        .input(z.object({
+            list: z.array(agentConfigSchema),
+            activeAgentId: z.string().nullable(),
+        }))
+        .mutation(async ({ input }) => {
+            await Config.updateGlobal({
+                agents: {
+                    list: input.list,
+                    activeAgentId: input.activeAgentId ?? undefined,
+                },
+            });
+            return { success: true };
+        }),
+});
+
 const promptsRouter = router({
     getTemplates: publicProcedure
         .query(async () => {
@@ -1012,6 +1058,7 @@ export const appRouter = router({
     skills: skillsRouter,
     sourceControl: sourceControlRouter,
     prompts: promptsRouter,
+    agents: agentsRouter,
 });
 
 export type AppRouter = typeof appRouter;

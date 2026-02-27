@@ -174,4 +174,116 @@ describe('AOTUIDrivenSource type tool routing', () => {
         const result = await source.executeTool('app_1.editor.open_file', {}, 'call_3');
         expect(result?.error?.code).toBe('E_SOURCE_DISABLED');
     });
+
+    it('emits view-level messages when structured.viewStates exists', async () => {
+        const kernel = {
+            acquireSnapshot: vi.fn().mockResolvedValue({
+                id: 'snap_4',
+                createdAt: 1705305600000,
+                structured: {
+                    desktopState: 'desktop-state',
+                    appStates: [
+                        { appId: 'app_1', appName: 'system_ide', markup: 'APP-MARKUP', timestamp: 1705305601000 },
+                    ],
+                    viewStates: [
+                        {
+                            appId: 'app_1',
+                            appName: 'system_ide',
+                            viewId: 'workspace',
+                            viewType: 'Workspace',
+                            viewName: 'Workspace',
+                            markup: '<view id="workspace">Workspace Content</view>',
+                            timestamp: 1705305602000,
+                        },
+                        {
+                            appId: 'app_1',
+                            appName: 'system_ide',
+                            viewId: 'fd_0',
+                            viewType: 'FileDetail',
+                            viewName: 'File Detail',
+                            markup: '<view id="fd_0">FileA Content</view>',
+                            timestamp: 1705305603000,
+                        }
+                    ]
+                },
+                indexMap: {},
+            }),
+            releaseSnapshot: vi.fn(),
+            acquireLock: vi.fn(),
+            releaseLock: vi.fn(),
+            execute: vi.fn(),
+            getSystemToolDefinitions: vi.fn().mockReturnValue([]),
+        } as any;
+
+        const desktop = {
+            id: 'desktop_4',
+            output: {
+                subscribe: vi.fn(),
+                unsubscribe: vi.fn(),
+            },
+        } as any;
+
+        const source = new AOTUIDrivenSource(desktop, kernel, { includeInstruction: false });
+        const messages = await source.getMessages();
+
+        expect(messages).toHaveLength(3);
+        expect(messages[0]?.content).toBe('desktop-state');
+        expect(messages[1]?.timestamp).toBe(1705305602000);
+        expect(String(messages[1]?.content)).toContain('<view id="workspace" type="Workspace" name="Workspace" app_id="app_1" app_name="system_ide">');
+        expect(String(messages[1]?.content)).toContain('Workspace Content</view>');
+        expect((String(messages[1]?.content).match(/<view\b/gi) || []).length).toBe(1);
+        expect(messages[2]?.timestamp).toBe(1705305603000);
+        expect(String(messages[2]?.content)).toContain('<view id="fd_0" type="FileDetail" name="File Detail" app_id="app_1" app_name="system_ide">');
+
+        const combinedContent = messages.map((message) => String(message.content)).join('\n');
+        expect(combinedContent).not.toContain('APP-MARKUP');
+        expect(combinedContent).not.toContain('<View ');
+    });
+
+    it('escapes XML attributes in view-level message wrapper', async () => {
+        const kernel = {
+            acquireSnapshot: vi.fn().mockResolvedValue({
+                id: 'snap_5',
+                createdAt: 1705305600000,
+                structured: {
+                    desktopState: 'desktop-state',
+                    appStates: [],
+                    viewStates: [
+                        {
+                            appId: 'app_1',
+                            appName: 'sys"ide<prod>',
+                            viewId: 'fd_"0',
+                            viewType: 'File&Detail',
+                            viewName: 'File"Detail<One>',
+                            markup: '<view id="fd_0">Escaped</view>',
+                            timestamp: 1705305605000,
+                        }
+                    ]
+                },
+                indexMap: {},
+            }),
+            releaseSnapshot: vi.fn(),
+            acquireLock: vi.fn(),
+            releaseLock: vi.fn(),
+            execute: vi.fn(),
+            getSystemToolDefinitions: vi.fn().mockReturnValue([]),
+        } as any;
+
+        const desktop = {
+            id: 'desktop_5',
+            output: {
+                subscribe: vi.fn(),
+                unsubscribe: vi.fn(),
+            },
+        } as any;
+
+        const source = new AOTUIDrivenSource(desktop, kernel, { includeInstruction: false });
+        const messages = await source.getMessages();
+
+        expect(messages).toHaveLength(2);
+        const wrapper = String(messages[1]?.content);
+        expect(wrapper).toContain('<view id="fd_&quot;0" type="File&amp;Detail" name="File&quot;Detail&lt;One&gt;"');
+        expect(wrapper).toContain('app_name="sys&quot;ide&lt;prod&gt;"');
+        expect(wrapper).not.toContain('<View ');
+    });
 });
