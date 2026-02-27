@@ -247,6 +247,19 @@ export interface SnapshotFragmentPush {
     markup: string;
     /** Partial IndexMap (app-scoped paths) */
     indexMap: Record<string, DataPayload>;
+
+    /**
+     * View 级片段
+     *
+     * 每个 View 独立维护 timestamp，支持消息按 View 更新时间排序。
+     */
+    views?: Array<{
+        viewId: ViewID;
+        viewType: string;
+        viewName?: string;
+        markup: string;
+        timestamp: number;
+    }>;
     /**
      * [RFC-007] View tree markdown for Application Info section
      * 

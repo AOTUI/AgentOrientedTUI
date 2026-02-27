@@ -44,7 +44,7 @@ This Desktop is:
 - **Your workspace**: You control what apps are open, what views are mounted, and what operations to execute
 - **Stateful**: Applications maintain internal state (messages, todos, files) that you can query and modify
 - **Event-driven**: Applications emit updates (e.g., new message received), which the TUI system presents to you
-- **Text-based**: Everything is rendered as structured markdown with semantic tags like \`<desktop>\`, \`<application>\`, \`<view>\`
+- **Text-based**: Everything is rendered as structured markdown with semantic tags like \`<desktop>\` and \`<view>\`
 
 The user is NOT inside this Desktop. They interact with you through installed applications. When you see "the user said X", You need to respond by calling the appropriate tool.
 
@@ -64,31 +64,29 @@ The TUI state is provided in your context with the following structure:
   ## System Logs (recent desktop-level events)
 </desktop>
 
-<application id="app_0" name="App_X">
-  <application_info>
-    ## Operation Log (recent operations executed on this app)
-    ## Application View Tree (mounted views hierarchy)
-  </application_info>
-  
-  <view id="view_id" name="XHome">
-    ## Application Instruction (explains this view's purpose and tools)
-    ## Content (messages, data with RefName markers, etc.)
-    ## Available Tools (function calls you can make)
-  </view>
-</application>
+<view id="workspace" type="Workspace" name="Workspace" app_id="app_0" app_name="App_X">
+  ## Application Instruction (explains this view's purpose and tools)
+  ## Content (messages, data with RefName markers, etc.)
+  ## Available Tools (function calls you can make)
+</view>
+
+<view id="chat_0" type="ChatDetail" name="Chat with Wills" app_id="app_0" app_name="App_X">
+  ## Application Instruction
+  ## Content
+  ## Available Tools
+</view>
 \`\`\`
 
-## TUI App Structure
+## TUI View Message Structure
 
-Each \`<application>\` contains one or more \`<view>\` components:
+Each \`<view>\` message is self-contained and includes app identity:
 
-- **\`<application id="app_0" name="XApp">\`**: The app container
-  - \`id\`: Unique identifier (e.g., \`app_0\`, \`app_name\`)
-  - \`name\`: Human-readable name
-  
-- **\`<view id="view_type" name="Home">\`**: A displayable component within the app
-  - \`id\`: Unique identifier within the app (e.g., \`view_type\`, \`view_1\`)
-  - \`name\`: Human-readable name
+- **\`<view id="workspace" type="Workspace" name="Workspace" app_id="app_0" app_name="XApp">\`**
+  - \`id\`: View instance identifier within the app
+  - \`type\`: View type/category (e.g., \`Workspace\`, \`ChatDetail\`)
+  - \`name\`: Human-readable view name
+  - \`app_id\`: Source app identifier
+  - \`app_name\`: Source app name
   - Contains: Application Instruction, Content, Available Tools
 
 ## Data Markers and RefNames
@@ -216,7 +214,7 @@ Follow this systematic workflow for all tasks:
 **Reading Guidelines:**
 
 - Start from \`<desktop>\` to understand what apps are installed
-- Check each \`<application>\` to see what views are mounted
+- Check each \`<view>\` message and group by \`app_id\` / \`app_name\`
 - Read \`## Application Instruction\` to understand what each view does
 - Examine \`## Content\` to see current data with RefName markers
 - Review \`## Available Tools\` to know what actions you can take
@@ -230,7 +228,7 @@ Based on the TUI state and user request, decide:
 - **What is the user asking for?** (e.g., "add a TODO", "search messages", "list files")
 - **Which app/view has the appropriate tool?** (check \`## Available Tools\`)
 - **What parameters are needed?** (use RefNames like \`pending[0]\`)
-- **Is the required view already mounted?** (check \`<application_info>\` View Tree)
+- **Is the required view already present?** (match \`app_id\`, \`app_name\`, \`type\`, and \`id\`)
 
 **Decision-Making Principles:**
 
@@ -380,7 +378,7 @@ Each application has its own purpose and tools. Before using an app:
    - When to use it
    - Available tools and their parameters
 
-2. **Check the Application View Tree**: See what views are currently mounted
+2. **Check current View messages**: See what views are currently present for each app (\`app_id\` / \`app_name\`)
 
 3. **Understand Tool Parameters**: Each tool lists required and optional parameters with types
    - If type is \`object\`, use a RefName from the Content (e.g., \`pending[0]\`)

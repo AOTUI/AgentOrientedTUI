@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Card, CardBody } from "@heroui/card";
-import { IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconMCP, IconBrain, IconPrompt, IconWrench } from './Icons.js';
+import { IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconPlug, IconBrain, IconPrompt, IconWrench } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import type { Message } from '../../types.js';
@@ -42,7 +42,7 @@ interface ChatAreaProps {
     onSendMessage: (content: string) => void;
     canSendMessage?: boolean;
     sendBlockedReason?: string | null;
-    onOpenSettings?: (tab?: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
+    onOpenSettings?: (tab?: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
     displayAgentState?: DisplayAgentState;
     onPauseAgent?: () => void;
     onResumeAgent?: () => void;
@@ -57,6 +57,9 @@ interface ChatAreaProps {
     topicPrompt?: string | null;
     onChangeTopicPrompt?: (prompt: string) => void;
     onApplyPromptTemplate?: (templateId: string) => void;
+    agents?: Array<{ id: string; name: string; skin?: any }>;
+    selectedAgentId?: string | null;
+    onSelectAgent?: (agentId: string | null) => void;
 }
 
 type ToolTraceStep = {
@@ -186,14 +189,14 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent, topicCapabilities = null, onToggleCapabilityGroup, onToggleCapabilityItem, capabilityHint = null, modelGroups = [], selectedModel = null, onSelectModel, promptTemplates = [], topicPrompt = '', onChangeTopicPrompt, onApplyPromptTemplate }: ChatAreaProps) {
+export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent, topicCapabilities = null, onToggleCapabilityGroup, onToggleCapabilityItem, capabilityHint = null, modelGroups = [], selectedModel = null, onSelectModel, promptTemplates = [], topicPrompt = '', onChangeTopicPrompt, onApplyPromptTemplate, agents = [], selectedAgentId = null, onSelectAgent }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const capPanelRef = useRef<HTMLDivElement>(null);
     const [inputValue, setInputValue] = React.useState('');
     const [expandedTraceKeys, setExpandedTraceKeys] = React.useState<Record<string, boolean>>({});
-    const [openCapPanel, setOpenCapPanel] = React.useState<'model' | 'prompt' | 'apps' | 'skills' | 'mcp' | null>(null);
+    const [openCapPanel, setOpenCapPanel] = React.useState<'agent' | 'model' | 'prompt' | 'apps' | 'skills' | 'mcp' | null>(null);
     const [modelSearch, setModelSearch] = React.useState('');
     const [promptSearch, setPromptSearch] = React.useState('');
 
@@ -209,7 +212,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         return () => document.removeEventListener('mousedown', handleOutside);
     }, [openCapPanel]);
 
-    const toggleCapPanel = (panel: 'model' | 'prompt' | 'apps' | 'skills' | 'mcp') => {
+    const toggleCapPanel = (panel: 'agent' | 'model' | 'prompt' | 'apps' | 'skills' | 'mcp') => {
         setOpenCapPanel(prev => prev === panel ? null : panel);
     };
 
@@ -873,7 +876,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         />
                         {/* Content layer — sibling of the backdrop-filter div, not nested inside it.
                             Popovers here can freely blur the actual page background. */}
-                        <div className="relative flex flex-col">
+                        <div ref={capPanelRef} className="relative flex flex-col">
                         {/* ── Agent Controls Section ── */}
                         <div
                             data-testid="agent-control-pill"
@@ -894,6 +897,67 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 {displayAgentState === 'paused' && (
                                     <IconAgentPaused className="w-7 h-7 text-[var(--color-warning,#FF9F0A)]" />
                                 )}
+
+                                {/* Agent Switcher */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => toggleCapPanel('agent')}
+                                        className={`h-7 max-w-[120px] px-2 rounded-full text-[11px] inline-flex items-center justify-start gap-1.5 transition-all duration-200 hover:scale-105
+                                            ${openCapPanel === 'agent'
+                                                ? 'bg-[var(--color-accent)] text-white'
+                                                : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]'}`}
+                                        aria-label="Agent"
+                                    >
+                                        <span className="truncate leading-none">
+                                            {agents?.find(a => a.id === selectedAgentId)?.name || 'No Agent'}
+                                        </span>
+                                    </button>
+
+                                    {openCapPanel === 'agent' && (
+                                        <div className="absolute bottom-[52px] left-0 w-[240px] rounded-2xl p-3 z-40" style={popoverMaterialStyle}>
+                                            <div className="text-[12px] font-medium text-[var(--color-text-primary)] mb-2">Agent</div>
+                                            <div className="mb-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)]">
+                                                <span aria-hidden="true" className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-[var(--mat-border)] text-[9px] leading-none">i</span>
+                                                <span>Select an agent for this topic.</span>
+                                            </div>
+
+                                            <div className="space-y-1 max-h-[200px] overflow-y-auto pr-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        onSelectAgent?.(null);
+                                                        setOpenCapPanel(null);
+                                                    }}
+                                                    className={`w-full text-left text-[11px] px-2 py-1.5 rounded-md transition-colors ${!selectedAgentId
+                                                        ? 'bg-[var(--color-accent)] text-white'
+                                                        : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-bg)]'
+                                                        }`}
+                                                >
+                                                    No Agent (Use Global Config)
+                                                </button>
+                                                {agents?.map((agent) => {
+                                                    const active = selectedAgentId === agent.id;
+                                                    return (
+                                                        <button
+                                                            key={agent.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                onSelectAgent?.(agent.id);
+                                                                setOpenCapPanel(null);
+                                                            }}
+                                                            className={`w-full text-left text-[11px] px-2 py-1.5 rounded-md transition-colors ${active
+                                                                ? 'bg-[var(--color-accent)] text-white'
+                                                                : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-bg)]'
+                                                                }`}
+                                                        >
+                                                            {agent.name}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Pause / Resume — hidden while sleeping */}
                                 {displayAgentState !== 'sleeping' && (
@@ -925,7 +989,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                             </div>
 
                             {/* Right: Control */}
-                            <div ref={capPanelRef} className="relative flex items-center gap-1">
+                            <div className="relative flex items-center gap-1">
                                     <div className="relative">
                                         <button
                                             onClick={() => toggleCapPanel('model')}
@@ -1194,7 +1258,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                                     : 'text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)]'}`}
                                             aria-label="MCP"
                                         >
-                                            <IconMCP className="w-4 h-4" />
+                                            <IconPlug className="w-4 h-4" />
                                         </button>
 
                                         {openCapPanel === 'mcp' && (() => {

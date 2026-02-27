@@ -119,7 +119,19 @@ export interface IDesktop {
      * 
      * @returns 所有 App 的 Snapshot Fragments
      */
-    getSnapshotFragments(): { appId: AppID; markup: string; indexMap: Record<string, unknown>; viewTree?: string }[];
+    getSnapshotFragments(): {
+        appId: AppID;
+        markup: string;
+        indexMap: Record<string, unknown>;
+        views?: Array<{
+            viewId: ViewID;
+            viewType: string;
+            viewName?: string;
+            markup: string;
+            timestamp: number;
+        }>;
+        viewTree?: string;
+    }[];
 
     /**
      * 获取 App 信息

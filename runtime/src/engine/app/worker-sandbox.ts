@@ -135,7 +135,19 @@ export class WorkerSandbox {
      * 
      * [RFC-007] Added viewTree for Application View Tree section
      */
-    getSnapshotFragment(): { markup: string; indexMap: Record<string, DataPayload>; viewTree?: string; timestamp?: number } | null {
+    getSnapshotFragment(): {
+        markup: string;
+        indexMap: Record<string, DataPayload>;
+        views?: Array<{
+            viewId: ViewID;
+            viewType: string;
+            viewName?: string;
+            markup: string;
+            timestamp: number;
+        }>;
+        viewTree?: string;
+        timestamp?: number;
+    } | null {
         return this.workerHost?.getSnapshotFragment() ?? null;
     }
 

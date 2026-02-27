@@ -82,7 +82,7 @@ export type { UpdateSignal } from './signals.js';
 // ============================================================================
 // Snapshot
 // ============================================================================
-export type { CachedSnapshot, StructuredSnapshot, AppStateFragment } from './snapshot.js';
+export type { CachedSnapshot, StructuredSnapshot, AppStateFragment, ViewStateFragment } from './snapshot.js';
 export { isSnapshotExpired } from './snapshot.js';
 
 // ============================================================================

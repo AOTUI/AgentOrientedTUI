@@ -28,6 +28,14 @@ export interface SnapshotFragment {
     markup: string;
     /** 索引映射表 (用于 Operation 参数解析) */
     indexMap: Record<string, unknown>;
+    /** View 级片段（可选） */
+    views?: Array<{
+        viewId: ViewID;
+        viewType: string;
+        viewName?: string;
+        markup: string;
+        timestamp: number;
+    }>;
     /** 更新时间戳 (用于排序) */
     timestamp?: number;
 }

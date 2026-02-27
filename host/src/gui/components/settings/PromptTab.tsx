@@ -27,6 +27,12 @@ export const PromptTab: React.FC = () => {
     const [templates, setTemplates] = useState<PromptTemplate[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    /** Tracks the id of a newly created (unsaved) template */
+    const [unsavedId, setUnsavedId] = useState<string | null>(null);
+    /** Tracks whether a dirty edit has been made to a saved template */
+    const [isDirty, setIsDirty] = useState(false);
+    /** Tracks delete-confirmation state */
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     useEffect(() => {
         const load = async () => {
@@ -45,8 +51,9 @@ export const PromptTab: React.FC = () => {
 
     const selectedIndex = useMemo(() => templates.findIndex((item) => item.id === selectedId), [templates, selectedId]);
     const selected = selectedIndex >= 0 ? templates[selectedIndex] : null;
+    const isSelectedUnsaved = unsavedId != null && selectedId === unsavedId;
 
-    const saveTemplates = async (nextTemplates: PromptTemplate[]) => {
+    const persistTemplates = async (nextTemplates: PromptTemplate[]) => {
         setTemplates(nextTemplates);
         setSaving(true);
         try {
@@ -56,6 +63,26 @@ export const PromptTab: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleSave = async () => {
+        const sorted = [...templates].sort((a, b) => a.name.localeCompare(b.name));
+        await persistTemplates(sorted);
+        setUnsavedId(null);
+        setIsDirty(false);
+    };
+
+    const handleDelete = async (id: string) => {
+        const next = templates.filter((item) => item.id !== id);
+        if (id === unsavedId) {
+            setTemplates(next);
+            setUnsavedId(null);
+        } else {
+            await persistTemplates(next);
+        }
+        setSelectedId(next[0]?.id ?? null);
+        setConfirmDeleteId(null);
+        setIsDirty(false);
     };
 
     if (loading) {
@@ -76,13 +103,16 @@ export const PromptTab: React.FC = () => {
                     type="button"
                     onClick={() => {
                         const created = createTemplate();
-                        const next = [...templates, created].sort((a, b) => a.name.localeCompare(b.name));
-                        void saveTemplates(next);
+                        const next = [...templates, created];
+                        setTemplates(next);
                         setSelectedId(created.id);
+                        setUnsavedId(created.id);
+                        setIsDirty(false);
                     }}
-                    className="px-3 py-1.5 rounded-lg bg-[var(--mat-content-card-hover-bg)] border border-[var(--mat-border)] text-[12px]"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 text-[12px] font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-all"
                 >
-                    Add Template
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 4v16m8-8H4" /></svg>
+                    Add Prompt
                 </button>
                 {saving && <span className="text-[11px] text-[var(--color-text-tertiary)]">Saving…</span>}
             </div>
@@ -98,13 +128,18 @@ export const PromptTab: React.FC = () => {
                             {templates.map((template) => (
                                 <div
                                     key={template.id}
-                                    onClick={() => setSelectedId(template.id)}
+                                    onClick={() => { setSelectedId(template.id); setConfirmDeleteId(null); }}
                                     className={`w-full px-3 py-2 rounded-xl border cursor-pointer transition-all duration-200 ${selectedId === template.id
                                         ? 'bg-[var(--mat-content-card-hover-bg)] border-[var(--mat-border-highlight)]'
                                         : 'bg-transparent border-transparent hover:bg-[var(--mat-content-card-hover-bg)] hover:border-[var(--mat-border)]'
                                         }`}
                                 >
-                                    <div className="text-[13px] text-[var(--color-text-primary)] truncate">{template.name}</div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[13px] text-[var(--color-text-primary)] truncate">{template.name}</span>
+                                        {template.id === unsavedId && (
+                                            <span className="text-[9px] text-[var(--color-accent)] border border-[var(--color-accent)]/30 rounded px-1">new</span>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -125,8 +160,8 @@ export const PromptTab: React.FC = () => {
                                         ? { ...item, name: event.target.value, updatedAt: Date.now() }
                                         : item);
                                     setTemplates(next);
+                                    if (!isSelectedUnsaved) setIsDirty(true);
                                 }}
-                                onBlur={() => void saveTemplates(templates)}
                                 className="w-full bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] rounded-lg px-3 py-2 text-[13px]"
                                 placeholder="Template name"
                             />
@@ -137,23 +172,55 @@ export const PromptTab: React.FC = () => {
                                         ? { ...item, content: event.target.value, updatedAt: Date.now() }
                                         : item);
                                     setTemplates(next);
+                                    if (!isSelectedUnsaved) setIsDirty(true);
                                 }}
-                                onBlur={() => void saveTemplates(templates)}
                                 rows={12}
                                 className="w-full bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] rounded-lg px-3 py-2 text-[13px] resize-y"
                                 placeholder="Template content"
                             />
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const next = templates.filter((item) => item.id !== selected.id);
-                                    void saveTemplates(next);
-                                    setSelectedId(next[0]?.id ?? null);
-                                }}
-                                className="px-3 py-1.5 rounded-lg border border-[var(--color-danger)]/40 text-[var(--color-danger)] text-[12px]"
-                            >
-                                Delete Template
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {/* Save button: visible for unsaved new template or dirty edits */}
+                                {(isSelectedUnsaved || isDirty) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => void handleSave()}
+                                        disabled={saving}
+                                        className="px-4 py-1.5 rounded-lg bg-[var(--color-accent)] text-white text-[12px] font-medium hover:bg-[var(--color-accent)]/90 transition-colors disabled:opacity-50"
+                                    >
+                                        {saving ? 'Saving…' : 'Save'}
+                                    </button>
+                                )}
+                                {/* Delete button: only for saved templates */}
+                                {!isSelectedUnsaved && (
+                                    confirmDeleteId === selected.id ? (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[12px] text-[var(--color-danger)]">Delete this template?</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleDelete(selected.id)}
+                                                className="px-3 py-1 rounded-lg bg-[var(--color-danger)] text-white text-[12px] font-medium hover:bg-[var(--color-danger)]/90 transition-colors"
+                                            >
+                                                Confirm
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfirmDeleteId(null)}
+                                                className="px-3 py-1 rounded-lg border border-[var(--mat-border)] text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfirmDeleteId(selected.id)}
+                                            className="px-3 py-1.5 rounded-lg border border-[var(--color-danger)]/40 text-[var(--color-danger)] text-[12px] hover:bg-[var(--color-danger)]/10 transition-colors"
+                                        >
+                                            Delete
+                                        </button>
+                                    )
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

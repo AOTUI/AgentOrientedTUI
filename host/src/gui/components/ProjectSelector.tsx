@@ -17,7 +17,7 @@ interface ProjectSelectorProps {
     onSelectProject: (projectId: string) => void;
     toggleTheme: () => void;
     theme: 'dark' | 'light';
-    onOpenSettings?: (tab?: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
+    onOpenSettings?: (tab?: 'agent' | 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
 }
 
 // \u786e\u5b9a\u6027\u9879\u76ee\u989c\u8272\uff0c\u57fa\u4e8e\u9879\u76ee\u540d\u5b57\u9996\u5b57\u6bcd charCode
@@ -191,7 +191,7 @@ export function ProjectSelector({ onSelectProject, toggleTheme, theme, onOpenSet
                     <div className="flex items-center gap-2">
                         {onOpenSettings && (
                             <button
-                                onClick={() => onOpenSettings('model')}
+                                onClick={() => onOpenSettings('agent')}
                                 className={`p-2 rounded-full transition-colors ${
                                     theme === 'light'
                                         ? 'cursor-pointer text-[var(--color-text-primary)] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)] shadow-[inset_0_1px_0_var(--mat-inset-highlight)] hover:bg-[var(--mat-content-card-hover-bg)] hover:border-[var(--mat-border-highlight)]'

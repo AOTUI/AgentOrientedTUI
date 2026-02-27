@@ -272,6 +272,19 @@ function migrateSchema() {
         }
     }
 
+    // Topic agent override
+    try {
+        db.exec("SELECT agent_id FROM topics LIMIT 1");
+    } catch {
+        console.log('[DB] Migrating: Adding agent_id to topics table');
+        try {
+            db.run("ALTER TABLE topics ADD COLUMN agent_id TEXT DEFAULT NULL");
+            saveToDisk();
+        } catch (alterError) {
+            console.error('[DB] Migration failed:', alterError);
+        }
+    }
+
     // Topic source controls snapshot
     try {
         db.exec("SELECT source_controls FROM topics LIMIT 1");
@@ -353,6 +366,7 @@ function rowToTopic(row: any): Topic {
         projectId: row.project_id ?? undefined,
         modelOverride: row.model_override ?? undefined,
         promptOverride: row.prompt_override ?? undefined,
+        agentId: row.agent_id ?? undefined,
         sourceControls: (() => {
             if (!row.source_controls) return undefined;
             try {
@@ -435,12 +449,12 @@ function queryOne<T>(sql: string, params: any[] = [], mapper: (row: any) => T): 
 export function createTopic(topic: Topic): void {
     const db = getDb();
     db.run(`
-        INSERT INTO topics (id, title, created_at, updated_at, status, summary, stage, last_snapshot_time, project_id, model_override, prompt_override, source_controls, context_compaction_controls)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO topics (id, title, created_at, updated_at, status, summary, stage, last_snapshot_time, project_id, model_override, prompt_override, agent_id, source_controls, context_compaction_controls)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
         topic.id, topic.title, topic.createdAt, topic.updatedAt, topic.status,
         topic.summary ?? null, topic.stage ?? null, topic.lastSnapshotTime ?? null, topic.projectId ?? null,
-        topic.modelOverride ?? null, topic.promptOverride ?? null, topic.sourceControls ? JSON.stringify(topic.sourceControls) : null,
+        topic.modelOverride ?? null, topic.promptOverride ?? null, topic.agentId ?? null, topic.sourceControls ? JSON.stringify(topic.sourceControls) : null,
         topic.contextCompaction ? JSON.stringify(topic.contextCompaction) : null
     ]);
     saveToDisk();
@@ -468,6 +482,7 @@ export function updateTopic(id: string, updates: Partial<Topic>): void {
     if (updates.projectId !== undefined) { fields.push('project_id = ?'); values.push(updates.projectId); }
     if (updates.modelOverride !== undefined) { fields.push('model_override = ?'); values.push(updates.modelOverride); }
     if (updates.promptOverride !== undefined) { fields.push('prompt_override = ?'); values.push(updates.promptOverride); }
+    if (updates.agentId !== undefined) { fields.push('agent_id = ?'); values.push(updates.agentId); }
     if (updates.sourceControls !== undefined) { fields.push('source_controls = ?'); values.push(updates.sourceControls ? JSON.stringify(updates.sourceControls) : null); }
     if (updates.contextCompaction !== undefined) { fields.push('context_compaction_controls = ?'); values.push(updates.contextCompaction ? JSON.stringify(updates.contextCompaction) : null); }
 

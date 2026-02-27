@@ -21,6 +21,23 @@ export interface AppStateFragment {
 }
 
 /**
+ * View 状态片段
+ *
+ * 用于 View 级别的消息粒度与时间排序。
+ */
+export interface ViewStateFragment {
+    appId: string;
+    appName: string;
+    viewId: string;
+    viewType: string;
+    viewName?: string;
+    markup: string;
+    timestamp?: number;
+    /** [RFC-014] 消息角色 (user/assistant) */
+    role?: 'user' | 'assistant';
+}
+
+/**
  * [RFC-014] 结构化快照 - 语义分离的内容片段
  * 
  * 将 TUI 状态按语义分离为：
@@ -37,6 +54,9 @@ export interface StructuredSnapshot {
 
     /** When - 各 App 的当前状态 */
     appStates: AppStateFragment[];
+
+    /** When - 各 View 的当前状态（细粒度） */
+    viewStates?: ViewStateFragment[];
 }
 
 /**

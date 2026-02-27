@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { IconModel, IconTheme, IconPlug, IconFolder, IconTerminal, IconPencil } from '../Icons.js';
+import { IconTheme, IconPlug, IconApps, IconSkills, IconPrompt, IconAgentIdle, IconBrain } from '../Icons.js';
 import type { SettingsSidebarProps } from './types.js';
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange }) => {
@@ -34,6 +34,22 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
             role="tablist"
             aria-label="Settings navigation"
         >
+            {/* Agent Tab Button */}
+            <button
+                onClick={() => onTabChange('agent')}
+                role="tab"
+                aria-selected={activeTab === 'agent'}
+                aria-controls="agent-tab-panel"
+                id="agent-tab"
+                className={`${baseBtnClass} ${activeTab === 'agent' ? activeBtnClass : inactiveBtnClass}`}
+            >
+                <IconAgentIdle
+                    className={`w-4 h-4 ${activeTab === 'agent' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
+                    aria-hidden="true"
+                />
+                <span className={`text-[13px] ${activeTab === 'agent' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>Agent</span>
+            </button>
+
             {/* Model Tab Button */}
             <button
                 onClick={() => onTabChange('model')}
@@ -43,7 +59,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 id="model-tab"
                 className={`${baseBtnClass} ${activeTab === 'model' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconModel
+                <IconBrain
                     className={`w-4 h-4 ${activeTab === 'model' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
@@ -59,7 +75,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 id="prompt-tab"
                 className={`${baseBtnClass} ${activeTab === 'prompt' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconPencil
+                <IconPrompt
                     className={`w-4 h-4 ${activeTab === 'prompt' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
@@ -75,7 +91,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 id="apps-tab"
                 className={`${baseBtnClass} ${activeTab === 'apps' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconFolder
+                <IconApps
                     className={`w-4 h-4 ${activeTab === 'apps' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />
@@ -91,7 +107,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                 id="skills-tab"
                 className={`${baseBtnClass} ${activeTab === 'skills' ? activeBtnClass : inactiveBtnClass}`}
             >
-                <IconTerminal
+                <IconSkills
                     className={`w-4 h-4 ${activeTab === 'skills' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
                     aria-hidden="true"
                 />

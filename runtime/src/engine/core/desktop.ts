@@ -314,10 +314,36 @@ export class Desktop implements IDesktop {
      * 
      * @returns Snapshot Fragments from all apps, or empty array
      */
-    getSnapshotFragments(): { appId: AppID; markup: string; indexMap: Record<string, unknown>; viewTree?: string; timestamp?: number }[] {
+    getSnapshotFragments(): {
+        appId: AppID;
+        markup: string;
+        indexMap: Record<string, unknown>;
+        views?: Array<{
+            viewId: ViewID;
+            viewType: string;
+            viewName?: string;
+            markup: string;
+            timestamp: number;
+        }>;
+        viewTree?: string;
+        timestamp?: number;
+    }[] {
         if (this._disposed) throw new AOTUIError('DESKTOP_DISPOSED', { desktopId: this.id });
 
-        const fragments: { appId: AppID; markup: string; indexMap: Record<string, unknown>; viewTree?: string; timestamp?: number }[] = [];
+        const fragments: {
+            appId: AppID;
+            markup: string;
+            indexMap: Record<string, unknown>;
+            views?: Array<{
+                viewId: ViewID;
+                viewType: string;
+                viewName?: string;
+                markup: string;
+                timestamp: number;
+            }>;
+            viewTree?: string;
+            timestamp?: number;
+        }[] = [];
         for (const [appId, worker] of this.appManager.getAllWorkers()) {
             const fragment = worker.getSnapshotFragment();
             if (fragment) {
@@ -325,6 +351,7 @@ export class Desktop implements IDesktop {
                     appId,
                     markup: fragment.markup,
                     indexMap: fragment.indexMap,
+                    views: fragment.views,
                     viewTree: fragment.viewTree,  // [RFC-007]
                     timestamp: fragment.timestamp,
                 });

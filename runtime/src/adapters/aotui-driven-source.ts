@@ -127,6 +127,39 @@ export class AOTUIDrivenSource implements IDrivenSource {
     private disabledApps = new Set<string>();
     private listeners = new Set<() => void>();
 
+    private escapeAttr(value: string): string {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    private buildViewMessageMarkup(view: {
+        appId?: string;
+        appName?: string;
+        viewId?: string;
+        viewType?: string;
+        viewName?: string;
+        markup: string;
+    }): string {
+        const viewId = view.viewId || 'unknown';
+        const viewType = view.viewType || 'Unknown';
+        const viewName = view.viewName || view.viewType || view.viewId || 'Unknown';
+        const appId = view.appId || 'unknown';
+        const appName = view.appName || 'unknown';
+
+        const attrs = `id="${this.escapeAttr(viewId)}" type="${this.escapeAttr(viewType)}" name="${this.escapeAttr(viewName)}" app_id="${this.escapeAttr(appId)}" app_name="${this.escapeAttr(appName)}"`;
+        const rawMarkup = String(view.markup || '').trim();
+
+        if (/^<view\b/i.test(rawMarkup)) {
+            const normalizedOpen = `<view ${attrs}>`;
+            return rawMarkup.replace(/^<view\b[^>]*>/i, normalizedOpen);
+        }
+
+        return `<view ${attrs}>\n${rawMarkup}\n</view>`;
+    }
+
     constructor(
         private desktop: IDesktop,
         private kernel: IKernel,
@@ -256,6 +289,38 @@ export class AOTUIDrivenSource implements IDrivenSource {
                         content: snapshot.structured.desktopState,
                         timestamp: desktopTimestamp
                     });
+                }
+
+                const hasViewStates = Array.isArray(snapshot.structured.viewStates)
+                    && snapshot.structured.viewStates.length > 0;
+
+                if (hasViewStates) {
+                    for (const view of snapshot.structured.viewStates!) {
+                        const viewAppId = this.normalizeAppKey((view as any).appId);
+                        const viewAppName = this.normalizeAppKey((view as any).appName)
+                            || this.normalizeAppKey(this.resolveAppName(viewAppId));
+
+                        if (!this.isAppAllowed(viewAppId, viewAppName)) {
+                            continue;
+                        }
+
+                        const wrappedView = this.buildViewMessageMarkup({
+                            appId: view.appId || viewAppId || 'unknown',
+                            appName: view.appName || viewAppName || viewAppId || 'unknown',
+                            viewId: view.viewId,
+                            viewType: view.viewType,
+                            viewName: (view as any).viewName,
+                            markup: view.markup,
+                        });
+
+                        messages.push({
+                            role: 'user',
+                            content: wrappedView,
+                            timestamp: view.timestamp ?? baseTimestamp,
+                        });
+                    }
+
+                    return messages;
                 }
 
                 for (const fragment of snapshot.structured.appStates) {

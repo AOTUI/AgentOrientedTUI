@@ -95,6 +95,25 @@ export interface Info {
     }
     [key: string]: unknown
   }
+  agents?: {
+    list: Array<{
+      id: string
+      name: string
+      prompt: string
+      modelId: string
+      enabledApps: string[]
+      enabledSkills: Record<string, string[]>
+      enabledMCPs: string[]
+      disabledMcpTools?: string[]
+      skin: {
+        working?: string
+        idle?: string
+        sleeping?: string
+        pause?: string
+      }
+    }>
+    activeAgentId?: string | null
+  }
   [key: string]: unknown
 }
 

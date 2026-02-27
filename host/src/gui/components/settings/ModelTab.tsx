@@ -478,13 +478,10 @@ export const ModelTab: React.FC = () => {
                         {selectedCustomProviderId ? (
                             <button
                                 onClick={() => setShowAddModelForSelected(true)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium
-                                    border border-[var(--mat-border)]
-                                    text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]
-                                    hover:border-[var(--color-accent)]/40 hover:bg-[var(--mat-content-card-hover-bg)]
-                                    transition-all duration-150"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 text-[12px] font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-all"
                             >
-                                + Add Model
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 4v16m8-8H4" /></svg>
+                                Add Model
                             </button>
                         ) : (
                             <ModelSearchBar

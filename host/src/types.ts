@@ -87,6 +87,8 @@ export interface Topic {
     modelOverride?: string;
     /** Topic-level prompt override (stored as plain text snapshot) */
     promptOverride?: string;
+    /** Topic-level agent override */
+    agentId?: string;
     /** Topic-level capability/source control override snapshot */
     sourceControls?: {
         apps: { enabled: boolean; disabledItems: string[] };

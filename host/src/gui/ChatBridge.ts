@@ -206,7 +206,6 @@ export class ChatBridge {
                 // New message broadcast (from Agent response or other sources)
                 const newMsg = msg.message as Message;
                 const topicId = msg.desktopId;
-                this.touchTopic(topicId, newMsg.timestamp || Date.now());
                 const msgs = this.messages.get(topicId) || [];
 
                 // Dedup: check if message already exists (optimistic update may have added it)
@@ -264,6 +263,7 @@ export class ChatBridge {
         options?: {
             modelOverride?: string;
             promptOverride?: string;
+            agentId?: string;
             sourceControls?: {
                 apps: { enabled: boolean; disabledItems: string[] };
                 mcp: { enabled: boolean; disabledItems: string[] };
@@ -277,6 +277,7 @@ export class ChatBridge {
                 projectId,
                 modelOverride: options?.modelOverride,
                 promptOverride: options?.promptOverride,
+                agentId: options?.agentId,
                 sourceControls: options?.sourceControls,
             });
             this.topics.set(topic.id, topic);
@@ -316,7 +317,6 @@ export class ChatBridge {
             const msgs = this.messages.get(topicId) || [];
             msgs.push(optimisticMessage);
             this.messages.set(topicId, msgs);
-            this.touchTopic(topicId, optimisticMessage.timestamp);
             this.notify({ type: 'message', topicId, data: optimisticMessage });
 
             // [Fix] Race Condition: Give tRPC Subscription a moment to establish handshake
@@ -463,6 +463,17 @@ export class ChatBridge {
         return this.topics.get(topicId);
     }
 
+    patchTopic(topicId: string, patch: Partial<Topic>): void {
+        const current = this.topics.get(topicId);
+        if (!current) return;
+        this.topics.set(topicId, {
+            ...current,
+            ...patch,
+            updatedAt: Date.now(),
+        });
+        this.notify({ type: 'topic', topicId });
+    }
+
     getMessages(topicId: string): Message[] {
         const msgs = this.messages.get(topicId) || [];
         return this.normalizeMessages(msgs);
@@ -486,6 +497,11 @@ export class ChatBridge {
 
     getActiveTopicId(): string | null {
         return this.activeTopicId;
+    }
+
+    clearActiveTopic(): void {
+        this.activeTopicId = null;
+        this.notify({ type: 'topic' });
     }
 
     async setActiveTopic(topicId: string): Promise<void> {
@@ -526,18 +542,6 @@ export class ChatBridge {
 
     private notify(event: ChatUpdateEvent): void {
         this.subscribers.forEach(cb => cb(event));
-    }
-
-    private touchTopic(topicId: string, updatedAt: number = Date.now()): void {
-        const topic = this.topics.get(topicId);
-        if (!topic) {
-            return;
-        }
-
-        this.topics.set(topicId, {
-            ...topic,
-            updatedAt,
-        });
     }
 
     // ============ Utilities ============
@@ -663,7 +667,6 @@ export class ChatBridge {
             }
         }
 
-        const normalizedText = textParts.join('\n').trim();
         const reasoningBlock = reasoning ? `Reasoning:\n${reasoning}` : '';
 
         // 决定消息类型
@@ -687,7 +690,6 @@ export class ChatBridge {
                     toolCallId: toolCalls[0].toolCallId,
                     args: toolCalls[0].args,
                     input: toolCalls[0].input,
-                    text: normalizedText || undefined,
                     reasoning: reasoning || undefined
                 }
             };
@@ -826,7 +828,6 @@ export class ChatBridge {
 
         // Build displayable content from parts
         const contentParts: string[] = [];
-        const textParts: string[] = [];
         let reasoning = '';
         let hasToolCalls = false;
         let firstToolCall: { toolName?: string; toolCallId?: string; args?: unknown } | null = null;
@@ -835,7 +836,6 @@ export class ChatBridge {
         for (const part of parts) {
             if (part.partType === 'text') {
                 contentParts.push(part.textContent);
-                textParts.push(part.textContent);
             } else if (part.partType === 'reasoning') {
                 reasoning = part.textContent;
                 contentParts.push(`💭 Thinking: ${part.textContent}`);
@@ -878,7 +878,6 @@ export class ChatBridge {
                         toolCallId: firstToolCall.toolCallId,
                         args: firstToolCall.args,
                         input: firstToolCall.args,
-                        text: textParts.join('\n').trim() || undefined,
                     }
                     : {}),
                 ...(firstToolResult
@@ -1113,38 +1112,30 @@ export class ChatBridge {
         return this.getTrpcClient().llmConfig.customProvidersList.query();
     }
 
-    async createCustomProvider(input: {
-        id?: string;
-        name: string;
-        baseUrl: string;
-        protocol: 'openai' | 'anthropic';
-        apiKey?: string;
-    }): Promise<any> {
+    async createCustomProvider(input: { name: string; baseUrl: string; protocol: 'openai' | 'anthropic'; apiKey?: string }): Promise<any> {
         return this.getTrpcClient().llmConfig.customProvidersCreate.mutate(input);
     }
 
-    async updateCustomProvider(id: string, data: {
-        name?: string;
-        baseUrl?: string;
-        protocol?: 'openai' | 'anthropic';
-        apiKey?: string;
-    }): Promise<any> {
+    async updateCustomProvider(id: string, data: { name?: string; baseUrl?: string; protocol?: 'openai' | 'anthropic'; apiKey?: string }): Promise<any> {
         return this.getTrpcClient().llmConfig.customProvidersUpdate.mutate({ id, data });
     }
 
-    async deleteCustomProvider(id: string): Promise<void> {
-        await this.getTrpcClient().llmConfig.customProvidersDelete.mutate({ id });
+    async deleteCustomProvider(id: string): Promise<any> {
+        return this.getTrpcClient().llmConfig.customProvidersDelete.mutate({ id });
     }
 
-    async createCustomModelConfig(input: {
-        customProviderId: string;
-        modelId: string;
-        name?: string;
-        temperature?: number;
-        maxSteps?: number;
-        setActive?: boolean;
-    }): Promise<any> {
+    async createCustomModelConfig(input: { customProviderId: string; modelId: string; name?: string; temperature?: number; maxSteps?: number; setActive?: boolean }): Promise<any> {
         return this.getTrpcClient().llmConfig.customModelConfigsCreate.mutate(input);
+    }
+
+    // ============ Agents Methods ============
+
+    async getAgents(): Promise<{ list: any[]; activeAgentId: string | null }> {
+        return this.getTrpcClient().agents.getAgents.query();
+    }
+
+    async saveAgents(list: any[], activeAgentId: string | null): Promise<any> {
+        return this.getTrpcClient().agents.saveAgents.mutate({ list, activeAgentId });
     }
 }
 

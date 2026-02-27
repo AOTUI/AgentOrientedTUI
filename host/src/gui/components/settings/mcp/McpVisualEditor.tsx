@@ -13,7 +13,7 @@
  * - Tool Enable/Disable → setToolEnabled mutation（写 config 中 disabledTools）
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { IconDelete, IconNewChat, IconPlug } from '../../Icons.js';
+import { IconDelete, IconPlug } from '../../Icons.js';
 import { buildMcpServerItemKey } from '../../../../core/source-control-keys.js';
 
 // ── 类型定义 ──────────────────────────────────────────────────────────────────
@@ -415,10 +415,11 @@ export const McpVisualEditor: React.FC<McpVisualEditorProps> = ({
                         <span className="text-[10px] font-semibold text-[var(--color-text-tertiary)] tracking-[0.05em]">Servers</span>
                         <button
                             onClick={handleAddServer}
-                            className="p-1 hover:bg-[var(--mat-content-card-hover-bg)] rounded-full text-[var(--color-accent)] transition-colors"
-                            title="Import MCP JSON"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 text-[11px] font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-all"
+                            title="Add MCP Server"
                         >
-                            <IconNewChat className="w-3.5 h-3.5" />
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 4v16m8-8H4" /></svg>
+                            Add Server
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-1.5 flex flex-col gap-0.5">

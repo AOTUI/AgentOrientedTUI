@@ -100,6 +100,13 @@ export class AppWorkerHost {
     private snapshotFragment: {
         markup: string;
         indexMap: Record<string, DataPayload>;
+        views?: Array<{
+            viewId: ViewID;
+            viewType: string;
+            viewName?: string;
+            markup: string;
+            timestamp: number;
+        }>;
         viewTree?: string;  // [RFC-007]
         timestamp: number;
     } | null = null;
@@ -229,11 +236,24 @@ export class AppWorkerHost {
      * 
      * [RFC-007] Added viewTree for Application View Tree section
      */
-    getSnapshotFragment(): { markup: string; indexMap: Record<string, DataPayload>; viewTree?: string; timestamp?: number } | null {
+    getSnapshotFragment(): {
+        markup: string;
+        indexMap: Record<string, DataPayload>;
+        views?: Array<{
+            viewId: ViewID;
+            viewType: string;
+            viewName?: string;
+            markup: string;
+            timestamp: number;
+        }>;
+        viewTree?: string;
+        timestamp?: number;
+    } | null {
         if (!this.snapshotFragment) return null;
         return {
             markup: this.snapshotFragment.markup,
             indexMap: this.snapshotFragment.indexMap,
+            views: this.snapshotFragment.views,
             viewTree: this.snapshotFragment.viewTree,  // [RFC-007]
             timestamp: (this.snapshotFragment as any).timestamp, // propagate fragment recency
         };
@@ -501,6 +521,7 @@ export class AppWorkerHost {
                 this.snapshotFragment = {
                     markup: fragment.markup,
                     indexMap: fragment.indexMap,
+                    views: fragment.views,
                     viewTree: fragment.viewTree,  // [RFC-007]
                     timestamp: fragment.timestamp,
                 };

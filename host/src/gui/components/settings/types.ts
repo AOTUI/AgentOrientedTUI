@@ -24,7 +24,7 @@ export interface SettingsPanelProps {
     /** Current selected project path (optional) */
     currentProjectPath?: string | null;
     /** If provided, the panel will open on this tab */
-    initialTab?: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+    initialTab?: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
 }
 
 /**
@@ -32,7 +32,7 @@ export interface SettingsPanelProps {
  */
 export interface SettingsPanelState {
     /** Currently active tab */
-    activeTab: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+    activeTab: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
 }
 
 /**
@@ -42,9 +42,9 @@ export interface SettingsPanelState {
  */
 export interface SettingsSidebarProps {
     /** Currently active tab */
-    activeTab: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+    activeTab: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
     /** Callback when tab changes */
-    onTabChange: (tab: 'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
+    onTabChange: (tab: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
 }
 
 /**

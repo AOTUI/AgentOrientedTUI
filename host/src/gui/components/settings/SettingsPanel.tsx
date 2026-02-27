@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SettingsSidebar } from './SettingsSidebar.js';
 import { ModelTab } from './ModelTab.js';
+import { AgentTab } from './agent/AgentTab.js';
 import { PromptTab } from './PromptTab.js';
 import { ThemeTab } from './ThemeTab.js';
 import { McpTab } from './mcp/McpTab.js';
@@ -50,13 +51,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     currentProjectPath,
     initialTab,
 }) => {
-    // State - default to 'model' tab
-    const [activeTab, setActiveTab] = useState<'model' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>('model');
+    // State - default to 'agent' tab (first in sidebar)
+    const [activeTab, setActiveTab] = useState<'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>('agent');
 
     // Update activeTab when panel opens or initialTab changes
     useEffect(() => {
         if (isOpen) {
-            setActiveTab(initialTab ?? 'model');
+            setActiveTab(initialTab ?? 'agent');
         }
     }, [isOpen, initialTab]);
 
@@ -190,8 +191,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 ref={panelRef}
                 className={`
                     relative w-full no-drag
-                    max-w-[1000px] min-w-[320px]
-                    max-h-[720px] h-[85vh]
+                    max-w-[1100px] min-w-[320px]
+                    max-h-[800px] h-[88vh]
                     mx-4 sm:mx-6
                     mat-lg-regular
                     rounded-[20px]
@@ -232,6 +233,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             className="transition-opacity duration-200 ease-in-out min-h-0 flex-1 overflow-y-auto"
                         >
                             {activeTab === 'model' && <ModelTab />}
+                            {activeTab === 'agent' && <AgentTab projectPath={currentProjectPath} onSwitchTab={(tab) => setActiveTab(tab as typeof activeTab)} />}
                             {activeTab === 'prompt' && <PromptTab />}
                             {activeTab === 'theme' && (
                                 <ThemeTab

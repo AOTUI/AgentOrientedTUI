@@ -128,5 +128,61 @@ describe('SnapshotFormatter', () => {
             const result = formatter.format([fragment], mockMetadata);
             expect(result.structured.appStates[0]?.timestamp).toBe(1705305602000);
         });
+
+        it('should export view-level fragments into structured viewStates', () => {
+            const metadataWithRole: IDesktopMetadata = {
+                getInstalledApps: () => [{
+                    appId: 'app_0',
+                    name: 'IDE',
+                    status: 'running',
+                    promptRole: 'user'
+                }],
+                getSystemLogs: () => [],
+                getAppOperationLogs: () => []
+            };
+
+            const fragment: ISnapshotFragment = {
+                appId: 'app_0',
+                markup: '<application id="app_0" name="IDE"></application>',
+                indexMap: {},
+                views: [
+                    {
+                        viewId: 'workspace',
+                        viewType: 'Workspace',
+                        viewName: 'Workspace',
+                        markup: '<view id="workspace">Workspace Content</view>',
+                        timestamp: 1705305603000
+                    },
+                    {
+                        viewId: 'fd_0',
+                        viewType: 'FileDetail',
+                        viewName: 'File Detail',
+                        markup: '<view id="fd_0">File A Content</view>',
+                        timestamp: 1705305604000
+                    }
+                ]
+            };
+
+            const formatter = new SnapshotFormatter();
+            const result = formatter.format([fragment], metadataWithRole);
+
+            expect(result.structured.viewStates).toHaveLength(2);
+            expect(result.structured.viewStates?.[0]).toMatchObject({
+                appId: 'app_0',
+                appName: 'IDE',
+                viewId: 'workspace',
+                viewType: 'Workspace',
+                timestamp: 1705305603000,
+                role: 'user'
+            });
+            expect(result.structured.viewStates?.[1]).toMatchObject({
+                appId: 'app_0',
+                appName: 'IDE',
+                viewId: 'fd_0',
+                viewType: 'FileDetail',
+                timestamp: 1705305604000,
+                role: 'user'
+            });
+        });
     });
 });
