@@ -83,11 +83,14 @@ export interface GuiUpdateEvent {
     topicId: string;
 
     /** 事件类型 */
-    type: 'assistant' | 'tool' | 'user' | 'agent_state' | 'agent_paused' | 'agent_resumed';
+    type: 'assistant' | 'tool' | 'user' | 'agent_state' | 'agent_paused' | 'agent_resumed' | 'text_delta' | 'reasoning_delta';
 
     /** 消息内容 (AI SDK v6 ModelMessage) */
     message?: ModelMessage;
 
     /** Agent 状态 (thinking/executing/idle) */
     state?: string;
+
+    /** 增量文本 (仅 text_delta 事件) */
+    delta?: string;
 }

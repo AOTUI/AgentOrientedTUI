@@ -406,6 +406,22 @@ export class SessionManagerV3 extends EventEmitter {
             onToolResult: (message) => {
                 this.handleMessage(topicId, 'tool', message);
             },
+            onTextDelta: (delta) => {
+                const event: GuiUpdateEvent = {
+                    topicId,
+                    type: 'text_delta',
+                    delta,
+                };
+                this.emit('message', event);
+            },
+            onReasoningDelta: (delta) => {
+                const event: GuiUpdateEvent = {
+                    topicId,
+                    type: 'reasoning_delta',
+                    delta,
+                };
+                this.emit('message', event);
+            },
             onLLMUsage: (usage) => {
                 const payload = { content: undefined, reasoning: undefined };
                 const meta = {

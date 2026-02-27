@@ -198,6 +198,27 @@ export interface AgentDriverV2Config {
     onStateChange?: (oldState: AgentState, newState: AgentState) => void;
 
     /**
+     * Text Delta 事件监听器 (流式输出)
+     *
+     * 当 LLM 逐 token 输出文本时触发，用于实现流式渲染。
+     * 每次回调包含一个增量文本片段 (delta)。
+     * 完整的 assistant message 仍通过 onAssistantMessage 在流结束后触发。
+     *
+     * @param delta - 增量文本片段
+     */
+    onTextDelta?: (delta: string) => void;
+
+    /**
+     * Reasoning Delta 事件监听器 (流式推理输出)
+     *
+     * 当 LLM 逐 token 输出推理/思考过程时触发（如 Claude extended thinking）。
+     * 每次回调包含一个增量推理文本片段 (delta)。
+     *
+     * @param delta - 增量推理文本片段
+     */
+    onReasoningDelta?: (delta: string) => void;
+
+    /**
      * 工作循环错误监听器
      *
      * 当 AgentDriver 在 run loop 中遇到异常（如 LLM 调用失败、网络异常等）时触发。

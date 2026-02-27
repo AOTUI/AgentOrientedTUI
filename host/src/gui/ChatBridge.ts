@@ -37,6 +37,8 @@ export class ChatBridge {
     private agentPaused: Map<string, boolean> = new Map();  // [RFC-014]
     private agentThoughts: Map<string, string> = new Map();
     private agentReasoning: Map<string, string> = new Map();
+    private streamingTexts: Map<string, string> = new Map();
+    private streamingReasonings: Map<string, string> = new Map();
     private subscribers: Set<ChatSubscriber> = new Set();
     private activeTopicId: string | null = null;
 
@@ -486,12 +488,18 @@ export class ChatBridge {
 
     getAgentThinking(topicId: string): string {
         const state = this.agentStates.get(topicId);
+        // 流式输出文本优先显示
+        const streamingText = this.streamingTexts.get(topicId) || '';
+        if (streamingText) return streamingText;
         const thought = this.agentThoughts.get(topicId) || '';
         if (thought) return thought;
         return state === 'THINKING' || state === 'EXECUTING' ? 'Agent is thinking...' : '';
     }
 
     getAgentReasoning(topicId: string): string {
+        // 流式推理文本优先显示
+        const streaming = this.streamingReasonings.get(topicId) || '';
+        if (streaming) return streaming;
         return this.agentReasoning.get(topicId) || '';
     }
 
@@ -680,6 +688,8 @@ export class ChatBridge {
 
             const content = [reasoningBlock, toolDetails].filter(Boolean).join('\n\n');
 
+            const textBlock = textParts.join('\n').trim();
+
             // Tool call 消息
             return {
                 ...m,
@@ -690,7 +700,8 @@ export class ChatBridge {
                     toolCallId: toolCalls[0].toolCallId,
                     args: toolCalls[0].args,
                     input: toolCalls[0].input,
-                    reasoning: reasoning || undefined
+                    reasoning: reasoning || undefined,
+                    text: textBlock || undefined
                 }
             };
         }
@@ -832,10 +843,12 @@ export class ChatBridge {
         let hasToolCalls = false;
         let firstToolCall: { toolName?: string; toolCallId?: string; args?: unknown } | null = null;
         let firstToolResult: { toolName?: string; toolCallId?: string; result?: unknown; isError?: boolean } | null = null;
+        const textOnlyParts: string[] = [];
 
         for (const part of parts) {
             if (part.partType === 'text') {
                 contentParts.push(part.textContent);
+                textOnlyParts.push(part.textContent);
             } else if (part.partType === 'reasoning') {
                 reasoning = part.textContent;
                 contentParts.push(`💭 Thinking: ${part.textContent}`);
@@ -864,6 +877,7 @@ export class ChatBridge {
         }
 
         const displayContent = contentParts.join('\n');
+        const textBlock = textOnlyParts.join('\n').trim();
 
         return {
             ...msg,
@@ -872,6 +886,7 @@ export class ChatBridge {
             metadata: {
                 ...(msg.metadata || {}),
                 reasoning,
+                ...(hasToolCalls && textBlock ? { text: textBlock } : {}),
                 ...(firstToolCall
                     ? {
                         toolName: firstToolCall.toolName,
@@ -950,6 +965,24 @@ export class ChatBridge {
             return;
         }
 
+        // Handle streaming text deltas from LLM — pipe through agentThinking
+        if (eventType === 'text_delta' && topicId) {
+            const delta = (event as any).delta as string;
+            if (delta) {
+                this.handleTextDelta(topicId, delta);
+            }
+            return;
+        }
+
+        // Handle streaming reasoning deltas from LLM — pipe through agentReasoning
+        if (eventType === 'reasoning_delta' && topicId) {
+            const delta = (event as any).delta as string;
+            if (delta) {
+                this.handleReasoningDelta(topicId, delta);
+            }
+            return;
+        }
+
         if ((eventType === 'assistant' || eventType === 'tool' || eventType === 'user') && message) {
             console.log(`[ChatBridge] GuiUpdateEvent: type=${eventType}, topicId=${topicId}, role=${message?.role}`);
             this.handleGuiUpdateEvent(topicId, eventType, message);
@@ -962,6 +995,31 @@ export class ChatBridge {
             desktopId: (event as any).desktopId ?? (event as any).sessionId ?? contextTopicId
         };
         this.handleHostMessage(msg);
+    }
+
+    /**
+     * 处理 LLM 流式文本增量
+     * 
+     * 将增量文本追加到 streamingText 缓冲区，并通过 agentThinking 路径
+     * 实时显示在 "Generating Response..." 区域。
+     * 当最终 assistant 完整消息到达时（handleGuiUpdateEvent），
+     * 缓冲区被清空，agentThinking 恢复为空。
+     */
+    private handleTextDelta(topicId: string, delta: string): void {
+        const current = this.streamingTexts.get(topicId) || '';
+        const updated = current + delta;
+        this.streamingTexts.set(topicId, updated);
+        this.notify({ type: 'agent_state', topicId, data: 'THINKING' });
+    }
+
+    /**
+     * 处理 LLM 流式推理增量
+     */
+    private handleReasoningDelta(topicId: string, delta: string): void {
+        const current = this.streamingReasonings.get(topicId) || '';
+        const updated = current + delta;
+        this.streamingReasonings.set(topicId, updated);
+        this.notify({ type: 'agent_reasoning', topicId, data: updated });
     }
 
     /**
@@ -986,6 +1044,12 @@ export class ChatBridge {
         };
 
         // Dedup: 检查消息是否已存在
+        // 当最终 assistant 消息到达时，清除流式缓冲区
+        if (type === 'assistant') {
+            this.streamingTexts.delete(topicId);
+            this.streamingReasonings.delete(topicId);
+        }
+
         const existingIdx = msgs.findIndex(m => m.id === guiMessage.id);
         if (existingIdx !== -1) {
             msgs[existingIdx] = guiMessage;
