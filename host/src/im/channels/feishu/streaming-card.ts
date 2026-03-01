@@ -78,6 +78,7 @@ export class FeishuStreamingSession {
   private readonly log?: (msg: string) => void
 
   private state: CardState | null = null
+  private startPromise: Promise<void> | null = null
   private queue: Promise<void> = Promise.resolve()
   private closed = false
   private lastUpdateTime = 0
@@ -103,106 +104,118 @@ export class FeishuStreamingSession {
     options?: StreamingCardStartOptions,
   ): Promise<void> {
     if (this.state) return
+    if (this.startPromise) {
+      await this.startPromise
+      return
+    }
 
-    const token = await this.fetchToken(this.creds)
+    this.startPromise = (async () => {
+      const token = await this.fetchToken(this.creds)
 
-    // 1. Build card JSON with streaming mode
-    const cardJson: Record<string, unknown> = {
-      schema: '2.0',
-      config: {
-        streaming_mode: true,
-        summary: { content: '[Generating...]' },
-        streaming_config: {
-          print_frequency_ms: { default: 50 },
-          print_step: { default: 2 },
+      // 1. Build card JSON with streaming mode
+      const cardJson: Record<string, unknown> = {
+        schema: '2.0',
+        config: {
+          streaming_mode: true,
+          summary: { content: '[Generating...]' },
+          streaming_config: {
+            print_frequency_ms: { default: 50 },
+            print_step: { default: 2 },
+          },
         },
-      },
-      body: {
-        elements: [
-          { tag: 'markdown', content: '⏳ Thinking...', element_id: 'content' },
-        ],
-      },
-    }
-    if (options?.header) {
-      cardJson.header = {
-        title: { tag: 'plain_text', content: options.header.title },
-        template: options.header.template ?? 'blue',
+        body: {
+          elements: [
+            { tag: 'markdown', content: '⏳ Thinking...', element_id: 'content' },
+          ],
+        },
       }
-    }
+      if (options?.header) {
+        cardJson.header = {
+          title: { tag: 'plain_text', content: options.header.title },
+          template: options.header.template ?? 'blue',
+        }
+      }
 
-    // 2. Create card entity via Card Kit API
-    const createRes = await this.fetchFn(
-      `${this.apiBase}/open-apis/cardkit/v1/cards`,
-      {
+      // 2. Create card entity via Card Kit API
+      const createRes = await this.fetchFn(
+        `${this.apiBase}/open-apis/cardkit/v1/cards`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'card_json',
+            data: JSON.stringify(cardJson),
+          }),
+        },
+      )
+      const createData = (await createRes.json()) as {
+        code: number
+        msg: string
+        data?: { card_id: string }
+      }
+      if (createData.code !== 0 || !createData.data?.card_id) {
+        throw new Error(`Create card failed: ${createData.msg}`)
+      }
+      const cardId = createData.data.card_id
+      const cardContent = JSON.stringify({ type: 'card', data: { card_id: cardId } })
+
+      // 3. Send card as interactive message
+      let sendUrl: string
+      let sendBody: Record<string, unknown>
+
+      if (options?.replyToMessageId) {
+        // Reply to a specific message
+        sendUrl = `${this.apiBase}/open-apis/im/v1/messages/${options.replyToMessageId}/reply`
+        sendBody = {
+          msg_type: 'interactive',
+          content: cardContent,
+          ...(options.replyInThread ? { reply_in_thread: true } : {}),
+        }
+      } else {
+        // Create new message (supports rootId for topic-group routing)
+        sendUrl = `${this.apiBase}/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`
+        sendBody = {
+          receive_id: receiveId,
+          msg_type: 'interactive',
+          content: cardContent,
+          ...(options?.rootId ? { root_id: options.rootId } : {}),
+        }
+      }
+
+      const sendRes = await this.fetchFn(sendUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          type: 'card_json',
-          data: JSON.stringify(cardJson),
-        }),
-      },
-    )
-    const createData = (await createRes.json()) as {
-      code: number
-      msg: string
-      data?: { card_id: string }
-    }
-    if (createData.code !== 0 || !createData.data?.card_id) {
-      throw new Error(`Create card failed: ${createData.msg}`)
-    }
-    const cardId = createData.data.card_id
-    const cardContent = JSON.stringify({ type: 'card', data: { card_id: cardId } })
-
-    // 3. Send card as interactive message
-    let sendUrl: string
-    let sendBody: Record<string, unknown>
-
-    if (options?.replyToMessageId) {
-      // Reply to a specific message
-      sendUrl = `${this.apiBase}/open-apis/im/v1/messages/${options.replyToMessageId}/reply`
-      sendBody = {
-        msg_type: 'interactive',
-        content: cardContent,
-        ...(options.replyInThread ? { reply_in_thread: true } : {}),
+        body: JSON.stringify(sendBody),
+      })
+      const sendData = (await sendRes.json()) as {
+        code: number
+        msg: string
+        data?: { message_id: string }
       }
-    } else {
-      // Create new message (supports rootId for topic-group routing)
-      sendUrl = `${this.apiBase}/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`
-      sendBody = {
-        receive_id: receiveId,
-        msg_type: 'interactive',
-        content: cardContent,
-        ...(options?.rootId ? { root_id: options.rootId } : {}),
+      if (sendData.code !== 0 || !sendData.data?.message_id) {
+        throw new Error(`Send card message failed: ${sendData.msg}`)
       }
-    }
 
-    const sendRes = await this.fetchFn(sendUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(sendBody),
-    })
-    const sendData = (await sendRes.json()) as {
-      code: number
-      msg: string
-      data?: { message_id: string }
-    }
-    if (sendData.code !== 0 || !sendData.data?.message_id) {
-      throw new Error(`Send card message failed: ${sendData.msg}`)
-    }
+      this.state = {
+        cardId,
+        messageId: sendData.data.message_id,
+        sequence: 1,
+        currentText: '',
+      }
+      this.log?.(`Started streaming: cardId=${cardId}, messageId=${sendData.data.message_id}`)
+    })()
 
-    this.state = {
-      cardId,
-      messageId: sendData.data.message_id,
-      sequence: 1,
-      currentText: '',
+    try {
+      await this.startPromise
+    } finally {
+      this.startPromise = null
     }
-    this.log?.(`Started streaming: cardId=${cardId}, messageId=${sendData.data.message_id}`)
   }
 
   // ── update: stream content (throttled) ────────────────────────────

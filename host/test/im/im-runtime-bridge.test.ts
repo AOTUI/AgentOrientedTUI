@@ -471,6 +471,28 @@ describe('IMRuntimeBridge', () => {
       expect(b.streamingSession.update).toHaveBeenLastCalledWith('Hello world')
     })
 
+    it('normalizes cumulative text_delta payloads without duplicate concatenation', async () => {
+      const b = createStreamingBridge()
+      await setupSession(b)
+
+      b.refs.guiHandler!({
+        type: 'text_delta',
+        topicId: 'agent:bot:feishu:direct:ou_s1',
+        delta: '好，现在看到了',
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      // Simulate upstream sending cumulative snapshot rather than pure delta
+      b.refs.guiHandler!({
+        type: 'text_delta',
+        topicId: 'agent:bot:feishu:direct:ou_s1',
+        delta: '好，现在看到了项目结构',
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(b.streamingSession.update).toHaveBeenLastCalledWith('好，现在看到了项目结构')
+    })
+
     it('closes streaming session on assistant event after streaming', async () => {
       const b = createStreamingBridge()
       await setupSession(b)

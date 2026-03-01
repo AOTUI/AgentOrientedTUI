@@ -23,6 +23,11 @@ export interface FeishuReplyDispatcherDeps {
 export function createFeishuReplyDispatcher(deps: FeishuReplyDispatcherDeps) {
   let streaming: FeishuStreamingSessionLike | null = null
   let started = false
+  let startAttempted = false
+  let startPromise: Promise<void> | null = null
+  let lastPartial = ''
+  let lastSentPartial = ''
+  let partialUpdateQueue: Promise<void> = Promise.resolve()
 
   function ensureStreaming(): FeishuStreamingSessionLike {
     if (!streaming) {
@@ -31,19 +36,67 @@ export function createFeishuReplyDispatcher(deps: FeishuReplyDispatcherDeps) {
     return streaming
   }
 
+  async function ensureStarted(): Promise<boolean> {
+    if (started) {
+      return true
+    }
+
+    if (startPromise) {
+      await startPromise
+      return started
+    }
+
+    // One start attempt per dispatcher lifecycle.
+    // If streaming start fails, we degrade to final plain-text/card send in onFinalReply.
+    if (startAttempted) {
+      return false
+    }
+
+    startAttempted = true
+    const stream = ensureStreaming()
+    startPromise = (async () => {
+      await stream.start(deps.receiveId, deps.receiveIdType, {
+        replyToMessageId: deps.replyToMessageId,
+      })
+      started = true
+    })()
+
+    try {
+      await startPromise
+    } catch {
+      started = false
+    } finally {
+      startPromise = null
+    }
+
+    return started
+  }
+
   return {
     async onPartialReply(text: string): Promise<void> {
-      const stream = ensureStreaming()
-      if (!started) {
-        await stream.start(deps.receiveId, deps.receiveIdType, {
-          replyToMessageId: deps.replyToMessageId,
-        })
-        started = true
+      if (!text || text === lastPartial) {
+        return
       }
-      await stream.update(text)
+      lastPartial = text
+      const textSnapshot = text
+
+      partialUpdateQueue = partialUpdateQueue.then(async () => {
+        const ok = await ensureStarted()
+        if (!ok || !streaming?.isActive()) {
+          return
+        }
+        if (textSnapshot === lastSentPartial) {
+          return
+        }
+        await streaming.update(textSnapshot)
+        lastSentPartial = textSnapshot
+      })
+
+      await partialUpdateQueue
     },
 
     async onFinalReply(text: string): Promise<void> {
+      await partialUpdateQueue
       if (streaming?.isActive()) {
         await streaming.close(text)
         return
@@ -58,6 +111,7 @@ export function createFeishuReplyDispatcher(deps: FeishuReplyDispatcherDeps) {
     },
 
     async cleanup(): Promise<void> {
+      await partialUpdateQueue
       if (streaming?.isActive()) {
         await streaming.close()
       }

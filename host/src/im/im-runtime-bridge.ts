@@ -73,6 +73,34 @@ function getFeishuChannelConfig(config: Info): Record<string, unknown> | null {
 }
 
 /**
+ * Normalize streaming text payload.
+ *
+ * Some upstreams emit true delta chunks, while others may emit cumulative
+ * partial text. This helper supports both forms to avoid duplicated content.
+ */
+function normalizeStreamText(previous: string, incoming: string): string {
+  if (!incoming) {
+    return previous
+  }
+  if (!previous) {
+    return incoming
+  }
+
+  // Incoming is cumulative snapshot (starts with previous): replace with incoming.
+  if (incoming.startsWith(previous)) {
+    return incoming
+  }
+
+  // Exact duplicate chunk: keep as-is.
+  if (incoming === previous) {
+    return previous
+  }
+
+  // Normal incremental delta: append.
+  return previous + incoming
+}
+
+/**
  * Ensure a Topic record exists in the DB for an IM session.
  *
  * This is required because SessionManagerV3.createSession() reads
@@ -120,7 +148,7 @@ export class IMRuntimeBridge {
 
   /** Active reply dispatchers per session (manages streaming card lifecycle) */
   private readonly replyDispatchers = new Map<string, ReturnType<typeof createFeishuReplyDispatcher>>()
-  /** Accumulated text per session for text_delta events (deltas are incremental) */
+  /** Normalized stream text per session for text_delta events */
   private readonly accumulatedText = new Map<string, string>()
 
   constructor(options: IMRuntimeBridgeOptions) {
@@ -235,7 +263,8 @@ export class IMRuntimeBridge {
 
     // ── text_delta: accumulate & stream ────────────────────────────
     if (event.type === 'text_delta' && event.delta) {
-      const accumulated = (this.accumulatedText.get(event.topicId) ?? '') + event.delta
+      const prev = this.accumulatedText.get(event.topicId) ?? ''
+      const accumulated = normalizeStreamText(prev, event.delta)
       this.accumulatedText.set(event.topicId, accumulated)
 
       // Get or create reply dispatcher for this session

@@ -233,6 +233,32 @@ describe('FeishuStreamingSession', () => {
     await expect(session.start('oc_chat1', 'chat_id')).rejects.toThrow('Send card message failed')
   })
 
+  it('start() is idempotent under concurrent calls', async () => {
+    let callCount = 0
+    const fetchImpl = vi.fn(async () => {
+      callCount += 1
+      if (callCount === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        return jsonResponse({ code: 0, data: { card_id: 'card_concurrent' } })
+      }
+      if (callCount === 2) {
+        return jsonResponse({ code: 0, data: { message_id: 'msg_concurrent' } })
+      }
+      return jsonResponse({ code: 0 })
+    }) as any
+
+    const session = new FeishuStreamingSession(CREDS, { fetchImpl, fetchToken })
+    await Promise.all([
+      session.start('oc_chat1', 'chat_id'),
+      session.start('oc_chat1', 'chat_id'),
+      session.start('oc_chat1', 'chat_id'),
+    ])
+
+    expect(session.isActive()).toBe(true)
+    // Exactly create-card + send-message once each
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
+
   it('logs on start, update error, and close', async () => {
     const log = vi.fn()
     const fetchImpl = mockFetch([
