@@ -1051,6 +1051,55 @@ const promptsRouter = router({
         }),
 });
 
+// ─── IM Configuration Router ──────────────────────────────────────────────────
+
+const feishuAccountSchema = z.object({
+    enabled: z.boolean().optional(),
+    appId: z.string().optional(),
+    appSecret: z.string().optional(),
+    domain: z.string().optional(),
+    connectionMode: z.enum(['websocket', 'webhook']).optional(),
+    botToken: z.string().optional(),
+    botAgentId: z.string().optional(),
+    apiBaseUrl: z.string().optional(),
+    dmPolicy: z.enum(['open', 'allowlist', 'pairing']).optional(),
+    groupPolicy: z.enum(['open', 'allowlist', 'disabled']).optional(),
+    requireMention: z.boolean().optional(),
+});
+
+const feishuChannelSchema = feishuAccountSchema.extend({
+    accounts: z.record(z.string(), feishuAccountSchema).optional(),
+});
+
+const imConfigSchema = z.object({
+    channels: z.object({
+        feishu: feishuChannelSchema.optional(),
+        lark: feishuChannelSchema.optional(),
+    }).optional(),
+});
+
+const imRouter = router({
+    getImConfig: publicProcedure
+        .query(async () => {
+            const im = await Config.getGlobalIm();
+            return im ?? {};
+        }),
+    saveImConfig: publicProcedure
+        .input(imConfigSchema)
+        .mutation(async ({ input }) => {
+            await Config.replaceGlobalIm(input);
+            return { success: true };
+        }),
+    getAgents: publicProcedure
+        .query(async () => {
+            const config = await Config.getGlobal();
+            return {
+                list: config.agents?.list ?? [],
+                activeAgentId: config.agents?.activeAgentId ?? null,
+            };
+        }),
+});
+
 export const appRouter = router({
     db: dbRouter,
     chat: chatRouter,
@@ -1064,6 +1113,7 @@ export const appRouter = router({
     sourceControl: sourceControlRouter,
     prompts: promptsRouter,
     agents: agentsRouter,
+    im: imRouter,
 });
 
 export type AppRouter = typeof appRouter;

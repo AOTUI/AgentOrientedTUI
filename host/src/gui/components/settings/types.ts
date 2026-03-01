@@ -7,7 +7,7 @@
 import type { LLMConfigRecord, ProviderInfo } from '../../../types/llm-config.js';
 import type { ModelsDevModel } from '../../../services/index.js';
 
-export type SettingsTabKey = 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+export type SettingsTabKey = 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills' | 'im';
 
 /**
  * SettingsPanel Component Props

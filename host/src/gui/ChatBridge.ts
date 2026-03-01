@@ -1278,6 +1278,20 @@ export class ChatBridge {
     async saveAgents(list: any[], activeAgentId: string | null): Promise<any> {
         return this.getTrpcClient().agents.saveAgents.mutate({ list, activeAgentId });
     }
+
+    // ============ IM Config Methods ============
+
+    async getImConfig(): Promise<any> {
+        return this.getTrpcClient().im.getImConfig.query();
+    }
+
+    async saveImConfig(config: any): Promise<any> {
+        return this.getTrpcClient().im.saveImConfig.mutate(config);
+    }
+
+    async getImAgents(): Promise<{ list: any[]; activeAgentId: string | null }> {
+        return this.getTrpcClient().im.getAgents.query();
+    }
 }
 
 // Export singleton getter

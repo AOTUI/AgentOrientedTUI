@@ -48,6 +48,13 @@ export const IconEllipsis = (props: IconProps) => <svg viewBox="0 0 24 24" fill=
 export const IconPin = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M12 17v5" /><path d="M9 10.5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6.5l2 3H7l2-3z" /></svg>;
 export const IconPencil = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>;
 export const IconChat = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+// IM: Multi-bubble icon representing instant messaging channels
+export const IconIM = (props: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}>
+        <path d="M17 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10l4-4h2" />
+        <path d="M21 19l-4-4h-4a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v6z" />
+    </svg>
+);
 export const IconTerminal = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>;
 export const IconToolbox = (props: IconProps) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props} className={`w-4 h-4 ${props.className || ''}`}><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" /><path d="M9 7V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1" /><path d="M3 13h18" /></svg>;
 // Apps: Four rounded squares — macOS 26 superellipse grid

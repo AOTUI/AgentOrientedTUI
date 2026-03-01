@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { IconTheme, IconPlug, IconApps, IconSkills, IconPrompt, IconAgentIdle, IconBrain } from '../Icons.js';
+import { IconTheme, IconPlug, IconApps, IconSkills, IconPrompt, IconAgentIdle, IconBrain, IconIM } from '../Icons.js';
 import type { SettingsSidebarProps } from './types.js';
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onTabChange }) => {
@@ -128,6 +128,22 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
                     aria-hidden="true"
                 />
                 <span className={`text-[13px] ${activeTab === 'mcp' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>MCP</span>
+            </button>
+
+            {/* IM Tab Button */}
+            <button
+                onClick={() => onTabChange('im')}
+                role="tab"
+                aria-selected={activeTab === 'im'}
+                aria-controls="im-tab-panel"
+                id="im-tab"
+                className={`${baseBtnClass} ${activeTab === 'im' ? activeBtnClass : inactiveBtnClass}`}
+            >
+                <IconIM
+                    className={`w-4 h-4 ${activeTab === 'im' ? 'text-[var(--color-accent)]' : 'opacity-70'}`}
+                    aria-hidden="true"
+                />
+                <span className={`text-[13px] ${activeTab === 'im' ? 'font-semibold text-[var(--color-text-primary)]' : 'font-medium text-[var(--color-text-secondary)]'}`}>IM</span>
             </button>
 
             {/* Theme Tab Button */}

@@ -14,6 +14,7 @@ import { ThemeTab } from './ThemeTab.js';
 import { McpTab } from './mcp/McpTab.js';
 import { AppsTab } from './apps/AppsTab.js';
 import { SkillsTab } from './skills/SkillsTab.js';
+import { ImTab } from './im/ImTab.js';
 import { SettingsErrorBoundary } from './SettingsErrorBoundary.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
 import type { SettingsPanelProps, SettingsTabKey } from './types.js';
@@ -244,6 +245,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             {activeTab === 'apps' && <AppsTab />}
                             {activeTab === 'mcp' && <McpTab />}
                             {activeTab === 'skills' && <SkillsTab projectPath={currentProjectPath} />}
+                            {activeTab === 'im' && <ImTab />}
                         </div>
                     </SettingsErrorBoundary>
 

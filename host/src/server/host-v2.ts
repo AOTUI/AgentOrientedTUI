@@ -22,6 +22,7 @@ import { WebSocketHandlerV2 } from './websocket-handler-v2.js';
 import { GUIBridge } from './gui-bridge.js';
 import * as db from '../db/index.js';
 import { ModelRegistry } from '../services/model-registry.js';
+import { IMRuntimeBridge } from '../im/im-runtime-bridge.js';
 
 // ═══════════════════════════════════════════════════════════════
 //  Express Routes (REST API for Topics/Messages)
@@ -177,6 +178,7 @@ export async function createHostV2Core(modelRegistry: ModelRegistry): Promise<{
     llmConfigService: LLMConfigService;
     guiBridge: GUIBridge;
     wsHandler: WebSocketHandlerV2;
+    imRuntimeBridge: IMRuntimeBridge;
 }> {
     // 1. Wait for Runtime initialization
     await desktopManagerReady;
@@ -221,8 +223,13 @@ export async function createHostV2Core(modelRegistry: ModelRegistry): Promise<{
     const wsHandler = new WebSocketHandlerV2(hostManager, guiBridge);
     console.log('[HostV2] WebSocketHandler V2 initialized');
 
+    // 9. Boot IM runtime bridge (channels like Feishu)
+    const imRuntimeBridge = new IMRuntimeBridge({ hostManager });
+    await imRuntimeBridge.start();
+    console.log('[HostV2] IM Runtime Bridge initialized');
 
-    return { hostManager, llmConfigService, guiBridge, wsHandler };
+
+    return { hostManager, llmConfigService, guiBridge, wsHandler, imRuntimeBridge };
 }
 
 export async function createHostV2(port: number = 8080, modelRegistry?: ModelRegistry): Promise<WebSocketServer> {

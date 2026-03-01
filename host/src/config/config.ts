@@ -81,6 +81,7 @@ export interface Info {
         appId?: string
         appSecret?: string
         botToken?: string
+        botAgentId?: string
         verificationToken?: string
         encryptKey?: string
         signingSecret?: string
@@ -94,6 +95,7 @@ export interface Info {
           appId?: string
           appSecret?: string
           botToken?: string
+          botAgentId?: string
           verificationToken?: string
           encryptKey?: string
           signingSecret?: string
@@ -109,6 +111,7 @@ export interface Info {
         appId?: string
         appSecret?: string
         botToken?: string
+        botAgentId?: string
         verificationToken?: string
         encryptKey?: string
         signingSecret?: string
@@ -130,6 +133,7 @@ export interface Info {
           appId?: string
           appSecret?: string
           botToken?: string
+          botAgentId?: string
           verificationToken?: string
           encryptKey?: string
           signingSecret?: string

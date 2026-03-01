@@ -23,6 +23,7 @@ async function gracefulShutdownHost(): Promise<void> {
     try {
         if (hostCore) {
             console.log('[Main] Shutting down host core...');
+            await hostCore.imRuntimeBridge.stop();
             await hostCore.hostManager.dispose();
             console.log('[Main] Host core shutdown complete');
         }
