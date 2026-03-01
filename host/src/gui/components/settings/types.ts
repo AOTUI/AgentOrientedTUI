@@ -7,6 +7,8 @@
 import type { LLMConfigRecord, ProviderInfo } from '../../../types/llm-config.js';
 import type { ModelsDevModel } from '../../../services/index.js';
 
+export type SettingsTabKey = 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+
 /**
  * SettingsPanel Component Props
  * 
@@ -24,7 +26,7 @@ export interface SettingsPanelProps {
     /** Current selected project path (optional) */
     currentProjectPath?: string | null;
     /** If provided, the panel will open on this tab */
-    initialTab?: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+    initialTab?: SettingsTabKey;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface SettingsPanelProps {
  */
 export interface SettingsPanelState {
     /** Currently active tab */
-    activeTab: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+    activeTab: SettingsTabKey;
 }
 
 /**
@@ -42,9 +44,9 @@ export interface SettingsPanelState {
  */
 export interface SettingsSidebarProps {
     /** Currently active tab */
-    activeTab: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills';
+    activeTab: SettingsTabKey;
     /** Callback when tab changes */
-    onTabChange: (tab: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
+    onTabChange: (tab: SettingsTabKey) => void;
 }
 
 /**

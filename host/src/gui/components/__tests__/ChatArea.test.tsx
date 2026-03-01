@@ -4,10 +4,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { ChatArea } from '../ChatArea.js';
 import type { Message } from '../../../types.js';
 
-vi.mock('../Icons', () => ({
-    IconNewChat: () => <div data-testid="icon-new-chat" />,
-    IconSend: () => <div data-testid="icon-send" />,
-}));
+vi.mock('../Icons', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../Icons')>();
+    return {
+        ...actual,
+        IconNewChat: () => <div data-testid="icon-new-chat" />,
+        IconSend: () => <div data-testid="icon-send" />,
+    };
+});
 
 // Mock scrollIntoView
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -40,7 +44,7 @@ describe('ChatArea Component', () => {
         const input = screen.getByPlaceholderText('Message the agent…');
         fireEvent.change(input, { target: { value: 'New Message' } });
         fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-        expect(defaultProps.onSendMessage).toHaveBeenCalledWith('New Message');
+        expect(defaultProps.onSendMessage).toHaveBeenCalledWith('New Message', []);
     });
 
     it('handles empty state', () => {

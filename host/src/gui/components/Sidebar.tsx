@@ -9,6 +9,7 @@ interface SidebarProps {
     sidebarOpen: boolean;
     topics: Topic[];
     activeTopicId: string | null;
+    activeTopicIds?: string[];
     showDraftCurrent?: boolean;
     currentProjectPath?: string | null;
     theme: 'dark' | 'light';
@@ -39,6 +40,7 @@ export function Sidebar({
     sidebarOpen,
     topics,
     activeTopicId,
+    activeTopicIds = [],
     showDraftCurrent = false,
     currentProjectPath,
     theme,
@@ -53,23 +55,27 @@ export function Sidebar({
 
     const {
         currentTopic,
+        activeTopics,
         recentTopics,
         otherTopics,
     } = useMemo(() => {
         const sortedTopics = [...topics].sort((a, b) => (b.updatedAt ?? b.createdAt ?? 0) - (a.updatedAt ?? a.createdAt ?? 0));
         const current = sortedTopics.find((topic) => topic.id === activeTopicId) ?? null;
+        const activeSet = new Set(activeTopicIds);
         const weekAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
 
         const remaining = sortedTopics.filter((topic) => topic.id !== activeTopicId);
-        const recent = remaining.filter((topic) => (topic.updatedAt ?? topic.createdAt ?? 0) >= weekAgo);
-        const other = remaining.filter((topic) => (topic.updatedAt ?? topic.createdAt ?? 0) < weekAgo);
+        const active = remaining.filter((topic) => activeSet.has(topic.id));
+        const recent = remaining.filter((topic) => !activeSet.has(topic.id) && (topic.updatedAt ?? topic.createdAt ?? 0) >= weekAgo);
+        const other = remaining.filter((topic) => !activeSet.has(topic.id) && (topic.updatedAt ?? topic.createdAt ?? 0) < weekAgo);
 
         return {
             currentTopic: current,
+            activeTopics: active,
             recentTopics: recent,
             otherTopics: other,
         };
-    }, [topics, activeTopicId]);
+    }, [topics, activeTopicId, activeTopicIds]);
 
     const visibleRecentTopics = recentExpanded ? recentTopics : recentTopics.slice(0, 3);
     const visibleOtherTopics = otherExpanded ? otherTopics : otherTopics.slice(0, 3);
@@ -158,6 +164,17 @@ export function Sidebar({
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTopics.length > 0 && (
+                        <div>
+                            <div className="px-2 pb-1 text-[10px] uppercase tracking-[0.03em] text-[var(--color-text-tertiary)]">
+                                Active
+                            </div>
+                            <div className="space-y-1">
+                                {activeTopics.map((topic) => renderTopicRow(topic))}
                             </div>
                         </div>
                     )}

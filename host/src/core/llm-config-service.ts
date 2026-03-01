@@ -85,6 +85,18 @@ export class LLMConfigService {
                 toolCall: toolCallCapability,
             };
         }
+        const inputCapabilities = customProvider
+            ? undefined
+            : await this.resolveInputCapabilities(record.providerId, record.model);
+        if (inputCapabilities) {
+            llmConfig.modelCapabilities = {
+                ...llmConfig.modelCapabilities,
+                input: {
+                    ...(llmConfig.modelCapabilities?.input || {}),
+                    ...inputCapabilities,
+                },
+            };
+        }
 
         return llmConfig;
     }
@@ -429,6 +441,36 @@ export class LLMConfigService {
             return model.tool_call === true;
         } catch (error) {
             this.logger.debug('Failed to resolve model tool-call capability', {
+                providerId,
+                modelId,
+                error,
+            });
+            return undefined;
+        }
+    }
+
+    private async resolveInputCapabilities(
+        providerId: string | undefined,
+        modelId: string
+    ): Promise<{ image?: boolean; pdf?: boolean } | undefined> {
+        if (!providerId) {
+            return undefined;
+        }
+
+        try {
+            const models = await this.modelRegistry.getModels({ providerId });
+            const model = models.find((item) => this.matchesModelId(item.id, providerId, modelId));
+            if (!model) {
+                return undefined;
+            }
+
+            const inputs = model.modalities?.input || [];
+            return {
+                image: inputs.includes('image'),
+                pdf: inputs.includes('pdf'),
+            };
+        } catch (error) {
+            this.logger.debug('Failed to resolve model input capabilities', {
                 providerId,
                 modelId,
                 error,

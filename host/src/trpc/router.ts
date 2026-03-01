@@ -26,7 +26,6 @@ export type Context = {
     llmConfigService: LLMConfigService;
     modelRegistry: ModelRegistry;
     messageService: MessageServiceV2;
-    // ✅ V2: signalRouter 已删除，事件由 HostManagerV2 直接发出
 };
 
 const t = initTRPC.context<Context>().create({
@@ -156,13 +155,19 @@ const chatRouter = router({
         .input(z.object({
             id: z.string(),
             content: z.string(),
-            messageId: z.string().optional()
+            messageId: z.string().optional(),
+            attachments: z.array(z.object({
+                id: z.string(),
+                mime: z.string(),
+                url: z.string(),
+                filename: z.string().optional(),
+            })).optional(),
         }))
         .mutation(async ({ input, ctx }) => {
             console.log('[TRPC] chat.send called:', input.id, input.content.slice(0, 20));
             try {
                 // ✅ V2: 直接使用 HostManagerV2（传递 topicId）
-                await ctx.hostManager.sendUserMessage(input.content, input.id, input.messageId);
+                await ctx.hostManager.sendUserMessage(input.content, input.id, input.messageId, input.attachments);
                 console.log('[TRPC] chat.send success');
                 return;
             } catch (e) {

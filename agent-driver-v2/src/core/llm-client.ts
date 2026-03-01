@@ -166,6 +166,7 @@ export class LLMClient {
         }
     ): Promise<LLMResponse> {
         try {
+            messages = this.applyInputCapabilityGuard(messages);
             const shouldDisableTools =
                 this.config.modelCapabilities?.toolCall === false &&
                 Object.keys(tools).length > 0;
@@ -363,6 +364,93 @@ export class LLMClient {
             
             throw error;
         }
+    }
+
+    private applyInputCapabilityGuard(messages: ModelMessage[]): ModelMessage[] {
+        const supportsImage = this.config.modelCapabilities?.input?.image !== false;
+        const supportsPdf = this.config.modelCapabilities?.input?.pdf !== false;
+
+        const resolvePartModality = (part: any): 'image' | 'pdf' | null => {
+            if (!part || typeof part !== 'object') {
+                return null;
+            }
+
+            if (part.type === 'image') {
+                return 'image';
+            }
+
+            if (part.type === 'file' && typeof part.mediaType === 'string') {
+                if (part.mediaType.startsWith('image/')) {
+                    return 'image';
+                }
+                if (part.mediaType === 'application/pdf') {
+                    return 'pdf';
+                }
+            }
+
+            return null;
+        };
+
+        const hasEmptyDataUrlPayload = (part: any): boolean => {
+            if (!part || typeof part !== 'object') {
+                return false;
+            }
+
+            const candidate = part.type === 'image'
+                ? part.image
+                : part.type === 'file'
+                    ? part.data
+                    : undefined;
+
+            if (typeof candidate !== 'string' || !candidate.startsWith('data:')) {
+                return false;
+            }
+
+            const match = candidate.match(/^data:[^;]+;base64,(.*)$/);
+            return !!match && (!match[1] || match[1].length === 0);
+        };
+
+        return messages.map((message) => {
+            if (message.role !== 'user' || !Array.isArray(message.content)) {
+                return message;
+            }
+
+            const nextContent = (message.content as any[]).map((part: any) => {
+                if (!part || typeof part !== 'object') {
+                    return part;
+                }
+
+                const modality = resolvePartModality(part);
+                if (!modality) {
+                    return part;
+                }
+
+                if (hasEmptyDataUrlPayload(part)) {
+                    return {
+                        type: 'text' as const,
+                        text: 'ERROR: Attachment is empty or corrupted. Please provide a valid file.',
+                    };
+                }
+
+                const supported = modality === 'image' ? supportsImage : supportsPdf;
+                if (supported) {
+                    return part;
+                }
+
+                const filename = typeof part.filename === 'string' && part.filename.trim().length > 0
+                    ? `"${part.filename}"`
+                    : (modality === 'pdf' ? 'this PDF' : 'this image');
+                return {
+                    type: 'text' as const,
+                    text: `ERROR: Cannot read ${filename} (current model does not support ${modality} input). Inform the user.`,
+                };
+            });
+
+            return {
+                ...message,
+                content: nextContent,
+            };
+        });
     }
 
     private async streamWithOpenRouterFallback(

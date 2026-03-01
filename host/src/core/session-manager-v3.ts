@@ -205,7 +205,8 @@ export class SessionManagerV3 extends EventEmitter {
         }
 
         // [Agent Customization] Apply Agent Snapshot if agentId is present
-        let effectiveModelOverride = topic?.modelOverride?.trim();
+        const topicModelOverride = topic?.modelOverride?.trim();
+        let effectiveModelOverride = topicModelOverride;
         let effectivePromptOverride = topic?.promptOverride?.trim();
         let effectiveSourceControls = topic?.sourceControls;
 
@@ -214,7 +215,17 @@ export class SessionManagerV3 extends EventEmitter {
             const agents = (config as any).agents || { list: [] };
             const agent = agents.list.find((a: any) => a.id === topic.agentId);
             if (agent) {
-                if (agent.modelId) effectiveModelOverride = agent.modelId;
+                // Topic-level model override must win over agent snapshot model.
+                // This allows users to switch models per topic (e.g. vision model) without being overridden by agent defaults.
+                if (!effectiveModelOverride && agent.modelId) {
+                    effectiveModelOverride = agent.modelId;
+                } else if (effectiveModelOverride && agent.modelId && effectiveModelOverride !== agent.modelId) {
+                    this.logger.info('Topic model override takes precedence over agent model snapshot', {
+                        topicId,
+                        topicModelOverride: effectiveModelOverride,
+                        agentModelId: agent.modelId,
+                    });
+                }
                 if (agent.prompt) effectivePromptOverride = agent.prompt;
                 
                 // Merge agent tools into effectiveSourceControls
@@ -759,7 +770,12 @@ export class SessionManagerV3 extends EventEmitter {
      * @param topicId - Topic ID
      * @param content - 消息内容
      */
-    async sendMessage(topicId: string, content: string, messageId?: string): Promise<void> {
+    async sendMessage(
+        topicId: string,
+        content: string,
+        messageId?: string,
+        attachments: Array<{ id: string; mime: string; url: string; filename?: string }> = []
+    ): Promise<void> {
         const session = await this.ensureSession(topicId);
 
         const compactionPolicy = await this.resolveCompactionPolicy(topicId);
@@ -794,9 +810,31 @@ export class SessionManagerV3 extends EventEmitter {
 
         // 1. 保存到数据库
         const activityTimestamp = Date.now();
+        const hasAttachments = attachments.length > 0;
+        const text = content.trim();
+        const parts: any[] = [];
+        if (text.length > 0) {
+            parts.push({ type: 'text', text });
+        }
+        if (hasAttachments) {
+            for (const attachment of attachments) {
+                let data: string = attachment.url;
+                if (attachment.url.startsWith('data:')) {
+                    const match = attachment.url.match(/^data:[^;]+;base64,(.*)$/);
+                    data = match?.[1] || '';
+                }
+                parts.push({
+                    type: 'file',
+                    data,
+                    mediaType: attachment.mime,
+                    filename: attachment.filename,
+                });
+            }
+        }
+
         const userMessage: ModelMessage = {
             role: 'user',
-            content,
+            content: hasAttachments ? parts : content,
         } as ModelMessage & { id?: string; timestamp?: number };
         if (messageId) {
             (userMessage as any).id = messageId;
@@ -818,7 +856,11 @@ export class SessionManagerV3 extends EventEmitter {
         };
         this.emit('message', event);
 
-        this.logger.debug('User message sent', { topicId, contentLength: content.length });
+        this.logger.debug('User message sent', {
+            topicId,
+            contentLength: content.length,
+            attachmentCount: attachments.length,
+        });
     }
 
     /**

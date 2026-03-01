@@ -5,6 +5,7 @@ ignore
 outdated
 backup
 context-compact-migration
+multi-im-migration-report
 
 # Python
 **/__pycache__/

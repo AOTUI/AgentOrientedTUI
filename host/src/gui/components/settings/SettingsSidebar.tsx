@@ -148,4 +148,3 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, onT
         </nav>
     );
 };
-

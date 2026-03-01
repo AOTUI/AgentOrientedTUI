@@ -14,6 +14,15 @@ export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
  */
 export type MessageType = 'text' | 'reasoning' | 'tool_call' | 'tool_result' | 'snapshot';
 
+export interface ImageAttachment {
+    id: string;
+    /** MIME type, e.g. image/png or application/pdf */
+    mime: string;
+    /** data: URL (preferred) or external URL */
+    url: string;
+    filename?: string;
+}
+
 /**
  * A single chat message
  */
@@ -42,6 +51,7 @@ export interface Message {
         /** For snapshot messages */
         appId?: string;
         /** Generic metadata */
+        attachments?: ImageAttachment[];
         [key: string]: any;
     };
 }
@@ -232,4 +242,3 @@ export type MessagePart =
 export interface MessageWithParts extends Message {
     parts?: MessagePart[];
 }
-

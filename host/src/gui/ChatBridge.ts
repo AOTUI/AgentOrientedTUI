@@ -3,7 +3,7 @@
  * 
  * - IPC (Electron tRPC): Topics/Messages/Snapshot/Agent 状态
  */
-import type { Message, Topic, Project } from '../types.js';
+import type { Message, Topic, Project, ImageAttachment } from '../types.js';
 import { createTRPCProxyClient } from '@trpc/client';
 import type { Unsubscribable } from '@trpc/server/observable';
 import { ipcLink } from 'electron-trpc/renderer';
@@ -298,7 +298,7 @@ export class ChatBridge {
 
     // ============ API - Messages ============
 
-    async sendMessage(topicId: string, content: string): Promise<Message | null> {
+    async sendMessage(topicId: string, content: string, attachments: ImageAttachment[] = []): Promise<Message | null> {
         try {
             // 1. Ensure Desktop is active (Lazy Activation)
             await this.activateDesktop(topicId);
@@ -313,7 +313,8 @@ export class ChatBridge {
                 id: messageId,
                 role: 'user',
                 content,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                metadata: attachments.length > 0 ? { attachments } : undefined,
             };
 
             const msgs = this.messages.get(topicId) || [];
@@ -328,7 +329,8 @@ export class ChatBridge {
             await this.getTrpcClient().chat.send.mutate({
                 id: topicId,
                 content,
-                messageId
+                messageId,
+                attachments,
             });
 
             return optimisticMessage;
@@ -588,23 +590,55 @@ export class ChatBridge {
         const toolNamesByCallId = new Map<string, string>();
 
         return messages.map(m => {
+            let normalized: Message;
             if (m?.messageType) {
-                return m as Message;
+                normalized = m as Message;
+                return this.enforceAttachmentBoundary(normalized);
             }
             // ✅ 处理 AI SDK v6 ModelMessage 格式
             if (m.role === 'user') {
-                return this.normalizeUserMessage(m);
+                normalized = this.normalizeUserMessage(m);
+                return this.enforceAttachmentBoundary(normalized);
             } else if (m.role === 'assistant') {
-                return this.normalizeAssistantMessage(m, toolNamesByCallId);
+                normalized = this.normalizeAssistantMessage(m, toolNamesByCallId);
+                return this.enforceAttachmentBoundary(normalized);
             } else if (m.role === 'tool') {
-                return this.normalizeToolMessage(m, toolNamesByCallId);
+                normalized = this.normalizeToolMessage(m, toolNamesByCallId);
+                return this.enforceAttachmentBoundary(normalized);
             } else if (m.role === 'system') {
-                return this.normalizeSystemMessage(m);
+                normalized = this.normalizeSystemMessage(m);
+                return this.enforceAttachmentBoundary(normalized);
             }
 
             // 兜底：旧格式消息
-            return this.normalizeLegacyMessage(m, toolNamesByCallId);
+            normalized = this.normalizeLegacyMessage(m, toolNamesByCallId);
+            return this.enforceAttachmentBoundary(normalized);
         });
+    }
+
+    private enforceAttachmentBoundary(message: Message): Message {
+        if (message?.role === 'user') {
+            return message;
+        }
+
+        const metadata = (message as any)?.metadata;
+        if (!metadata || !Array.isArray(metadata.attachments)) {
+            return message;
+        }
+
+        const { attachments: _attachments, ...restMetadata } = metadata as Record<string, unknown>;
+        const hasOtherMetadata = Object.keys(restMetadata).length > 0;
+
+        if (!hasOtherMetadata) {
+            const nextMessage = { ...(message as any) };
+            delete (nextMessage as any).metadata;
+            return nextMessage as Message;
+        }
+
+        return {
+            ...(message as any),
+            metadata: restMetadata,
+        } as Message;
     }
 
     /**
@@ -612,21 +646,64 @@ export class ChatBridge {
      */
     private normalizeUserMessage(m: any): Message {
         let contentText = '';
+        const attachments: ImageAttachment[] = [];
+        const isSupportedAttachmentMime = (mime: unknown): mime is string => {
+            return typeof mime === 'string' && (mime.startsWith('image/') || mime === 'application/pdf');
+        };
+        const toDataUrl = (rawValue: string, mediaType: string): string => {
+            if (!rawValue) return '';
+            if (rawValue.startsWith('data:')) {
+                return rawValue;
+            }
+            if (/^https?:\/\//i.test(rawValue) || rawValue.startsWith('file://')) {
+                return rawValue;
+            }
+            return `data:${mediaType};base64,${rawValue}`;
+        };
+        const addAttachment = (mime: string, rawValue: string, filename?: string) => {
+            const normalizedUrl = toDataUrl(rawValue, mime);
+            if (!normalizedUrl) return;
+            attachments.push({
+                id: `${m.id || 'msg'}_att_${attachments.length}`,
+                mime,
+                url: normalizedUrl,
+                filename,
+            });
+        };
 
         if (typeof m.content === 'string') {
             contentText = m.content;
         } else if (Array.isArray(m.content)) {
             // 提取所有 text parts
-            const textParts = m.content
-                .filter((part: any) => part.type === 'text')
-                .map((part: any) => part.text || '');
+            const textParts = m.content.filter((part: any) => part.type === 'text').map((part: any) => part.text || '');
             contentText = textParts.join('\n');
+            for (const part of m.content) {
+                if (part?.type === 'image') {
+                    const imageValue = typeof part.image === 'string'
+                        ? part.image
+                        : (part.image instanceof URL ? part.image.toString() : '');
+                    if (!imageValue) continue;
+                    addAttachment(part.mediaType || 'image/*', imageValue, part.filename);
+                } else if (part?.type === 'file' && isSupportedAttachmentMime(part.mediaType)) {
+                    const rawValue = typeof part.data === 'string'
+                        ? part.data
+                        : (part.data instanceof URL ? part.data.toString() : (typeof part.url === 'string' ? part.url : ''));
+                    if (!rawValue) continue;
+                    addAttachment(part.mediaType, rawValue, part.filename);
+                }
+            }
         }
 
         return {
             ...m,
             content: contentText,
-            messageType: 'text'
+            messageType: 'text',
+            metadata: attachments.length > 0
+                ? {
+                    ...(m.metadata || {}),
+                    attachments,
+                }
+                : m.metadata,
         };
     }
 
@@ -675,8 +752,6 @@ export class ChatBridge {
             }
         }
 
-        const reasoningBlock = reasoning ? `Reasoning:\n${reasoning}` : '';
-
         // 决定消息类型
         if (toolCalls.length > 0) {
             const toolDetails = toolCalls
@@ -686,14 +761,12 @@ export class ChatBridge {
                 })
                 .join('\n');
 
-            const content = [reasoningBlock, toolDetails].filter(Boolean).join('\n\n');
-
             const textBlock = textParts.join('\n').trim();
 
             // Tool call 消息
             return {
                 ...m,
-                content,
+                content: toolDetails,
                 messageType: 'tool_call',
                 metadata: {
                     toolName: toolCalls[0].toolName,
@@ -707,11 +780,14 @@ export class ChatBridge {
         }
 
         if (reasoning && textParts.length > 0) {
-            const content = [reasoningBlock, textParts.join('\n')].filter(Boolean).join('\n\n');
             return {
                 ...m,
-                content,
-                messageType: 'text'
+                content: textParts.join('\n'),
+                messageType: 'text',
+                metadata: {
+                    ...(m.metadata || {}),
+                    reasoning,
+                }
             };
         }
 
@@ -719,9 +795,10 @@ export class ChatBridge {
             // Reasoning-only 消息
             return {
                 ...m,
-                content: reasoningBlock,
+                content: reasoning,
                 messageType: 'reasoning',
                 metadata: {
+                    ...(m.metadata || {}),
                     reasoning
                 }
             };

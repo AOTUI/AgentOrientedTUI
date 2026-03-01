@@ -103,13 +103,18 @@ export class HostManagerV2 {
      * @param content - 消息内容
      * @param topicId - Topic ID（可选，默认使用 currentTopicId）
      */
-    async sendUserMessage(content: string, topicId?: string, messageId?: string): Promise<void> {
+    async sendUserMessage(
+        content: string,
+        topicId?: string,
+        messageId?: string,
+        attachments?: Array<{ id: string; mime: string; url: string; filename?: string }>
+    ): Promise<void> {
         if (!this.sessionManager) {
             throw new Error('SessionManager not initialized. Call initAgentDriver first.');
         }
         
         const targetTopicId = topicId || this.currentTopicId;
-        await this.sessionManager.sendMessage(targetTopicId, content, messageId);
+        await this.sessionManager.sendMessage(targetTopicId, content, messageId, attachments);
     }
 
     /**
@@ -262,4 +267,3 @@ export class HostManagerV2 {
         this.logger.info('HostManagerV2 disposed');
     }
 }
-

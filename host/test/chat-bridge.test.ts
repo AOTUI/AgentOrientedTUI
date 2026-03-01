@@ -103,6 +103,99 @@ describe('ChatBridge Host-only', () => {
 
         unsubscribe();
     });
+
+    it('normalizes assistant reasoning + text without prefixing Reasoning block', () => {
+        const bridge = ChatBridge.getInstance();
+        const normalized = (bridge as any).normalizeMessages([
+            {
+                role: 'assistant',
+                content: [
+                    { type: 'reasoning', text: 'Analyze the request' },
+                    { type: 'text', text: 'Final answer' },
+                ],
+            },
+        ]);
+
+        expect(normalized).toHaveLength(1);
+        expect(normalized[0].messageType).toBe('text');
+        expect(normalized[0].content).toBe('Final answer');
+        expect(normalized[0].metadata?.reasoning).toBe('Analyze the request');
+    });
+
+    it('keeps reasoning-only assistant message as raw reasoning text', () => {
+        const bridge = ChatBridge.getInstance();
+        const normalized = (bridge as any).normalizeMessages([
+            {
+                role: 'assistant',
+                content: [{ type: 'reasoning', text: 'Thinking in progress' }],
+            },
+        ]);
+
+        expect(normalized).toHaveLength(1);
+        expect(normalized[0].messageType).toBe('reasoning');
+        expect(normalized[0].content).toBe('Thinking in progress');
+        expect(normalized[0].metadata?.reasoning).toBe('Thinking in progress');
+    });
+
+    it('normalizes user file parts into attachment metadata for image and pdf', () => {
+        const bridge = ChatBridge.getInstance();
+        const normalized = (bridge as any).normalizeMessages([
+            {
+                id: 'msg_with_files',
+                role: 'user',
+                content: [
+                    { type: 'text', text: 'Please inspect attachments' },
+                    { type: 'file', mediaType: 'image/png', data: 'abcd', filename: 'diagram.png' },
+                    { type: 'file', mediaType: 'application/pdf', data: 'efgh', filename: 'design.pdf' },
+                ],
+            },
+        ]);
+
+        expect(normalized).toHaveLength(1);
+        expect(normalized[0].content).toBe('Please inspect attachments');
+        expect(normalized[0].metadata?.attachments).toEqual([
+            {
+                id: 'msg_with_files_att_0',
+                mime: 'image/png',
+                url: 'data:image/png;base64,abcd',
+                filename: 'diagram.png',
+            },
+            {
+                id: 'msg_with_files_att_1',
+                mime: 'application/pdf',
+                url: 'data:application/pdf;base64,efgh',
+                filename: 'design.pdf',
+            },
+        ]);
+    });
+
+    it('strips attachments from non-user messages (tool-result bridge disabled)', () => {
+        const bridge = ChatBridge.getInstance();
+        const normalized = (bridge as any).normalizeMessages([
+            {
+                id: 'tool_result_1',
+                role: 'tool',
+                messageType: 'tool_result',
+                content: 'ok',
+                metadata: {
+                    attachments: [
+                        {
+                            id: 'att_tool_1',
+                            mime: 'image/png',
+                            url: 'data:image/png;base64,abcd',
+                            filename: 'tool.png',
+                        },
+                    ],
+                    toolName: 'mock_tool',
+                },
+            },
+        ]);
+
+        expect(normalized).toHaveLength(1);
+        expect(normalized[0].role).toBe('tool');
+        expect(normalized[0].metadata?.attachments).toBeUndefined();
+        expect(normalized[0].metadata?.toolName).toBe('mock_tool');
+    });
 });
 
 describe('Database topic persistence', () => {

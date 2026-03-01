@@ -21,14 +21,21 @@ import { LLMConfigService, initializeLLMConfigService } from '../core/llm-config
 import { WebSocketHandlerV2 } from './websocket-handler-v2.js';
 import { GUIBridge } from './gui-bridge.js';
 import * as db from '../db/index.js';
-import type { ModelRegistry } from '../services/model-registry.js';
+import { ModelRegistry } from '../services/model-registry.js';
 
 // ═══════════════════════════════════════════════════════════════
 //  Express Routes (REST API for Topics/Messages)
 // ═══════════════════════════════════════════════════════════════
 
-function setupExpressRoutes(app: express.Application, hostManager?: HostManagerV2): void {
+function setupExpressRoutes(
+    app: express.Application,
+    hostManager?: HostManagerV2,
+    options?: {
+        setupPreJsonRoutes?: (app: express.Application) => void;
+    },
+): void {
     app.use(cors());
+    options?.setupPreJsonRoutes?.(app);
     app.use(express.json());
 
     // Logging middleware
@@ -214,17 +221,18 @@ export async function createHostV2Core(modelRegistry: ModelRegistry): Promise<{
     const wsHandler = new WebSocketHandlerV2(hostManager, guiBridge);
     console.log('[HostV2] WebSocketHandler V2 initialized');
 
+
     return { hostManager, llmConfigService, guiBridge, wsHandler };
 }
 
-export async function createHostV2(port: number = 8080, modelRegistry: ModelRegistry): Promise<WebSocketServer> {
+export async function createHostV2(port: number = 8080, modelRegistry?: ModelRegistry): Promise<WebSocketServer> {
     console.log('[HostV2] Starting Host V2 with AgentDriver V2 architecture...');
 
-    const { hostManager, llmConfigService, wsHandler } = await createHostV2Core(modelRegistry);
+    const registry = modelRegistry || new ModelRegistry();
+    const { hostManager, llmConfigService, wsHandler } = await createHostV2Core(registry);
 
     // 3. Setup Express (pass hostManager for Session initialization on Topic creation)
     const app = express();
-    setupExpressRoutes(app, hostManager);
 
     // 4. Create HTTP + WebSocket servers
     const server = createHttpServer(app);

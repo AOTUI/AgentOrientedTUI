@@ -16,7 +16,7 @@ import { AppsTab } from './apps/AppsTab.js';
 import { SkillsTab } from './skills/SkillsTab.js';
 import { SettingsErrorBoundary } from './SettingsErrorBoundary.js';
 import { useScreenReaderAnnouncement } from './hooks/useScreenReaderAnnouncement.js';
-import type { SettingsPanelProps } from './types.js';
+import type { SettingsPanelProps, SettingsTabKey } from './types.js';
 
 /**
  * Icon component for exit button
@@ -52,7 +52,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     initialTab,
 }) => {
     // State - default to 'agent' tab (first in sidebar)
-    const [activeTab, setActiveTab] = useState<'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills'>('agent');
+    const [activeTab, setActiveTab] = useState<SettingsTabKey>('agent');
 
     // Update activeTab when panel opens or initialTab changes
     useEffect(() => {

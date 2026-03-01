@@ -96,7 +96,7 @@ function createWindow() {
                     hostManager, 
                     llmConfigService,
                     modelRegistry: registry,
-                    messageService
+                    messageService,
                 };
             }
         });

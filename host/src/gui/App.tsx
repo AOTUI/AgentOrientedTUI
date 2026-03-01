@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useChatBridge } from './ChatBridge.js';
 import { TuiDesktopViewer } from './components/TuiDesktopViewer.js';
-import type { Topic, Message, Project } from '../types.js';
+import type { Topic, Message, Project, ImageAttachment } from '../types.js';
 
 // Components
 import { ProjectSelector } from './components/ProjectSelector.js';
@@ -34,7 +34,7 @@ type TopicCapabilities = {
     };
     skill: {
         enabled: boolean;
-        items: Array<{ name: string; enabled: boolean }>;
+        items: Array<{ name: string; enabled: boolean; scope?: 'global' | 'project' }>;
     };
     apps: {
         enabled: boolean;
@@ -475,7 +475,7 @@ export function App() {
         setViewMode('chat');
     }, [bridge]);
 
-    const handleSendMessage = useCallback(async (content: string) => {
+    const handleSendMessage = useCallback(async (content: string, attachments: ImageAttachment[] = []) => {
         if (!canSendMessage) {
             showToast(sendBlockedReason || 'Please complete the LLM provider and model setup first.');
             setSettingsPanelOpen(true);
@@ -531,7 +531,7 @@ export function App() {
         setAgentThinking('');
         setAgentReasoning('');
         try {
-            await bridge.sendMessage(currentTopicId, content);
+            await bridge.sendMessage(currentTopicId, content, attachments);
         } catch (error) {
             const raw = error instanceof Error ? error.message : String(error);
             const message = raw.includes('API key') || raw.includes('provider') || raw.includes('model')

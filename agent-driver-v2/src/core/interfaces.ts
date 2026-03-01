@@ -364,6 +364,11 @@ export interface LLMConfig {
     modelCapabilities?: {
         /** 是否支持 tool calls */
         toolCall?: boolean;
+        /** 输入模态能力 */
+        input?: {
+            image?: boolean;
+            pdf?: boolean;
+        };
     };
 }
 
@@ -391,4 +396,3 @@ export interface LLMResponse {
     /** Assistant Message (用于构建消息历史) */
     assistantMessage?: ModelMessage;
 }
-

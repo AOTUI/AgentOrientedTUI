@@ -2,6 +2,7 @@
  * Config - 项目配置管理模块
  *
  * - MCP 服务器配置持久化（存储于 ~/.tui/mcp.json）
+ * - IM 配置持久化（存储于 ~/.tui/im.json）
  * - 供 mcp/index.ts 和 trpc/router.ts 使用
  */
 
@@ -70,6 +71,82 @@ export type Mcp = z.infer<typeof Mcp>
 
 export interface Info {
   $schema?: string
+  im?: {
+    channels?: {
+      lark?: {
+        enabled?: boolean
+        sessionScope?: "peer" | "peer_thread"
+        domain?: "feishu" | "lark" | string
+        connectionMode?: "webhook" | "websocket"
+        appId?: string
+        appSecret?: string
+        botToken?: string
+        verificationToken?: string
+        encryptKey?: string
+        signingSecret?: string
+        apiBaseUrl?: string
+        requestTimeoutMs?: number
+        accounts?: Record<string, {
+          enabled?: boolean
+          sessionScope?: "peer" | "peer_thread"
+          domain?: "feishu" | "lark" | string
+          connectionMode?: "webhook" | "websocket"
+          appId?: string
+          appSecret?: string
+          botToken?: string
+          verificationToken?: string
+          encryptKey?: string
+          signingSecret?: string
+          apiBaseUrl?: string
+          requestTimeoutMs?: number
+        }>
+      }
+      feishu?: {
+        enabled?: boolean
+        sessionScope?: "peer" | "peer_thread"
+        domain?: "feishu" | "lark" | string
+        connectionMode?: "webhook" | "websocket"
+        appId?: string
+        appSecret?: string
+        botToken?: string
+        verificationToken?: string
+        encryptKey?: string
+        signingSecret?: string
+        apiBaseUrl?: string
+        requestTimeoutMs?: number
+        dmPolicy?: "open" | "allowlist" | "pairing"
+        allowFrom?: Array<string | number>
+        pairingApprovers?: Array<string | number>
+        pairingCodeTtlMs?: number
+        pairingMaxPending?: number
+        groupPolicy?: "open" | "allowlist" | "disabled"
+        groupAllowFrom?: Array<string | number>
+        requireMention?: boolean
+        accounts?: Record<string, {
+          enabled?: boolean
+          sessionScope?: "peer" | "peer_thread"
+          domain?: "feishu" | "lark" | string
+          connectionMode?: "webhook" | "websocket"
+          appId?: string
+          appSecret?: string
+          botToken?: string
+          verificationToken?: string
+          encryptKey?: string
+          signingSecret?: string
+          apiBaseUrl?: string
+          requestTimeoutMs?: number
+          dmPolicy?: "open" | "allowlist" | "pairing"
+          allowFrom?: Array<string | number>
+          pairingApprovers?: Array<string | number>
+          pairingCodeTtlMs?: number
+          pairingMaxPending?: number
+          groupPolicy?: "open" | "allowlist" | "disabled"
+          groupAllowFrom?: Array<string | number>
+          requireMention?: boolean
+        }>
+      }
+    }
+  }
   mcp?: Record<string, Mcp | { enabled: boolean }>
   skills?: {
     enabled?: boolean
@@ -145,6 +222,11 @@ function getProjectConfigPath(projectPath: string): string {
 /** 全局 TUI 配置文件路径 (~/.tui/config.json) */
 function getTuiConfigPath(): string {
   return path.join(os.homedir(), ".tui", "config.json")
+}
+
+/** 全局 IM 配置文件路径 (~/.tui/im.json) */
+function getImConfigPath(): string {
+  return path.join(os.homedir(), ".tui", "im.json")
 }
 
 // ─── JSONC 预处理器（单遍字符级状态机）────────────────────────────────────────
@@ -280,7 +362,47 @@ export namespace Config {
 
   /** 获取当前运行时配置（与 getGlobal 等价，无内存缓存） */
   export async function get(): Promise<Info & { experimental?: Record<string, unknown> }> {
-    return getGlobal()
+    const globalConfig = await getGlobal()
+    const im = await getGlobalIm(globalConfig)
+    if (im === undefined) {
+      return globalConfig
+    }
+    return {
+      ...globalConfig,
+      im,
+    }
+  }
+
+  /**
+   * 获取全局 IM 配置（优先读取 ~/.tui/im.json）。
+   * 兼容策略：若 im.json 不存在或不含 `im` 字段，则回退到 ~/.tui/mcp.json 的 `im`。
+   */
+  export async function getGlobalIm(legacyGlobalConfig?: Info): Promise<Info["im"] | undefined> {
+    const imConfig = await readConfigFile(getImConfigPath())
+    if (imConfig.im !== undefined) {
+      return imConfig.im
+    }
+    const legacy = legacyGlobalConfig ?? (await getGlobal())
+    return legacy.im
+  }
+
+  /** 替换写入全局 IM 配置到 ~/.tui/im.json */
+  export async function replaceGlobalIm(im: Info["im"]): Promise<Info["im"] | undefined> {
+    const filepath = getImConfigPath()
+    await fs.mkdir(path.dirname(filepath), { recursive: true })
+
+    const existing = await readConfigFile(filepath)
+    const next: Info = {}
+
+    if (existing.$schema) {
+      next.$schema = existing.$schema
+    }
+    if (im !== undefined) {
+      next.im = im
+    }
+
+    await fs.writeFile(filepath, JSON.stringify(next, null, 2), "utf8")
+    return next.im
   }
 
   /** 合并 patch 并写回全局配置文件 */

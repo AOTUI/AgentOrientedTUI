@@ -16,7 +16,8 @@
         "postinstall": "bash scripts/patch-electron-trpc.sh",
         "electron:dev": "concurrently \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
         "electron:build": "npm run build && npm run build:gui && electron-builder",
-        "rebuild": "electron-builder install-app-deps"
+        "rebuild": "electron-builder install-app-deps",
+        "server:v2": "tsx src/server/start-host-v2.ts"
     },
     "build": {
         "appId": "com.aotui.system-chat",
@@ -50,6 +51,7 @@
         "@google/generative-ai": "^0.24.1",
         "@heroui/react": "^2.7.5",
         "@heroui/styles": "3.0.0-beta.5",
+        "@larksuiteoapi/node-sdk": "^1.59.0",
         "@modelcontextprotocol/sdk": "^1.26.0",
         "@trpc/client": "^10.45.4",
         "@trpc/server": "^10.45.4",

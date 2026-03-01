@@ -5,7 +5,7 @@ import { Card, CardBody } from "@heroui/card";
 import { IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconPlug, IconBrain, IconPrompt, IconWrench } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
-import type { Message } from '../../types.js';
+import type { Message, ImageAttachment } from '../../types.js';
 
 export type DisplayAgentState = 'sleeping' | 'idle' | 'working' | 'paused';
 
@@ -39,7 +39,7 @@ interface ChatAreaProps {
     messages: Message[];
     agentThinking: string;
     agentReasoning: string;
-    onSendMessage: (content: string) => void;
+    onSendMessage: (content: string, attachments?: ImageAttachment[]) => void | Promise<void>;
     canSendMessage?: boolean;
     sendBlockedReason?: string | null;
     onOpenSettings?: (tab?: 'model' | 'agent' | 'prompt' | 'theme' | 'apps' | 'mcp' | 'skills') => void;
@@ -52,6 +52,8 @@ interface ChatAreaProps {
     capabilityHint?: string | null;
     modelGroups?: Array<{ providerId: string; models: string[]; displayName?: string }>;
     selectedModel?: string | null;
+    selectedModelSupportsImage?: boolean;
+    selectedModelSupportsPdf?: boolean;
     onSelectModel?: (modelId: string) => void;
     promptTemplates?: Array<{ id: string; name: string; content: string }>;
     topicPrompt?: string | null;
@@ -61,6 +63,14 @@ interface ChatAreaProps {
     selectedAgentId?: string | null;
     onSelectAgent?: (agentId: string | null) => void;
 }
+
+const MAX_ATTACHMENTS = 6;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
+const isImageMime = (mime?: string): boolean => typeof mime === 'string' && mime.startsWith('image/');
+const isPdfMime = (mime?: string): boolean => mime === 'application/pdf';
+const isAcceptedAttachmentFile = (file: File): boolean => isImageMime(file.type) || isPdfMime(file.type);
+const isImageAttachment = (attachment: ImageAttachment): boolean => isImageMime(attachment.mime);
 
 type ToolTraceStep = {
     toolCallId?: string;
@@ -189,7 +199,7 @@ const hasMeaningfulPayload = (value: unknown): boolean => {
     return true;
 };
 
-export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent, topicCapabilities = null, onToggleCapabilityGroup, onToggleCapabilityItem, capabilityHint = null, modelGroups = [], selectedModel = null, onSelectModel, promptTemplates = [], topicPrompt = '', onChangeTopicPrompt, onApplyPromptTemplate, agents = [], selectedAgentId = null, onSelectAgent }: ChatAreaProps) {
+export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessage, canSendMessage = true, sendBlockedReason = null, onOpenSettings, displayAgentState = 'sleeping', onPauseAgent, onResumeAgent, topicCapabilities = null, onToggleCapabilityGroup, onToggleCapabilityItem, capabilityHint = null, modelGroups = [], selectedModel = null, selectedModelSupportsImage = true, selectedModelSupportsPdf = true, onSelectModel, promptTemplates = [], topicPrompt = '', onChangeTopicPrompt, onApplyPromptTemplate, agents = [], selectedAgentId = null, onSelectAgent }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -205,6 +215,11 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
     const [modelSearch, setModelSearch] = React.useState('');
     const [promptSearch, setPromptSearch] = React.useState('');
     const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+    const [pendingAttachments, setPendingAttachments] = useState<ImageAttachment[]>([]);
+    const [attachmentError, setAttachmentError] = useState<string | null>(null);
+    const [isSending, setIsSending] = useState(false);
+    const [previewAttachment, setPreviewAttachment] = useState<ImageAttachment | null>(null);
+    const [draggingAttachmentId, setDraggingAttachmentId] = useState<string | null>(null);
 
     // Close capability panels when clicking outside
     useEffect(() => {
@@ -217,6 +232,17 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         document.addEventListener('mousedown', handleOutside);
         return () => document.removeEventListener('mousedown', handleOutside);
     }, [openCapPanel]);
+
+    useEffect(() => {
+        if (!previewAttachment) return;
+        const onEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setPreviewAttachment(null);
+            }
+        };
+        document.addEventListener('keydown', onEscape);
+        return () => document.removeEventListener('keydown', onEscape);
+    }, [previewAttachment]);
 
     const toggleCapPanel = (panel: 'agent' | 'model' | 'prompt' | 'apps' | 'skills' | 'mcp') => {
         setOpenCapPanel(prev => prev === panel ? null : panel);
@@ -356,8 +382,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
     useEffect(() => {
         if (textareaRef.current) {
             const maxHeight = 160;
-            textareaRef.current.style.height = '0px';
-            const nextHeight = Math.min(textareaRef.current.scrollHeight, maxHeight);
+            const minHeight = 44;
+            textareaRef.current.style.height = 'auto';
+            const nextHeight = Math.min(Math.max(textareaRef.current.scrollHeight, minHeight), maxHeight);
             textareaRef.current.style.height = `${nextHeight}px`;
             textareaRef.current.style.overflowY = textareaRef.current.scrollHeight > maxHeight ? 'auto' : 'hidden';
         }
@@ -395,21 +422,142 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         }
     }, [messages, agentThinking, agentReasoning]);
 
+    const toDataUrl = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ''));
+            reader.onerror = () => reject(reader.error || new Error('Failed to read image file'));
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const appendAttachmentFiles = async (files: File[]) => {
+        const acceptedFiles = files.filter((file) => isAcceptedAttachmentFile(file));
+        if (acceptedFiles.length === 0) return;
+
+        const oversized = acceptedFiles.find((file) => file.size > MAX_ATTACHMENT_BYTES);
+        if (oversized) {
+            setAttachmentError(`Attachment "${oversized.name}" exceeds 5MB limit.`);
+            return;
+        }
+
+        if (pendingAttachments.length + acceptedFiles.length > MAX_ATTACHMENTS) {
+            setAttachmentError(`You can attach up to ${MAX_ATTACHMENTS} files.`);
+            return;
+        }
+
+        const nextAttachments: ImageAttachment[] = [];
+        for (const file of acceptedFiles) {
+            const url = await toDataUrl(file);
+            if (!url) continue;
+            nextAttachments.push({
+                id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                mime: file.type || 'application/octet-stream',
+                url,
+                filename: file.name || undefined,
+            });
+        }
+        if (nextAttachments.length > 0) {
+            setAttachmentError(null);
+            setPendingAttachments((prev) => [...prev, ...nextAttachments]);
+        }
+    };
+
+    const handlePaste = async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const files = Array.from(event.clipboardData?.files || []);
+        const hasAcceptedAttachment = files.some((file) => isAcceptedAttachmentFile(file));
+        if (!hasAcceptedAttachment) return;
+        event.preventDefault();
+        await appendAttachmentFiles(files);
+    };
+
+    const removePendingAttachment = (id: string) => {
+        setAttachmentError(null);
+        setPendingAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
+    };
+
+    const movePendingAttachment = (id: string, direction: 'left' | 'right') => {
+        setPendingAttachments((prev) => {
+            const index = prev.findIndex((item) => item.id === id);
+            if (index < 0) return prev;
+            const nextIndex = direction === 'left' ? index - 1 : index + 1;
+            if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+            const next = [...prev];
+            [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+            return next;
+        });
+    };
+
+    const reorderPendingAttachment = (fromId: string, toId: string) => {
+        if (!fromId || !toId || fromId === toId) return;
+        setPendingAttachments((prev) => {
+            const fromIndex = prev.findIndex((item) => item.id === fromId);
+            const toIndex = prev.findIndex((item) => item.id === toId);
+            if (fromIndex < 0 || toIndex < 0) return prev;
+            const next = [...prev];
+            const [moved] = next.splice(fromIndex, 1);
+            next.splice(toIndex, 0, moved);
+            return next;
+        });
+    };
+
+    const hasPendingImageAttachment = pendingAttachments.some((attachment) => isImageAttachment(attachment));
+    const hasPendingPdfAttachment = pendingAttachments.some((attachment) => isPdfMime(attachment.mime));
+    const imageCapabilityBlocked = hasPendingImageAttachment && !selectedModelSupportsImage;
+    const pdfCapabilityBlocked = hasPendingPdfAttachment && !selectedModelSupportsPdf;
+    const attachmentCapabilityBlocked = imageCapabilityBlocked || pdfCapabilityBlocked;
+    const hasPayload = inputValue.trim().length > 0 || pendingAttachments.length > 0;
+    const canSubmitPayload = hasPayload && !attachmentCapabilityBlocked && canSendMessage;
+    const canSendCurrent = canSubmitPayload && !isSending;
+
+    const submitCurrentMessage = async () => {
+        if (!canSendCurrent) return;
+        const result = onSendMessage(inputValue.trim(), pendingAttachments);
+        const isPromiseLike = Boolean(result && typeof (result as Promise<void>).then === 'function');
+
+        if (isPromiseLike) {
+            setIsSending(true);
+            try {
+                await result;
+                setInputValue('');
+                setPendingAttachments([]);
+                setAttachmentError(null);
+            } finally {
+                setIsSending(false);
+            }
+            return;
+        }
+
+        setInputValue('');
+        setPendingAttachments([]);
+        setAttachmentError(null);
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        const target = e.currentTarget as HTMLTextAreaElement;
+        if (
+            e.key === 'Backspace'
+            && inputValue.length === 0
+            && pendingAttachments.length > 0
+            && target.selectionStart === 0
+            && target.selectionEnd === 0
+        ) {
+            e.preventDefault();
+            const last = pendingAttachments[pendingAttachments.length - 1];
+            if (last) {
+                removePendingAttachment(last.id);
+            }
+            return;
+        }
+
         if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
-            if (inputValue.trim()) {
-                onSendMessage(inputValue.trim());
-                setInputValue('');
-            }
+            void submitCurrentMessage();
         }
     };
 
     const handleSendClick = () => {
-        if (inputValue.trim()) {
-            onSendMessage(inputValue.trim());
-            setInputValue('');
-        }
+        void submitCurrentMessage();
     };
 
     const normalizeReasoningText = (text: string) => {
@@ -419,6 +567,10 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         }
         return trimmed;
     };
+
+    const renderToolchainMarkdown = (content: string) => (
+        <MarkdownRenderer content={content} />
+    );
 
     // 解析多部分消息内容
     const parseMultiPartContent = (content: any): Array<{ type: string; text?: string; toolCallId?: string; toolName?: string; input?: any }> => {
@@ -458,12 +610,48 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         <span>Reasoning Chain</span>
                     </div>
                     <div className="text-[11px] leading-5 text-[var(--color-text-secondary)] opacity-90 pl-2">
-                        <MarkdownRenderer content={agentReasoning} />
+                        {renderToolchainMarkdown(agentReasoning)}
                     </div>
                 </CardBody>
             </Card>
         </div>
     );
+
+    const renderInlineReasoning = (messageKey: string, reasoning: string) => {
+        const normalizedReasoning = normalizeReasoningText(reasoning || '');
+        if (!normalizedReasoning.trim()) {
+            return null;
+        }
+
+        const inlineReasoningKey = `${messageKey}-inline-reasoning`;
+        const isExpanded = expandedTraceKeys[inlineReasoningKey] ?? false;
+
+        return (
+            <div className="mb-3">
+                <button
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                    onClick={() => {
+                        setExpandedTraceKeys(prev => ({
+                            ...prev,
+                            [inlineReasoningKey]: !prev[inlineReasoningKey]
+                        }));
+                    }}
+                    aria-label={isExpanded ? 'Collapse reasoning' : 'Expand reasoning'}
+                >
+                    <IconBrain className="w-3 h-3 text-current" />
+                    <span className="font-medium">Reasoning</span>
+                    <span className="text-[9px] text-current opacity-80">
+                        {isExpanded ? '▼' : '▶'}
+                    </span>
+                </button>
+                {isExpanded && (
+                    <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 mt-1 ml-3 text-[10px] leading-5 text-[var(--color-text-secondary)]">
+                        {renderToolchainMarkdown(normalizedReasoning)}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     // Build tool rounds from trace items (pair tool-call with tool-result)
     const buildToolRoundsFromItems = (items: TraceItem[]): TraceItem[] => {
@@ -554,7 +742,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                 <div key={`reasoning-${index}`}>
                     {/* Reasoning header - always visible, clickable to expand/collapse */}
                     <button
-                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--mat-content-card-hover-bg)] transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                         onClick={() => {
                             setExpandedTraceKeys(prev => ({
                                 ...prev,
@@ -563,9 +751,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         }}
                         aria-label={isReasoningExpanded ? 'Collapse reasoning' : 'Expand reasoning'}
                     >
-                        <IconBrain className="w-3 h-3 text-[var(--color-accent)]" />
+                        <IconBrain className="w-3 h-3 text-current" />
                         <span className="font-medium">Reasoning</span>
-                        <span className="text-[var(--color-text-tertiary)] text-[9px]">
+                        <span className="text-[9px] text-current opacity-80">
                             {isReasoningExpanded ? '▼' : '▶'}
                         </span>
                     </button>
@@ -573,7 +761,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                     {/* Expanded reasoning content - no bubble, just left border */}
                     {isReasoningExpanded && (
                         <div className="border-l-2 border-[var(--color-border)] pl-3 py-1 mt-1 ml-3 text-[10px] leading-5 text-[var(--color-text-secondary)]">
-                            <MarkdownRenderer content={item.text} />
+                            {renderToolchainMarkdown(item.text)}
                         </div>
                     )}
                 </div>
@@ -583,7 +771,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
         // Render a single text item (always visible)
         const renderTextItem = (item: { kind: 'text'; text: string }, index: number) => (
             <div key={`text-${index}`} className="text-[11px] leading-5 text-[var(--color-text-primary)] px-3 py-1 rounded-xl bg-[var(--mat-toolchain-block-bg)]">
-                <MarkdownRenderer content={item.text} />
+                {renderToolchainMarkdown(item.text)}
             </div>
         );
 
@@ -603,10 +791,10 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
             return (
                 <div key={`tool-round-${round.toolCallId || index}`}>
                     {/* Tool round header - always visible, single row */}
-                    <div className="flex items-center gap-1.5 px-2 py-1">
-                        <IconWrench className="w-3 h-3 text-[var(--color-text-tertiary)] shrink-0" />
+                    <div className="group flex items-center gap-1.5 px-2 py-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                        <IconWrench className="w-3 h-3 text-current shrink-0" />
                         <button
-                            className="inline-flex items-center gap-1.5 text-[10px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors min-w-0 flex-1"
+                            className="inline-flex items-center gap-1.5 text-[10px] text-current transition-colors min-w-0"
                             onClick={() => {
                                 setExpandedTraceKeys(prev => ({
                                     ...prev,
@@ -615,13 +803,13 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                             }}
                             aria-label={isToolExpanded ? 'Collapse tool' : 'Expand tool'}
                         >
-                            <span className="font-medium truncate">{round.toolName}</span>
+                            <span className="font-medium truncate max-w-[220px]">{round.toolName}</span>
                             {round.status !== 'pending' && (
                                 <span className={`text-[9px] shrink-0 ${round.status === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}`}>
                                     {statusLabel}
                                 </span>
                             )}
-                            <span className="text-[var(--color-text-tertiary)] text-[9px] shrink-0 ml-auto">
+                            <span className="text-[9px] text-current opacity-80 shrink-0">
                                 {isToolExpanded ? '▼' : '▶'}
                             </span>
                         </button>
@@ -645,7 +833,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                     <div className="text-[10px] font-medium text-[var(--color-text-secondary)] mb-1">Output</div>
                                     {typeof round.result === 'string' ? (
                                         <div className="text-[10px] leading-5 text-[var(--color-text-secondary)] overflow-x-auto">
-                                            <MarkdownRenderer content={truncateValue(round.result)} />
+                                            {renderToolchainMarkdown(truncateValue(round.result))}
                                         </div>
                                     ) : (
                                         <pre className="font-mono text-[10px] leading-4 whitespace-pre-wrap break-words text-[var(--color-text-secondary)] overflow-x-auto">
@@ -753,6 +941,7 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         const isToolResult = messageType === 'tool_result';
                         const shouldTrace = isReasoning || isToolCall || isToolResult;
                         const hasVisibleText = typeof msg.content === 'string' && msg.content.trim().length > 0;
+                        const hasInlineReasoning = isAgent && !shouldTrace && typeof msg.metadata?.reasoning === 'string' && msg.metadata.reasoning.trim().length > 0;
 
                         if (shouldTrace) {
                             if (isReasoning) {
@@ -815,38 +1004,67 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                 key={msg.id}
                                 className={`group flex ${isAgent ? 'justify-start' : 'justify-end'}`}
                             >
-                                <Card
-                                    className={`
-                                        max-w-[85%] !border-0 shadow-none
-                                        ${isAgentError
-                                            ? 'bg-[var(--mat-content-card-bg)] rounded-2xl rounded-tl-sm border border-[var(--color-danger,#FF453A)]'
-                                            : isAgent
-                                            ? 'bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm'
-                                            : 'bg-[var(--mat-lg-clear-accent-bg)] rounded-2xl rounded-tr-sm'}
-                                    `}
-                                >
-                                    <CardBody className="p-4 overflow-hidden">
+                                <div className="relative max-w-[85%]">
+                                    {!isAgent && (
+                                        <button
+                                            type="button"
+                                            title="Copy message"
+                                            aria-label="Copy message"
+                                            className="absolute -left-10 top-3 h-7 w-7 rounded-md opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--mat-lg-clear-accent-bg)] text-[var(--color-text-primary)] shadow-sm flex items-center justify-center text-[11px]"
+                                            onClick={() => {
+                                                void navigator.clipboard.writeText(msg.content || '');
+                                                setCopiedMsgId(msg.id);
+                                                setTimeout(() => setCopiedMsgId(id => id === msg.id ? null : id), 1500);
+                                            }}
+                                        >
+                                            {copiedMsgId === msg.id ? '✓' : '⧉'}
+                                        </button>
+                                    )}
+                                    <Card
+                                        className={`
+                                            w-full !border-0 shadow-none
+                                            ${isAgentError
+                                                ? 'bg-[var(--mat-content-card-bg)] rounded-2xl rounded-tl-sm border border-[var(--color-danger,#FF453A)]'
+                                                : isAgent
+                                                ? 'bg-[var(--mat-content-bubble-bg)] rounded-2xl rounded-tl-sm'
+                                                : 'bg-[var(--mat-lg-clear-accent-bg)] rounded-2xl rounded-tr-sm'}
+                                        `}
+                                    >
+                                        <CardBody className="p-4 overflow-hidden">
                                         <div className={`flex items-center gap-2 mb-2 text-[12px] font-medium ${isAgent ? 'text-[var(--color-text-tertiary)]' : 'text-[var(--color-text-tertiary)]'}`}>
                                             <span>{isAgentError ? 'System Agent Error' : isAgent ? 'System Agent' : 'User Command'}</span>
                                             <span>•</span>
                                             <span className="font-system text-[11px] opacity-70">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                            {!isAgent && (
-                                                <button
-                                                    type="button"
-                                                    title="Copy message"
-                                                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                                                    onClick={() => {
-                                                        void navigator.clipboard.writeText(msg.content || '');
-                                                        setCopiedMsgId(msg.id);
-                                                        setTimeout(() => setCopiedMsgId(id => id === msg.id ? null : id), 1500);
-                                                    }}
-                                                >
-                                                    {copiedMsgId === msg.id ? 'Copied!' : 'Copy'}
-                                                </button>
-                                            )}
                                         </div>
+                                        {msg.role === 'user' && Array.isArray(msg.metadata?.attachments) && msg.metadata.attachments.length > 0 && (
+                                            <div className="mb-3 flex flex-wrap gap-2">
+                                                {msg.metadata.attachments.map((attachment) => (
+                                                    <div key={attachment.id} className="w-[88px] h-[88px] rounded-lg overflow-hidden border border-[var(--mat-border)] bg-[var(--mat-content-card-bg)]">
+                                                        {isImageAttachment(attachment) ? (
+                                                            <img
+                                                                src={attachment.url}
+                                                                alt={attachment.filename || 'image attachment'}
+                                                                className="w-full h-full object-cover cursor-zoom-in"
+                                                                onClick={() => setPreviewAttachment(attachment)}
+                                                            />
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => window.open(attachment.url, '_blank', 'noopener,noreferrer')}
+                                                                className="w-full h-full px-2 py-2 text-left flex flex-col justify-between text-[10px] text-[var(--color-text-secondary)]"
+                                                                title={attachment.filename || 'attachment'}
+                                                            >
+                                                                <span className="font-semibold text-[11px] text-[var(--color-text-primary)]">PDF</span>
+                                                                <span className="truncate">{attachment.filename || 'attachment.pdf'}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="text-[13px] leading-6 text-[var(--color-text-primary)]">
-                                            <MarkdownRenderer content={msg.content} />
+                                            {hasInlineReasoning && renderInlineReasoning(msg.id, msg.metadata?.reasoning || '')}
+                                            {renderToolchainMarkdown(msg.content)}
                                         </div>
                                         {isAgentError && (
                                             <div className="mt-3 flex items-center gap-2">
@@ -859,8 +1077,9 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                                 </button>
                                             </div>
                                         )}
-                                    </CardBody>
-                                </Card>
+                                        </CardBody>
+                                    </Card>
+                                </div>
                             </div>
                         );
 
@@ -882,8 +1101,8 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                     <Spinner size="sm" color="current" />
                                     <span>Generating Response...</span>
                                 </div>
-                                <div className="font-mono text-[12px] text-[var(--color-text-secondary)] opacity-90 whitespace-pre-wrap border-l-2 border-[var(--mat-border)] pl-3">
-                                    {agentThinking}
+                                <div className="text-[12px] text-[var(--color-text-secondary)] opacity-90 border-l-2 border-[var(--mat-border)] pl-3">
+                                    {renderToolchainMarkdown(agentThinking)}
                                 </div>
                             </CardBody>
                         </Card>
@@ -898,6 +1117,71 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                  ────────────────────────────────────────── */}
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-2 z-20 pointer-events-none">
                 <div className="w-full max-w-[512px] mx-auto pointer-events-auto">
+                    {pendingAttachments.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-2 px-1">
+                            {pendingAttachments.map((attachment) => (
+                                <div
+                                    key={attachment.id}
+                                    draggable
+                                    onDragStart={() => setDraggingAttachmentId(attachment.id)}
+                                    onDragEnd={() => setDraggingAttachmentId(null)}
+                                    onDragOver={(event) => event.preventDefault()}
+                                    onDrop={(event) => {
+                                        event.preventDefault();
+                                        if (draggingAttachmentId) {
+                                            reorderPendingAttachment(draggingAttachmentId, attachment.id);
+                                        }
+                                        setDraggingAttachmentId(null);
+                                    }}
+                                    className={`relative w-12 h-12 rounded-md overflow-hidden border ${draggingAttachmentId === attachment.id ? 'border-[var(--color-accent)]' : 'border-[var(--mat-border)]'}`}
+                                >
+                                    {isImageAttachment(attachment) ? (
+                                        <img
+                                            src={attachment.url}
+                                            alt={attachment.filename || 'attachment'}
+                                            className="w-full h-full object-cover cursor-zoom-in"
+                                            onClick={() => setPreviewAttachment(attachment)}
+                                        />
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => window.open(attachment.url, '_blank', 'noopener,noreferrer')}
+                                            className="w-full h-full px-1 py-1 text-left flex flex-col justify-between text-[8px] text-[var(--color-text-secondary)] bg-[var(--mat-content-card-bg)]"
+                                        >
+                                            <span className="text-[9px] font-semibold text-[var(--color-text-primary)]">PDF</span>
+                                            <span className="truncate">{attachment.filename || 'attachment.pdf'}</span>
+                                        </button>
+                                    )}
+                                    <div className="absolute left-0 right-0 bottom-0 flex items-center justify-between bg-black/50">
+                                        <button
+                                            type="button"
+                                            onClick={() => movePendingAttachment(attachment.id, 'left')}
+                                            className="w-4 h-4 text-white text-[10px] leading-none"
+                                            aria-label="Move attachment left"
+                                        >
+                                            ‹
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => movePendingAttachment(attachment.id, 'right')}
+                                            className="w-4 h-4 text-white text-[10px] leading-none"
+                                            aria-label="Move attachment right"
+                                        >
+                                            ›
+                                        </button>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => removePendingAttachment(attachment.id)}
+                                        className="absolute top-0 right-0 w-4 h-4 rounded-bl-md bg-black/60 text-white text-[10px] leading-none"
+                                        aria-label="Remove attachment"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Single unified pill */}
                     <div 
@@ -1279,13 +1563,13 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                                         <div className="space-y-2">
                                                             {globalSkills.length > 0 && (
                                                                 <div>
-                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Global</div>
+                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Global Skills</div>
                                                                     {renderSkillList(globalSkills)}
                                                                 </div>
                                                             )}
                                                             {projectSkills.length > 0 && (
                                                                 <div>
-                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Project</div>
+                                                                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)] mb-1">Project Skills</div>
                                                                     {renderSkillList(projectSkills)}
                                                                 </div>
                                                             )}
@@ -1396,18 +1680,33 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                         </div>
 
                         {/* ── Input Section ── */}
-                        <div className="w-full min-h-[44px] px-3 pb-3 pt-2">
-                            <div className="w-full flex items-end rounded-[22px] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)]">
+                        <div
+                            className="w-full min-h-[44px] px-3 pb-3 pt-2"
+                            onDragOver={(event) => {
+                                if (Array.from(event.dataTransfer?.files || []).some((file) => isAcceptedAttachmentFile(file))) {
+                                    event.preventDefault();
+                                }
+                            }}
+                            onDrop={async (event) => {
+                                const files = Array.from(event.dataTransfer?.files || []);
+                                if (!files.some((file) => isAcceptedAttachmentFile(file))) return;
+                                event.preventDefault();
+                                await appendAttachmentFiles(files);
+                            }}
+                        >
+                            <div className="w-full flex items-center rounded-[22px] bg-[var(--mat-content-card-bg)] border border-[var(--mat-border)]">
                                 <textarea
                                     ref={textareaRef}
                                     className="
                                     flex-1 bg-transparent border-none outline-none
                                     focus:ring-0 focus:outline-none
-                                    text-[15px] leading-relaxed text-[var(--color-text-primary)]
-                                    placeholder:text-[var(--color-text-tertiary)]
-                                    px-4 py-3
+                                    text-[15px] leading-6 text-[var(--color-text-primary)]
+                                    placeholder:text-[var(--color-text-tertiary)] placeholder:leading-6
+                                    px-4 py-[10px]
+                                    min-h-[44px]
+                                    mr-2
                                     max-h-40
-                                        resize-none overflow-y-hidden scrollbar-hide
+                                    resize-none overflow-y-hidden scrollbar-hide
                                     font-['SF_Pro_Rounded',system-ui,sans-serif]
                                 "
                                     placeholder={
@@ -1421,36 +1720,70 @@ export function ChatArea({ messages, agentThinking, agentReasoning, onSendMessag
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                     onKeyDown={handleKeyDown}
+                                    onPaste={handlePaste}
                                 />
 
                                 {/* Send button */}
-                                <div className="pr-2 py-2 shrink-0">
+                                <div className="pr-2 py-1 shrink-0">
                                     <Button
                                         isIconOnly size="sm"
+                                        isDisabled={!canSendCurrent}
                                         className={`
                                         min-w-9 w-9 h-9 rounded-full flex items-center justify-center
                                         transition-all duration-[var(--dur-fast)]
                                         active:scale-[0.94] motion-reduce:active:scale-100
-                                        ${inputValue.trim()
+                                        ${canSendCurrent
                                                 ? 'bg-[var(--color-accent)] text-white'
                                                 : 'bg-[var(--mat-content-card-hover-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'}
                                         `}
                                         onClick={handleSendClick}
                                         aria-label="Send message"
                                     >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-                                            <path d="M12 18V6" />
-                                            <path d="M7 11L12 6L17 11" />
-                                        </svg>
+                                        {isSending ? (
+                                            <Spinner size="sm" color="current" />
+                                        ) : (
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                                                <path d="M12 18V6" />
+                                                <path d="M7 11L12 6L17 11" />
+                                            </svg>
+                                        )}
                                     </Button>
                                 </div>
                             </div>
+                            {(attachmentError || attachmentCapabilityBlocked || (!canSendMessage && hasPayload && sendBlockedReason) || isSending) && (
+                                <div className={`px-4 pb-2 text-[11px] ${isSending ? 'text-[var(--color-text-tertiary)]' : 'text-[var(--color-danger,#FF453A)]'}`}>
+                                    {isSending
+                                        ? 'Sending...'
+                                        : attachmentError
+                                            ? attachmentError
+                                            : imageCapabilityBlocked
+                                                ? 'Current model does not support image input. Please switch to a vision model.'
+                                                : pdfCapabilityBlocked
+                                                    ? 'Current model does not support PDF input. Please switch to a model with PDF capability.'
+                                                : (sendBlockedReason || '')}
+                                </div>
+                            )}
                         </div>
                         </div> {/* content layer */}
                     </div>
 
                 </div>
             </div>
+            {previewAttachment && isImageAttachment(previewAttachment) && (
+                <div
+                    className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                    onClick={() => setPreviewAttachment(null)}
+                >
+                    <img
+                        src={previewAttachment.url}
+                        alt={previewAttachment.filename || 'image preview'}
+                        className="max-w-[92vw] max-h-[90vh] object-contain rounded-xl shadow-2xl cursor-zoom-out"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 }
