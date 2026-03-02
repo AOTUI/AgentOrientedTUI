@@ -106,8 +106,8 @@ function LiteBrowserRoot() {
 }
 
 export default createTUIApp({
-    appName: 'lite_browser_app',
-    name: 'Lite Browser App',
+    appName: 'lite_browser',
+    name: 'Lite Browser',
     whatItIs: 'A lightweight TUI browser that runs web searches and fetches URL content into structured views for LLM workflows.',
     whenToUse: 'Use Lite Browser when you need to search the web for current information and fetch specific URLs into a readable format.',
     component: LiteBrowserRoot,

@@ -1,5 +1,6 @@
 import { createTUIApp, View, useCallback, useEffect, useMemo, useRef, useState, useAppEnv } from '@aotui/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
+import os from 'os';
 import { RootView } from './RootView.js';
 import { TerminalConsoleView } from './TerminalConsoleView.js';
 import { TerminalView } from './TerminalView.js';
@@ -25,7 +26,7 @@ function createCommand(commandId: string, command: string): CommandRecord {
 
 function TerminalRoot() {
     const envProjectPath = useAppEnv<string>('projectPath');
-    const projectPath = useMemo(() => envProjectPath ?? process.cwd(), [envProjectPath]);
+    const projectPath = useMemo(() => envProjectPath || os.homedir(), [envProjectPath]);
     const [terminals, setTerminals] = useState<TerminalSession[]>([]);
     const terminalsRef = useRef<TerminalSession[]>([]);
     const terminalCounter = useRef(0);
@@ -233,12 +234,12 @@ function TerminalRoot() {
 }
 
 export default createTUIApp({
-    appName: 'terminal_app',
-    name: 'Terminal App',
+    appName: 'terminal',
+    name: 'Terminal',
     whatItIs: 'A multi-terminal command execution system constrained to the project path, providing command history, working directory tracking, and output tailing for LLM workflows.',
-    whenToUse: 'Use Terminal App when you need to run shell commands, manage multiple terminal sessions, and review command outputs while staying within the current project directory.',
+    whenToUse: 'Use Terminal when you need to run shell commands, manage multiple terminal sessions, and review command outputs while staying within the current project directory.',
     component: TerminalRoot,
     launchConfig: {
-        projectPath: process.env.PROJECT_PATH || process.argv[2] || process.cwd()
+        projectPath: process.env.PROJECT_PATH || process.argv[2] || ''
     }
 });

@@ -1,4 +1,5 @@
 import path from 'path';
+import os from 'os';
 
 export const DEFAULT_TAIL_LINES = 50;
 
@@ -43,11 +44,14 @@ export function isPathWithinProject(projectPath: string, candidatePath: string):
 }
 
 export function resolveNextCwd(currentCwd: string, projectPath: string, target?: string): string {
-    if (!target || target === '~') {
+    if (!target) {
         return normalizePath(projectPath);
     }
+    if (target === '~') {
+        return normalizePath(os.homedir());
+    }
     if (target.startsWith('~/')) {
-        return normalizePath(path.join(projectPath, target.slice(2)));
+        return normalizePath(path.join(os.homedir(), target.slice(2)));
     }
     return normalizePath(path.resolve(currentCwd, target));
 }

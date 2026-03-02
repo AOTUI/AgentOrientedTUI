@@ -1,6 +1,5 @@
 import React from 'react';
-import { Button } from "@heroui/button";
-import { Card, CardBody } from "@heroui/card";
+import { Button, Card, CardBody } from "@heroui/react";
 import { IconDelete } from './Icons.js';
 
 interface DeleteConfirmModalProps {

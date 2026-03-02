@@ -14,6 +14,7 @@
     "dependencies": {
         "@aotui/runtime": "file:../runtime",
         "@aotui/sdk": "file:../sdk",
+        "emittery": "^1.2.1",
         "glob": "^10.3.10",
         "lowdb": "^7.0.1",
         "vscode-jsonrpc": "^8.2.1",

@@ -21,6 +21,6 @@
         "vitest": "^3.2.4"
     },
     "peerDependencies": {
-        "@aotui/runtime": "file:../runtime"
+        "@aotui/runtime": "^1.0.0"
     }
 }

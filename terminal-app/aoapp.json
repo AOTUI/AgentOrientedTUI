@@ -1,6 +1,6 @@
 {
     "name": "system-terminal",
-    "displayName": "Terminal App",
+    "displayName": "Terminal",
     "version": "0.1.0",
     "description": "Multi-terminal command execution with project path constraints",
     "author": "AOTUI Team",
@@ -14,7 +14,7 @@
     },
     "views": [
         {
-            "name": "TerminalConsole",
+            "name": "Root",
             "description": "App instructions and terminal tool registry"
         },
         {

@@ -1,6 +1,6 @@
 {
     "name": "system-token-monitor",
-    "displayName": "Token Monitor App",
+    "displayName": "TokenMonitor",
     "version": "0.1.0",
     "description": "Token usage monitor using LLM output metadata",
     "author": "AOTUI Team",
@@ -18,7 +18,7 @@
             "description": "App instructions and token limit configuration"
         },
         {
-            "name": "TokenMonitor",
+            "name": "Token Monitor",
             "description": "Latest usage stats and warning status"
         }
     ]

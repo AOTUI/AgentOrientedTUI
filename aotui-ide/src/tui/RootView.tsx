@@ -11,6 +11,11 @@ const searchByPatternParams = defineParams({
     type: 'string',
     required: true,
     desc: 'Glob pattern (e.g., "**/*.ts", "src/**/*.json", "*.test.ts")'
+  },
+  cwd: {
+    type: 'string',
+    required: false,
+    desc: 'Absolute path of the folder to search in. If omitted, searches all workspace folders.'
   }
 });
 
@@ -24,6 +29,11 @@ const searchByContentParams = defineParams({
     type: 'string',
     required: false,
     desc: 'Optional glob pattern to filter files (e.g., "**/*.ts")'
+  },
+  cwd: {
+    type: 'string',
+    required: false,
+    desc: 'Absolute path of the folder to search in. If omitted, searches all workspace folders.'
   }
 });
 
@@ -67,7 +77,7 @@ const createFileParams = defineParams({
   filePath: {
     type: 'string',
     required: true,
-    desc: 'Path for new file (parent dirs created automatically)'
+    desc: 'Absolute path for new file (parent dirs created automatically)'
   },
   content: {
     type: 'string',
@@ -80,7 +90,7 @@ const deleteFileParams = defineParams({
   filePath: {
     type: 'string',
     required: true,
-    desc: 'Path to file to delete'
+    desc: 'Absolute path to file to delete'
   }
 });
 
@@ -88,12 +98,12 @@ const renameFileParams = defineParams({
   oldPath: {
     type: 'string',
     required: true,
-    desc: 'Current file path'
+    desc: 'Current absolute file path'
   },
   newPath: {
     type: 'string',
     required: true,
-    desc: 'New file path (can move to different dir)'
+    desc: 'New absolute file path (can move to different dir)'
   }
 });
 
@@ -107,7 +117,7 @@ const batchEditParams = defineParams({
 });
 
 export function RootView({
-  workspacePath,
+  workspaceFolders,
   activeFiles,
   searchResultView,
   onOpenFileDetail,
@@ -117,9 +127,11 @@ export function RootView({
   onExpandDirs,
   onCollapseDirs,
   onRefreshWorkspace,
+  onAddFolder,
+  onRemoveFolder,
   eventBus
 }: {
-  workspacePath: string;
+  workspaceFolders: string[];
   activeFiles: string[];
   searchResultView: { query: string; results: FileInfo[] } | null;
   onOpenFileDetail: (filePath: string) => void;
@@ -129,6 +141,8 @@ export function RootView({
   onExpandDirs: (dirPaths: string[]) => void;
   onCollapseDirs: (dirPaths: string[]) => void;
   onRefreshWorkspace: () => void;
+  onAddFolder: (folderPath: string) => void;
+  onRemoveFolder: (folderPath: string) => void;
   eventBus: Emittery<AppEvents>;
 }) {
   const availableFileDetailViews = activeFiles
@@ -201,7 +215,7 @@ ${availableFileDetailViews}`,
         error: { code: 'LSP_ERROR', message }
       };
     }
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   const [LSPGotoDefinitionUI] = useViewTypeTool('FileDetail', 'lsp_goto_definition', {
     description: `Jump to the definition of a symbol.
@@ -263,7 +277,7 @@ ${availableFileDetailViews}`,
         error: { code: 'LSP_ERROR', message }
       };
     }
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   const [LSPFindReferencesUI] = useViewTypeTool('FileDetail', 'lsp_find_references', {
     description: `Find all references to a symbol.
@@ -324,7 +338,7 @@ ${availableFileDetailViews}`,
         error: { code: 'LSP_ERROR', message }
       };
     }
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   const [LSPGetDiagnosticsUI] = useViewTypeTool('FileDetail', 'lsp_get_diagnostics', {
     description: `Get errors and warnings (diagnostics) for a file.
@@ -384,7 +398,7 @@ ${availableFileDetailViews}`,
         error: { code: 'LSP_ERROR', message }
       };
     }
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   const [LSPDocumentSymbolUI] = useViewTypeTool('FileDetail', 'lsp_document_symbol', {
     description: `Get document outline (functions, classes, etc.).
@@ -443,7 +457,7 @@ ${availableFileDetailViews}`,
         error: { code: 'LSP_ERROR', message }
       };
     }
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   const [LSPIncomingCallsUI] = useViewTypeTool('FileDetail', 'lsp_incoming_calls', {
     description: `Find functions that call this symbol.
@@ -506,7 +520,7 @@ ${availableFileDetailViews}`,
         error: { code: 'LSP_ERROR', message }
       };
     }
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   const [LSPOutgoingCallsUI] = useViewTypeTool('FileDetail', 'lsp_outgoing_calls', {
     description: `Find functions this symbol calls.
@@ -569,7 +583,7 @@ ${availableFileDetailViews}`,
         error: { code: 'LSP_ERROR', message }
       };
     }
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   const [CloseFileDetailUI] = useViewTypeTool('FileDetail', 'close_file_detail', {
     description: `Close a FileDetail View.
@@ -605,7 +619,7 @@ REQUIRED PARAMETER:
         view_id
       }
     };
-  }, { enabled: activeFiles.length > 0 });
+  }, { enabled: workspaceFolders.length > 0 && activeFiles.length > 0 });
 
   /**
    * Search Result View Tools
@@ -634,7 +648,7 @@ REQUIRED: view_id (always "search")`,
         view_id: 'search'
       }
     };
-  }, { enabled: searchResultView !== null });
+  }, { enabled: workspaceFolders.length > 0 && searchResultView !== null });
 
   /**
    * Workspace Tools
@@ -657,11 +671,19 @@ You call: search_files_by_pattern({ pattern: "**/*.test.ts" })
 Results: ["/project/src/a.test.ts", "/project/src/b.test.ts"]
 Then: read_file({ filePath: "/project/src/a.test.ts" })`,
     params: searchByPatternParams
-  }, async ({ pattern }: { pattern: string }) => {
+  }, async ({ pattern, cwd }: { pattern: string; cwd?: string }) => {
     try {
-      const results = await fileSystemService.searchByPattern(pattern as string, workspacePath);
+      const searchRoots = cwd ? [cwd] : workspaceFolders;
+      if (searchRoots.length === 0) {
+        return { success: false, error: { code: 'NO_WORKSPACE', message: 'No workspace folders. Use add_folder_to_workspace first.' } };
+      }
+      const allResults: string[] = [];
+      for (const root of searchRoots) {
+        const results = await fileSystemService.searchByPattern(pattern as string, root);
+        allResults.push(...results);
+      }
 
-      const fileInfos: FileInfo[] = results.map(filePath => ({
+      const fileInfos: FileInfo[] = allResults.map(filePath => ({
         path: filePath,
         lastOpened: Date.now()
       }));
@@ -670,15 +692,15 @@ Then: read_file({ filePath: "/project/src/a.test.ts" })`,
       return {
         success: true,
         data: {
-          message: `SearchResult View (search) updated with ${results.length} results. Check that View.`,
+          message: `SearchResult View (search) updated with ${allResults.length} results. Check that View.`,
           view_id: 'search',
-          found: results.length
+          found: allResults.length
         }
       };
     } catch (error) {
       return { success: false, error: { code: 'SEARCH_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [SearchByContentUI] = useViewTypeTool('Workspace', 'search_files_by_content', {
     description: `Search files by content (grep).
@@ -697,15 +719,23 @@ User: "找到所有导出类的文件"
 You call: search_files_by_content({ pattern: "export class" })
 Or with filter: search_files_by_content({ pattern: "TODO", include: "**/*.ts" })`,
     params: searchByContentParams
-  }, async ({ pattern, include }: { pattern: string; include?: string }) => {
+  }, async ({ pattern, include, cwd }: { pattern: string; include?: string; cwd?: string }) => {
     try {
-      const results = await fileSystemService.searchByContent(
-        pattern as string,
-        workspacePath,
-        include as string | undefined
-      );
+      const searchRoots = cwd ? [cwd] : workspaceFolders;
+      if (searchRoots.length === 0) {
+        return { success: false, error: { code: 'NO_WORKSPACE', message: 'No workspace folders. Use add_folder_to_workspace first.' } };
+      }
+      const allResults: string[] = [];
+      for (const root of searchRoots) {
+        const results = await fileSystemService.searchByContent(
+          pattern as string,
+          root,
+          include as string | undefined
+        );
+        allResults.push(...results);
+      }
 
-      const fileInfos: FileInfo[] = results.map(filePath => ({
+      const fileInfos: FileInfo[] = allResults.map(filePath => ({
         path: filePath,
         lastOpened: Date.now()
       }));
@@ -714,15 +744,15 @@ Or with filter: search_files_by_content({ pattern: "TODO", include: "**/*.ts" })
       return {
         success: true,
         data: {
-          message: `SearchResult View (search) updated with ${results.length} results. Check that View.`,
+          message: `SearchResult View (search) updated with ${allResults.length} results. Check that View.`,
           view_id: 'search',
-          found: results.length
+          found: allResults.length
         }
       };
     } catch (error) {
       return { success: false, error: { code: 'SEARCH_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [MultiOpenFileUI] = useViewTypeTool('Workspace', 'multi_open_file', {
     description: `Open multiple files and read their contents.
@@ -787,7 +817,7 @@ For LSP analysis: multi_open_file + LSP Tools`,
         }
 
         try {
-          await persistenceService.addOpenFile(workspacePath, {
+          await persistenceService.addOpenFile(workspaceFolders[0] ?? 'default', {
             path: filePath,
             lastOpened: Date.now()
           });
@@ -829,7 +859,7 @@ For LSP analysis: multi_open_file + LSP Tools`,
     } catch (error) {
       return { success: false, error: { code: 'MULTI_OPEN_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [MultiCloseFileUI] = useViewTypeTool('Workspace', 'multi_close_file', {
     description: `Close multiple opened files.
@@ -874,7 +904,7 @@ You call: multi_close_file({ filePaths: ["/project/src/index.ts"] })`,
     } catch (error) {
       return { success: false, error: { code: 'MULTI_CLOSE_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [WriteFileUI] = useViewTypeTool('Workspace', 'write_file', {
     description: `Write file content (replace entire file).
@@ -911,7 +941,7 @@ You call: write_file({ filePath: "/project/config.json", content: "{...}" })`,
     } catch (error) {
       return { success: false, error: { code: 'WRITE_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [EditFileUI] = useViewTypeTool('Workspace', 'edit_file', {
     description: `Edit file with precise string replacement.
@@ -959,7 +989,7 @@ You call: edit_file({ filePath: "/file.ts", oldString: "const x = 1", newString:
     } catch (error) {
       return { success: false, error: { code: 'EDIT_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [CreateFileUI] = useViewTypeTool('Workspace', 'create_file', {
     description: `Create a new file.
@@ -991,7 +1021,7 @@ You call: create_file({ filePath: "/project/src/utils.ts", content: "export clas
     } catch (error) {
       return { success: false, error: { code: 'CREATE_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [DeleteFileUI] = useViewTypeTool('Workspace', 'delete_file', {
     description: `Delete a file.
@@ -1024,7 +1054,7 @@ You call: delete_file({ filePath: "/project/old-config.json" })`,
     } catch (error) {
       return { success: false, error: { code: 'DELETE_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [RenameFileUI] = useViewTypeTool('Workspace', 'rename_file', {
     description: `Rename or move a file.
@@ -1060,7 +1090,7 @@ You call: rename_file({ oldPath: "/project/config.ts", newPath: "/project/settin
     } catch (error) {
       return { success: false, error: { code: 'RENAME_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [BatchEditUI] = useViewTypeTool('Workspace', 'batch_edit', {
     description: `Edit multiple files at once.
@@ -1115,7 +1145,7 @@ You call: batch_edit({
     } catch (error) {
       return { success: false, error: { code: 'BATCH_EDIT_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [MultiOpenDirsUI] = useViewTypeTool('Workspace', 'multi_open_dirs', {
     description: `Expand multiple directories at once.
@@ -1126,20 +1156,20 @@ WHEN TO USE:
 - Navigate project structure
 
 HOW TO USE:
-- Provide array of directory paths (relative or absolute)
+- Provide array of absolute directory paths
 - Each directory expanded independently
 - Errors for individual directories don't stop others
 - Directory tree updated in Snapshot
 
 EXAMPLE:
-User: "打开 system-todo/ 和 system-chat/src/ 目录"
-You call: multi_open_dirs({ dirPaths: ["system-todo/", "system-chat/src/"] })`,
+User: "打开 /home/user/project/src 和 /home/user/project/test 目录"
+You call: multi_open_dirs({ dirPaths: ["/home/user/project/src", "/home/user/project/test"] })`,
     params: defineParams({
       dirPaths: {
         type: 'array',
         itemType: 'string',
         required: true,
-        desc: 'Array of directory paths to expand'
+        desc: 'Array of absolute directory paths to expand'
       }
     })
   }, async ({ dirPaths }: { dirPaths: string[] }) => {
@@ -1151,18 +1181,19 @@ You call: multi_open_dirs({ dirPaths: ["system-todo/", "system-chat/src/"] })`,
 
       for (const dirPath of paths) {
         try {
-          const absPath = path.isAbsolute(dirPath)
-            ? dirPath
-            : path.join(workspacePath, dirPath);
+          if (!path.isAbsolute(dirPath)) {
+            failed++;
+            continue;
+          }
 
           // 使用 fileSystemService 检查是否为目录
-          const content = await fileSystemService.listDirectory(absPath, {
+          const content = await fileSystemService.listDirectory(dirPath, {
             ignore: [],
             expandedDirs: new Set(),
             showExpandedMark: false
           });
           // 如果能成功列出目录,说明是有效目录
-          validPaths.push(absPath);
+          validPaths.push(dirPath);
           expanded++;
         } catch {
           failed++;
@@ -1196,44 +1227,148 @@ WHEN TO USE:
 - Clean up directory tree view
 
 HOW TO USE:
-- Provide array of directory paths
+- Provide array of absolute directory paths
 - Directories collapsed in tree view
 - No error if directory not currently expanded
 
 EXAMPLE:
 User: "关闭所有展开的目录"
-You call: multi_close_dirs({ dirPaths: ["system-todo", "system-chat"] })`,
+You call: multi_close_dirs({ dirPaths: ["/home/user/project/src", "/home/user/project/test"] })`,
     params: defineParams({
       dirPaths: {
         type: 'array',
         itemType: 'string',
         required: true,
-        desc: 'Array of directory paths to collapse'
+        desc: 'Array of absolute directory paths to collapse'
       }
     })
   }, async ({ dirPaths }: { dirPaths: string[] }) => {
     try {
       const paths = dirPaths as string[];
-      const absPaths = paths.map(dirPath => (
-        path.isAbsolute(dirPath)
-          ? dirPath
-          : path.join(workspacePath, dirPath)
-      ));
+      const absPaths = paths.filter(p => path.isAbsolute(p));
 
       onCollapseDirs(absPaths);
 
       return {
         success: true,
         data: {
-          message: `Collapsed ${paths.length} directories. Check the Workspace directory tree.`,
-          collapsed: paths.length,
+          message: `Collapsed ${absPaths.length} directories. Check the Workspace directory tree.`,
+          collapsed: absPaths.length,
           collapsed_paths: absPaths
         }
       };
     } catch (error) {
       return { success: false, error: { code: 'MULTI_CLOSE_ERROR', message: (error as Error).message } };
     }
+  }, { enabled: workspaceFolders.length > 0 });
+
+  // ─── Workspace Folder Management Tools ─────────────────────
+
+  const [AddFolderUI] = useViewTypeTool('Workspace', 'add_folder_to_workspace', {
+    description: `Add a folder to the workspace.
+
+WHEN TO USE:
+- User wants to work with a new project directory
+- Opening a codebase for the first time (no folders yet)
+- Adding additional project roots to the workspace
+
+HOW TO USE:
+- Provide the absolute path to the folder
+- Folder will appear in the Workspace directory tree
+- LSP and search tools will include this folder
+
+EXAMPLE:
+User: "打开 /home/user/projects/my-app"
+You call: add_folder_to_workspace({ folderPath: "/home/user/projects/my-app" })`,
+    params: defineParams({
+      folderPath: {
+        type: 'string',
+        required: true,
+        desc: 'Absolute path to the folder to add'
+      }
+    })
+  }, async ({ folderPath }: { folderPath: string }) => {
+    try {
+      if (!path.isAbsolute(folderPath)) {
+        return {
+          success: false,
+          error: { code: 'INVALID_PATH', message: 'Folder path must be absolute.' }
+        };
+      }
+      // Validate directory exists
+      await fileSystemService.listDirectory(folderPath, {
+        ignore: [],
+        expandedDirs: new Set(),
+        showExpandedMark: false
+      });
+
+      if (workspaceFolders.includes(folderPath)) {
+        return {
+          success: false,
+          error: { code: 'ALREADY_EXISTS', message: `Folder already in workspace: ${folderPath}` }
+        };
+      }
+
+      onAddFolder(folderPath);
+
+      return {
+        success: true,
+        data: {
+          message: `Folder added to workspace: ${folderPath}. Check the Workspace directory tree.`,
+          folder: folderPath,
+          totalFolders: workspaceFolders.length + 1
+        }
+      };
+    } catch (error) {
+      return { success: false, error: { code: 'ADD_FOLDER_ERROR', message: (error as Error).message } };
+    }
   });
+
+  const [RemoveFolderUI] = useViewTypeTool('Workspace', 'remove_folder_from_workspace', {
+    description: `Remove a folder from the workspace.
+
+WHEN TO USE:
+- User no longer needs a project directory
+- Clean up workspace
+
+HOW TO USE:
+- Provide the absolute path of the folder to remove
+- Folder and its expanded dirs will be removed from the tree
+- Does not delete any files on disk
+
+EXAMPLE:
+User: "移除 /home/user/projects/old-app"
+You call: remove_folder_from_workspace({ folderPath: "/home/user/projects/old-app" })`,
+    params: defineParams({
+      folderPath: {
+        type: 'string',
+        required: true,
+        desc: 'Absolute path of the workspace folder to remove'
+      }
+    })
+  }, async ({ folderPath }: { folderPath: string }) => {
+    try {
+      if (!workspaceFolders.includes(folderPath)) {
+        return {
+          success: false,
+          error: { code: 'NOT_FOUND', message: `Folder not in workspace: ${folderPath}` }
+        };
+      }
+
+      onRemoveFolder(folderPath);
+
+      return {
+        success: true,
+        data: {
+          message: `Folder removed from workspace: ${folderPath}. Check the Workspace directory tree.`,
+          folder: folderPath,
+          totalFolders: workspaceFolders.length - 1
+        }
+      };
+    } catch (error) {
+      return { success: false, error: { code: 'REMOVE_FOLDER_ERROR', message: (error as Error).message } };
+    }
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [RefreshWorkspaceUI] = useViewTypeTool('Workspace', 'refresh_workspace', {
     description: `Reload directory tree and clear cache.
@@ -1266,7 +1401,7 @@ You call: refresh_workspace({})`,
     } catch (error) {
       return { success: false, error: { code: 'REFRESH_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   return (
     <>
@@ -1275,7 +1410,7 @@ You call: refresh_workspace({})`,
           <h1>AOTUI IDE - Application Instruction</h1>
           
           <h2>What it is</h2>
-          <p>AOTUI IDE is a text-based Integrated Development Environment designed specifically for LLM Agents. It provides semantic views and tools to explore codebases, search files, edit code with precision, and analyze code structure using Language Server Protocol (LSP).</p>
+          <p>AOTUI IDE is a text-based Integrated Development Environment designed specifically for LLM Agents. It supports multi-folder workspaces (VS Code style) — you can add multiple project directories and work across them simultaneously.</p>
           
           <h2>When to use</h2>
           <ul>
@@ -1288,7 +1423,8 @@ You call: refresh_workspace({})`,
           
           <h2>How to use</h2>
           <ol>
-            <li><strong>Start with Workspace View:</strong> Browse the directory tree and use search tools to locate files</li>
+            <li><strong>Add Workspace Folders:</strong> Use add_folder_to_workspace to add project directories (if none yet)</li>
+            <li><strong>Browse Workspace View:</strong> Browse directory trees and use search tools to locate files</li>
             <li><strong>Open FileDetail Views:</strong> Use multi_open_file tool to open specific files for detailed LSP analysis</li>
             <li><strong>Perform File Operations:</strong> Use write_file, edit_file, or batch_edit tools from Workspace View</li>
             <li><strong>Analyze Code:</strong> In FileDetail views, use LSP tools (hover, goto_definition, find_references, etc.)</li>
@@ -1297,7 +1433,15 @@ You call: refresh_workspace({})`,
           
           <h2>What happened (Current State)</h2>
           <ul>
-            <li><strong>Workspace Path:</strong> {workspacePath}</li>
+            <li><strong>Workspace Folders ({workspaceFolders.length}):</strong>
+              {workspaceFolders.length > 0 ? (
+                <ul>
+                  {workspaceFolders.map((folder, index) => (
+                    <li key={folder}>[{index}] {folder}</li>
+                  ))}
+                </ul>
+              ) : ' None — use add_folder_to_workspace to get started'}
+            </li>
             <li><strong>Open Files:</strong> {activeFiles.length > 0 ? activeFiles.length : 'None'}</li>
             {activeFiles.length > 0 && (
               <li><strong>Active FileDetail Views:</strong>
@@ -1313,15 +1457,22 @@ You call: refresh_workspace({})`,
           <h2>AOTUI IDE Application Views</h2>
           <h3>1. WorkSpace View Instruction</h3>
           <h4>What is WorkSpace</h4>
-          <p>Workspace shows directory tree and recently opened files.</p>
+          <p>Workspace shows directory trees for all workspace folders and currently opened files.</p>
           <h4>How to use</h4>
-          <p>Use workspace tools to search, read, edit, and manage files and directories.</p>
+          <p>Use workspace tools to manage folders, search, read, edit, and manage files and directories. All file path parameters must use absolute paths.</p>
         </section>
       </div>
 
       <div data-role="view-content">
         <section data-entity="available-tools">
           <h2>Workspace View Tools</h2>
+          <section data-category="workspace-folders">
+            <h3>Workspace Folder Management</h3>
+            <ul>
+              <li><AddFolderUI>Add Folder to Workspace</AddFolderUI></li>
+              {workspaceFolders.length > 0 && <li><RemoveFolderUI>Remove Folder from Workspace</RemoveFolderUI></li>}
+            </ul>
+          </section>
           <section data-category="search">
             <h3>Search Tools</h3>
             <ul>
@@ -1350,7 +1501,7 @@ You call: refresh_workspace({})`,
             </ul>
           </section>
           <section data-category="workspace">
-            <h3>Workspace Management</h3>
+            <h3>Workspace</h3>
             <ul>
               <li><RefreshWorkspaceUI>Refresh Workspace</RefreshWorkspaceUI></li>
             </ul>

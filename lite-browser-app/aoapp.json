@@ -1,6 +1,6 @@
 {
     "name": "system-lite-browser",
-    "displayName": "Lite Browser App",
+    "displayName": "Lite Browser",
     "version": "0.1.0",
     "description": "A lightweight TUI browser with web search and URL fetch",
     "author": "AOTUI Team",

@@ -1,6 +1,5 @@
 import React from 'react';
-import { Spinner } from "@heroui/spinner";
-import { Button } from "@heroui/button";
+import { Spinner, Button } from "@heroui/react";
 
 export function ConnectionScreen({ status, onRetry }: { status: 'connecting' | 'error', onRetry?: () => void }) {
     return (

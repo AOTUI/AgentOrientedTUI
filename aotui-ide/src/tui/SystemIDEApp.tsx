@@ -56,24 +56,58 @@ function SystemIDEApp() {
     results: FileInfo[];
   } | null>(null);
 
-  const workspacePath = useAppEnv<string>('projectPath')
-    || process.cwd();
+  // ─── Multi-Folder Workspace ────────────────────────────────
+  const envProjectPath = useAppEnv<string>('projectPath');
+
+  // workspaceFolders: 统一使用 multi-folder 模式
+  // 若 projectPath 存在则作为初始 folder，否则空数组
+  const [workspaceFolders, setWorkspaceFolders] = usePersistentState<string[]>(
+    'workspaceFolders',
+    envProjectPath ? [envProjectPath] : [],
+    {
+      deserialize: (value) => Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === 'string')
+        : (envProjectPath ? [envProjectPath] : []),
+      serialize: (value) => Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === 'string')
+        : [],
+    }
+  );
 
   // 目录树展开状态管理 (State Lifting)
-  const [expandedDirList, setExpandedDirList] = usePersistentState<string[]>('expandedDirs', [workspacePath], {
+  const [expandedDirList, setExpandedDirList] = usePersistentState<string[]>('expandedDirs', [...workspaceFolders], {
     deserialize: (value) => Array.isArray(value)
       ? value.filter((item): item is string => typeof item === 'string')
-      : [workspacePath],
+      : [...workspaceFolders],
     serialize: (value) => Array.isArray(value)
       ? value.filter((item): item is string => typeof item === 'string')
-      : [workspacePath],
+      : [...workspaceFolders],
   });
   const expandedDirs = useMemo(() => new Set(expandedDirList), [expandedDirList]);
 
-  // 监听 workspacePath 变化,重置 expandedDirs
-  useEffect(() => {
-    setExpandedDirList([workspacePath]);
-  }, [workspacePath]);
+  // ─────────────────────────────────────────────────────────────
+  //  Workspace Folder Management
+  // ─────────────────────────────────────────────────────────────
+
+  const handleAddFolder = useCallback((folderPath: string) => {
+    setWorkspaceFolders(prev => {
+      if (prev.includes(folderPath)) return prev;
+      const next = [...prev, folderPath];
+      // 自动展开新添加的 folder
+      setExpandedDirList(dirs => {
+        const s = new Set(dirs);
+        s.add(folderPath);
+        return Array.from(s);
+      });
+      return next;
+    });
+  }, []);
+
+  const handleRemoveFolder = useCallback((folderPath: string) => {
+    setWorkspaceFolders(prev => prev.filter(f => f !== folderPath));
+    // 同时清理该 folder 下的 expandedDirs
+    setExpandedDirList(prev => prev.filter(d => !d.startsWith(folderPath)));
+  }, []);
 
   useEffect(() => {
     persistenceService.initDatabase().catch((error: Error) => {
@@ -150,18 +184,23 @@ function SystemIDEApp() {
    * 刷新工作区目录树
    */
   const handleRefreshWorkspace = useCallback(() => {
-    setExpandedDirList([workspacePath]);
-  }, [workspacePath]);
+    setExpandedDirList([...workspaceFolders]);
+  }, [workspaceFolders]);
 
   // ─────────────────────────────────────────────────────────────
   //  LSP Manager Initialization
   // ─────────────────────────────────────────────────────────────
 
+  // LSP 使用第一个 folder 作为 workspace root
+  const lspRoot = workspaceFolders[0] ?? '';
+
   useEffect(() => {
+    if (!lspRoot) return;
+
     let isMounted = true;
 
     // 初始化 LSP Service
-    lspService.init(workspacePath)
+    lspService.init(lspRoot)
       .then(() => {
         if (isMounted) {
           console.log('[SystemIDEApp] LSP Service initialized successfully');
@@ -181,7 +220,7 @@ function SystemIDEApp() {
         console.error('[SystemIDEApp] LSP Service shutdown error:', err);
       });
     };
-  }, [workspacePath]);
+  }, [lspRoot]);
 
 
   // ─────────────────────────────────────────────────────────────
@@ -192,7 +231,7 @@ function SystemIDEApp() {
     <>
       <View id="root" type="Root" name="Root">
         <RootView
-          workspacePath={workspacePath}
+          workspaceFolders={workspaceFolders}
           activeFiles={activeFiles}
           searchResultView={searchResultView}
           onOpenFileDetail={handleOpenFile}
@@ -202,6 +241,8 @@ function SystemIDEApp() {
           onExpandDirs={handleExpandDirs}
           onCollapseDirs={handleCollapseDirs}
           onRefreshWorkspace={handleRefreshWorkspace}
+          onAddFolder={handleAddFolder}
+          onRemoveFolder={handleRemoveFolder}
           eventBus={eventBus}
         />
       </View>
@@ -210,7 +251,7 @@ function SystemIDEApp() {
       {/* ════════════════════════════════════════════════ */}
       <View id="workspace" type="Workspace" name="Workspace">
         <WorkspaceContent
-          workspacePath={workspacePath}
+          workspaceFolders={workspaceFolders}
           activeFiles={activeFiles}
           expandedDirs={expandedDirs}
           eventBus={eventBus}
@@ -265,7 +306,7 @@ export default createTUIApp({
   whenToUse: 'Use AOTUI IDE when you need to: (1) Navigate and understand a repository structure, (2) Search for files by glob pattern or grep content, (3) Read, edit, create, delete, or rename files with precision, (4) Analyze code using LSP features (hover types, go to definition, find references, diagnostics, symbols, call graphs), (5) Work with multiple files simultaneously through dynamic FileDetail views.',
   component: SystemIDEApp,
   launchConfig: {
-    workspace_dir_path: process.env.WORKSPACE_DIR || process.argv[2] || process.cwd(),
-    projectPath: process.env.PROJECT_PATH || process.env.WORKSPACE_DIR || process.argv[2] || process.cwd()
+    workspace_dir_path: process.env.WORKSPACE_DIR || process.argv[2] || '',
+    projectPath: process.env.PROJECT_PATH || process.env.WORKSPACE_DIR || process.argv[2] || ''
   }
 });

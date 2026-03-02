@@ -1,7 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Button } from "@heroui/button";
-import { Tooltip } from "@heroui/tooltip";
-import { ScrollShadow } from "@heroui/scroll-shadow";
+import { Button, Tooltip, ScrollShadow } from "@heroui/react";
 import { IconNewChat, IconSun, IconMoon, IconFolder, IconSettings, IconChat } from './Icons.js';
 import type { Topic } from '../../types.js';
 

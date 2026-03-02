@@ -6,60 +6,71 @@ import { fileSystemService } from '../core/index.js';
 
 /**
  * WorkspaceView Content
- * Root View - 永久挂载，提供文件浏览、搜索、读写功能
+ * Root View - 永久挂载，提供文件浏览功能
+ * 支持 multi-folder workspace：为每个 folder 渲染独立的目录树
  */
 export function WorkspaceContent({
-    workspacePath,
+    workspaceFolders,
     activeFiles,
     expandedDirs,
     eventBus
 }: {
-    workspacePath: string;
+    workspaceFolders: string[];
     activeFiles: string[];
     expandedDirs: Set<string>;
     eventBus: Emittery<AppEvents>;
 }) {
     // ==================== State 管理 ====================
 
-    // 目录树 - 使用 props 传入的 expandedDirs (State Lifted)
-    const [directoryTree, setDirectoryTree] = useState<string>('Loading directory tree...');
+    // 每个 folder 各自的目录树
+    const [folderTrees, setFolderTrees] = useState<Map<string, string>>(new Map());
 
     // ==================== 自动加载 ====================
 
-    // 监听 expandedDirs 变化，重新构建目录树
+    // 监听 workspaceFolders 和 expandedDirs 变化，重新构建目录树
     useEffect(() => {
         async function init() {
-            try {
-                // ✅ 使用 fileSystemService 替代直接 fs 调用
-                const tree = await fileSystemService.listDirectory(workspacePath, {
-                    ignore: ['node_modules', '.git', 'dist', 'build', '.next', '.turbo', 'coverage'],
-                    expandedDirs,           // ← 传递展开的目录集合
-                    showExpandedMark: true, // ← 显示 (expanded) 标记
-                    showTreeLines: true
-                });
+            const nextTrees = new Map<string, string>();
 
-                const treeOutput = tree ? `.\n${tree}` : '.';
-                setDirectoryTree(treeOutput);
+            for (const folder of workspaceFolders) {
+                try {
+                    const tree = await fileSystemService.listDirectory(folder, {
+                        ignore: ['node_modules', '.git', 'dist', 'build', '.next', '.turbo', 'coverage'],
+                        expandedDirs,
+                        showExpandedMark: true,
+                        showTreeLines: true
+                    });
 
-            } catch (error) {
-                console.error('[WorkspaceContent] Initialization error:', error);
-                setDirectoryTree(`Error loading directory: ${(error as Error).message}`);
+                    const treeOutput = tree ? `.\n${tree}` : '.';
+                    nextTrees.set(folder, treeOutput);
+                } catch (error) {
+                    console.error(`[WorkspaceContent] Error loading directory tree for ${folder}:`, error);
+                    nextTrees.set(folder, `Error: ${(error as Error).message}`);
+                }
             }
+
+            setFolderTrees(nextTrees);
         }
 
         init();
-    }, [workspacePath, expandedDirs]); // ← 依赖 expandedDirs，确保状态变化时重新构建
-
-
-
+    }, [workspaceFolders, expandedDirs]);
 
     return (
         <div data-role="view-content">
-            <section>
-                <h3>📁 Directory Tree</h3>
-                <p>Project Path: {workspacePath}</p>
-                <pre>{directoryTree}</pre>
-            </section>
+            {workspaceFolders.length === 0 ? (
+                <section>
+                    <h3>📁 No Workspace Folders</h3>
+                    <p>Use <strong>add_folder_to_workspace</strong> tool to add a project directory.</p>
+                </section>
+            ) : (
+                workspaceFolders.map((folder, index) => (
+                    <section key={folder}>
+                        <h3>📁 [{index}] {path.basename(folder)}</h3>
+                        <p>Path: {folder}</p>
+                        <pre>{folderTrees.get(folder) ?? 'Loading...'}</pre>
+                    </section>
+                ))
+            )}
 
             {activeFiles.length > 0 && (
                 <section>

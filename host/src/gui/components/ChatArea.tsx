@@ -1,7 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Button } from "@heroui/button";
-import { Spinner } from "@heroui/spinner";
-import { Card, CardBody } from "@heroui/card";
+import { Button, Spinner, Card, CardBody } from "@heroui/react";
 import { IconPlay, IconPause, IconAgentSleeping, IconAgentIdle, IconAgentWorking, IconAgentPaused, IconApps, IconSkills, IconPlug, IconBrain, IconPrompt, IconWrench } from './Icons.js';
 import { EmptyState } from './EmptyState.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
