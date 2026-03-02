@@ -150,6 +150,8 @@ export class IMRuntimeBridge {
   private readonly replyDispatchers = new Map<string, ReturnType<typeof createFeishuReplyDispatcher>>()
   /** Normalized stream text per session for text_delta events */
   private readonly accumulatedText = new Map<string, string>()
+  /** Accumulated reasoning text per session for reasoning_delta events */
+  private readonly accumulatedReasoning = new Map<string, string>()
 
   constructor(options: IMRuntimeBridgeOptions) {
     this.hostManager = options.hostManager
@@ -225,6 +227,7 @@ export class IMRuntimeBridge {
     }
     this.replyDispatchers.clear()
     this.accumulatedText.clear()
+    this.accumulatedReasoning.clear()
 
     await this.gatewayManager.stopAll()
 
@@ -233,8 +236,8 @@ export class IMRuntimeBridge {
   }
 
   private async onGuiUpdate(event: GuiUpdateEvent): Promise<void> {
-    // Only handle text_delta (streaming) and assistant (final) events
-    if (event.type !== 'text_delta' && event.type !== 'assistant') {
+    // Handle text_delta (streaming), reasoning_delta (thinking), and assistant (final) events
+    if (event.type !== 'text_delta' && event.type !== 'reasoning_delta' && event.type !== 'assistant') {
       return
     }
 
@@ -260,7 +263,31 @@ export class IMRuntimeBridge {
     const receiveIdType = context.chatType === 'group' ? 'chat_id' : 'open_id'
     const receiveId = context.chatType === 'group' ? context.chatId : context.senderId
     const apiBaseUrl = buildFeishuApiBase(account.domain as 'feishu' | 'lark', account.apiBaseUrl)
+    // ── reasoning_delta: accumulate & stream to reasoning card element ────────
+    if (event.type === 'reasoning_delta' && event.delta) {
+      const prev = this.accumulatedReasoning.get(event.topicId) ?? ''
+      const accumulated = normalizeStreamText(prev, event.delta)
+      this.accumulatedReasoning.set(event.topicId, accumulated)
 
+      let dispatcher = this.replyDispatchers.get(event.topicId)
+      if (!dispatcher) {
+        dispatcher = this.createDispatcherForSession(
+          event.topicId,
+          account,
+          receiveIdType,
+          receiveId,
+          apiBaseUrl,
+        )
+        this.replyDispatchers.set(event.topicId, dispatcher)
+      }
+
+      try {
+        await dispatcher.onReasoningDelta(accumulated)
+      } catch (err) {
+        console.error(`[IM] reasoning delta update failed for ${event.topicId}:`, err)
+      }
+      return
+    }
     // ── text_delta: accumulate & stream ────────────────────────────
     if (event.type === 'text_delta' && event.delta) {
       const prev = this.accumulatedText.get(event.topicId) ?? ''
@@ -306,6 +333,7 @@ export class IMRuntimeBridge {
         }
         this.replyDispatchers.delete(event.topicId)
         this.accumulatedText.delete(event.topicId)
+        this.accumulatedReasoning.delete(event.topicId)
       } else {
         // No streaming was started (very fast response) — fallback to plain text
         await this.sendPlainTextFallback(account, receiveIdType, receiveId, apiBaseUrl, text)

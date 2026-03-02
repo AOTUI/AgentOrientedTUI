@@ -61,6 +61,18 @@ function truncateSummary(text: string, max = 50): string {
   return clean.length <= max ? clean : clean.slice(0, max - 3) + '...'
 }
 
+/**
+ * Format reasoning/thinking text as a markdown blockquote for Feishu Card 2.0.
+ * Each line is prefixed with `> ` to render as a visually distinct blockquote.
+ */
+function formatReasoning(text: string): string {
+  if (!text.trim()) return ''
+  return text
+    .split('\n')
+    .map((line) => `> ${line}`)
+    .join('\n')
+}
+
 // ─── FeishuStreamingSession ─────────────────────────────────────────
 
 /**
@@ -125,6 +137,9 @@ export class FeishuStreamingSession {
         },
         body: {
           elements: [
+            // reasoning element: starts blank, updated by updateReasoning() as thinking arrives
+            { tag: 'markdown', content: '', element_id: 'reasoning' },
+            // content element: the main response text
             { tag: 'markdown', content: '⏳ Thinking...', element_id: 'content' },
           ],
         },
@@ -240,6 +255,24 @@ export class FeishuStreamingSession {
     await this.queue
   }
 
+  // ── updateReasoning: stream reasoning/thinking text ───────────────
+
+  /**
+   * Stream reasoning (thinking) content into the `reasoning` card element.
+   * Formatted as markdown blockquotes so it renders visually distinct from
+   * the main response. No throttle — reasoning chunks come less frequently.
+   */
+  async updateReasoning(text: string): Promise<void> {
+    if (!this.state || this.closed) return
+    const formatted = formatReasoning(text)
+    if (!formatted) return
+    this.queue = this.queue.then(async () => {
+      if (!this.state || this.closed) return
+      await this.updateReasoningContent(formatted)
+    })
+    await this.queue
+  }
+
   // ── close: finalize & disable streaming mode ──────────────────────
 
   async close(finalText?: string): Promise<void> {
@@ -301,6 +334,31 @@ export class FeishuStreamingSession {
   }
 
   // ── private: PUT card element content ─────────────────────────────
+
+  private async updateReasoningContent(text: string): Promise<void> {
+    if (!this.state) return
+    this.state.sequence += 1
+    const token = await this.fetchToken(this.creds)
+    try {
+      await this.fetchFn(
+        `${this.apiBase}/open-apis/cardkit/v1/cards/${this.state.cardId}/elements/reasoning/content`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: text,
+            sequence: this.state.sequence,
+            uuid: `r_${this.state.cardId}_${this.state.sequence}`,
+          }),
+        },
+      )
+    } catch (e) {
+      this.log?.(`Reasoning update failed: ${String(e)}`)
+    }
+  }
 
   private async updateCardContent(text: string): Promise<void> {
     if (!this.state) return

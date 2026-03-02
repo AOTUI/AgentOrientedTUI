@@ -5,6 +5,8 @@ export interface FeishuStreamingSessionLike {
   start: (receiveId: string, receiveIdType: FeishuReceiveIdType, options?: { replyToMessageId?: string }) => Promise<void>
   update: (text: string) => Promise<void>
   close: (text?: string) => Promise<void>
+  /** Optional: stream reasoning/thinking text into a dedicated card element */
+  updateReasoning?: (text: string) => Promise<void>
 }
 
 export interface FeishuReplyDispatcherDeps {
@@ -27,6 +29,8 @@ export function createFeishuReplyDispatcher(deps: FeishuReplyDispatcherDeps) {
   let startPromise: Promise<void> | null = null
   let lastPartial = ''
   let lastSentPartial = ''
+  let lastReasoning = ''
+  let lastSentReasoning = ''
   let partialUpdateQueue: Promise<void> = Promise.resolve()
 
   function ensureStreaming(): FeishuStreamingSessionLike {
@@ -108,6 +112,30 @@ export function createFeishuReplyDispatcher(deps: FeishuReplyDispatcherDeps) {
         text,
         replyToMessageId: deps.replyToMessageId,
       })
+    },
+
+    async onReasoningDelta(text: string): Promise<void> {
+      if (!text || text === lastReasoning) {
+        return
+      }
+      lastReasoning = text
+      const textSnapshot = text
+
+      partialUpdateQueue = partialUpdateQueue.then(async () => {
+        const ok = await ensureStarted()
+        if (!ok || !streaming?.isActive()) {
+          return
+        }
+        if (textSnapshot === lastSentReasoning) {
+          return
+        }
+        if (streaming.updateReasoning) {
+          await streaming.updateReasoning(textSnapshot)
+          lastSentReasoning = textSnapshot
+        }
+      })
+
+      await partialUpdateQueue
     },
 
     async cleanup(): Promise<void> {
