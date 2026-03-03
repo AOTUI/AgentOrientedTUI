@@ -256,4 +256,90 @@ describe('Feishu reply dispatcher', () => {
       replyToMessageId: undefined,
     })
   })
+
+  it('onReasoningDelta calls streaming.updateReasoning when available', async () => {
+    const streaming = {
+      isActive: vi.fn(() => true),
+      start: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+      close: vi.fn(async () => undefined),
+      updateReasoning: vi.fn(async () => undefined),
+    }
+
+    const dispatcher = createFeishuReplyDispatcher({
+      createStreamingSession: vi.fn(() => streaming as any),
+      sendMarkdownCard: vi.fn(async () => undefined),
+      receiveId: 'ou_1',
+      receiveIdType: 'open_id',
+    })
+
+    await dispatcher.onReasoningDelta('thinking step 1')
+    expect(streaming.start).toHaveBeenCalledTimes(1)
+    expect(streaming.updateReasoning).toHaveBeenCalledWith('thinking step 1')
+  })
+
+  it('onReasoningDelta triggers streaming start with the correct target', async () => {
+    const streaming = {
+      isActive: vi.fn(() => true),
+      start: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+      close: vi.fn(async () => undefined),
+      updateReasoning: vi.fn(async () => undefined),
+    }
+
+    const dispatcher = createFeishuReplyDispatcher({
+      createStreamingSession: vi.fn(() => streaming as any),
+      sendMarkdownCard: vi.fn(async () => undefined),
+      receiveId: 'ou_direct',
+      receiveIdType: 'open_id',
+      replyToMessageId: 'om_original',
+    })
+
+    await dispatcher.onReasoningDelta('thinking before content')
+
+    expect(streaming.start).toHaveBeenCalledOnce()
+    expect(streaming.start).toHaveBeenCalledWith('ou_direct', 'open_id', { replyToMessageId: 'om_original' })
+    expect(streaming.updateReasoning).toHaveBeenCalledWith('thinking before content')
+  })
+
+  it('onReasoningDelta deduplicates identical text', async () => {
+    const streaming = {
+      isActive: vi.fn(() => true),
+      start: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+      close: vi.fn(async () => undefined),
+      updateReasoning: vi.fn(async () => undefined),
+    }
+
+    const dispatcher = createFeishuReplyDispatcher({
+      createStreamingSession: vi.fn(() => streaming as any),
+      sendMarkdownCard: vi.fn(async () => undefined),
+      receiveId: 'ou_1',
+      receiveIdType: 'open_id',
+    })
+
+    await dispatcher.onReasoningDelta('same thought')
+    await dispatcher.onReasoningDelta('same thought')
+
+    expect(streaming.updateReasoning).toHaveBeenCalledTimes(1)
+  })
+
+  it('onReasoningDelta is a no-op when streaming has no updateReasoning', async () => {
+    const streaming = {
+      isActive: vi.fn(() => true),
+      start: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+      close: vi.fn(async () => undefined),
+      // no updateReasoning method
+    }
+
+    const dispatcher = createFeishuReplyDispatcher({
+      createStreamingSession: vi.fn(() => streaming as any),
+      sendMarkdownCard: vi.fn(async () => undefined),
+      receiveId: 'ou_1',
+      receiveIdType: 'open_id',
+    })
+
+    await expect(dispatcher.onReasoningDelta('thinking...')).resolves.toBeUndefined()
+  })
 })

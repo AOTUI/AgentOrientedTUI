@@ -573,5 +573,43 @@ describe('IMRuntimeBridge', () => {
       // The streaming session's close should have been called via cleanup
       expect(b.streamingSession.close).toHaveBeenCalled()
     })
+
+    it('forwards reasoning_delta events to streaming.updateReasoning', async () => {
+      const b = createStreamingBridge()
+      await setupSession(b)
+      ;(b.streamingSession as any).updateReasoning = vi.fn(async () => undefined)
+
+      b.refs.guiHandler!({
+        type: 'reasoning_delta',
+        topicId: 'agent:bot:feishu:direct:ou_s1',
+        delta: 'I am thinking',
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(b.createStreamingSession).toHaveBeenCalledTimes(1)
+      expect((b.streamingSession as any).updateReasoning).toHaveBeenCalledWith('I am thinking')
+    })
+
+    it('accumulates multiple reasoning_delta events before forwarding', async () => {
+      const b = createStreamingBridge()
+      await setupSession(b)
+      ;(b.streamingSession as any).updateReasoning = vi.fn(async () => undefined)
+
+      b.refs.guiHandler!({
+        type: 'reasoning_delta',
+        topicId: 'agent:bot:feishu:direct:ou_s1',
+        delta: 'thinking',
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      b.refs.guiHandler!({
+        type: 'reasoning_delta',
+        topicId: 'agent:bot:feishu:direct:ou_s1',
+        delta: ' more',
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect((b.streamingSession as any).updateReasoning).toHaveBeenLastCalledWith('thinking more')
+    })
   })
 })

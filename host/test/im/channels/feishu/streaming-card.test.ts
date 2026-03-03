@@ -277,4 +277,65 @@ describe('FeishuStreamingSession', () => {
     await session.close('final')
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Closed streaming'))
   })
+
+  it('start() includes reasoning and content elements in card body', async () => {
+    const fetchImpl = mockFetch([
+      { code: 0, data: { card_id: 'card_r01' } },
+      { code: 0, data: { message_id: 'msg_r01' } },
+    ])
+
+    const session = new FeishuStreamingSession(CREDS, { fetchImpl: fetchImpl as any, fetchToken })
+    await session.start('oc_chat1', 'chat_id')
+
+    const createBody = JSON.parse(fetchImpl.mock.calls[0][1].body)
+    const cardJson = JSON.parse(createBody.data)
+    const elements = cardJson.body.elements
+    expect(elements).toHaveLength(2)
+    expect(elements[0].element_id).toBe('reasoning')
+    expect(elements[0].content).toBe('')
+    expect(elements[1].element_id).toBe('content')
+  })
+
+  it('updateReasoning() PUTs to reasoning element with blockquote-formatted text', async () => {
+    const fetchImpl = mockFetch([
+      { code: 0, data: { card_id: 'card_r02' } },
+      { code: 0, data: { message_id: 'msg_r02' } },
+      { code: 0 }, // updateReasoning PUT
+    ])
+
+    const session = new FeishuStreamingSession(CREDS, { fetchImpl: fetchImpl as any, fetchToken })
+    await session.start('oc_chat1', 'chat_id')
+    await session.updateReasoning('line1\nline2')
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+    const [updateUrl, updateOpts] = fetchImpl.mock.calls[2]
+    expect(updateUrl).toBe(
+      'https://open.feishu.cn/open-apis/cardkit/v1/cards/card_r02/elements/reasoning/content',
+    )
+    expect(updateOpts.method).toBe('PUT')
+    const updateBody = JSON.parse(updateOpts.body)
+    expect(updateBody.content).toBe('> line1\n> line2')
+  })
+
+  it('updateReasoning() is a no-op before start and after close', async () => {
+    const fetchImpl = mockFetch([
+      { code: 0, data: { card_id: 'card_r03' } },
+      { code: 0, data: { message_id: 'msg_r03' } },
+      { code: 0 }, // close content update
+      { code: 0 }, // close settings
+    ])
+
+    const session = new FeishuStreamingSession(CREDS, { fetchImpl: fetchImpl as any, fetchToken })
+    // Before start: no-op
+    await session.updateReasoning('not yet started')
+    expect(fetchImpl).not.toHaveBeenCalled()
+
+    await session.start('oc_chat1', 'chat_id')
+    await session.close('done')
+
+    // After close: no-op
+    const callCountAfterClose = fetchImpl.mock.calls.length
+    await session.updateReasoning('too late')
+    expect(fetchImpl).toHaveBeenCalledTimes(callCountAfterClose)
+  })
 })
