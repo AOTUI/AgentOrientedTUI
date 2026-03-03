@@ -16,6 +16,7 @@ import { AgentAppsEditor } from './AgentAppsEditor.js';
 import { AgentSkillsEditor } from './AgentSkillsEditor.js';
 import { AgentMcpEditor } from './AgentMcpEditor.js';
 import { AgentSkinEditor } from './AgentSkinEditor.js';
+import { buildMcpToolItemKey } from '../../../../core/source-control-keys.js';
 
 export interface AgentConfig {
     id: string;
@@ -84,18 +85,114 @@ export const AgentTab: React.FC<{ projectPath?: string | null; onSwitchTab?: (ta
 
     const editingAgent = editingAgentId ? agents.find((a) => a.id === editingAgentId) : null;
 
+    const syncActiveTopicAgentSources = useCallback(async (nextAgents: AgentConfig[]) => {
+        const activeTopicId = bridge.getActiveTopicId();
+        if (!activeTopicId) return;
+
+        const activeTopic = bridge.getTopic(activeTopicId);
+        if (!activeTopic?.agentId) return;
+
+        const boundAgent = nextAgents.find((agent) => agent.id === activeTopic.agentId);
+        if (!boundAgent) return;
+
+        const trpc = bridge.getTrpcClient();
+        const currentCaps = await trpc.sourceControl.getTopic.query({
+            id: activeTopicId,
+            projectPath: projectPath || undefined,
+        });
+
+        const enabledAppsSet = new Set(boundAgent.enabledApps || []);
+        const enabledSkillNames = new Set(Object.values(boundAgent.enabledSkills || {}).flat());
+        const enabledMCPsSet = new Set(boundAgent.enabledMCPs || []);
+        const disabledToolsSet = new Set(boundAgent.disabledMcpTools || []);
+
+        await trpc.sourceControl.setSourceEnabled.mutate({
+            id: activeTopicId,
+            source: 'apps',
+            enabled: enabledAppsSet.size > 0,
+        });
+        await trpc.sourceControl.setSourceEnabled.mutate({
+            id: activeTopicId,
+            source: 'skill',
+            enabled: enabledSkillNames.size > 0,
+        });
+        await trpc.sourceControl.setSourceEnabled.mutate({
+            id: activeTopicId,
+            source: 'mcp',
+            enabled: enabledMCPsSet.size > 0,
+        });
+
+        for (const item of currentCaps.apps.items) {
+            const shouldEnable = enabledAppsSet.has(item.name);
+            if (item.enabled !== shouldEnable) {
+                await trpc.sourceControl.setItemEnabled.mutate({
+                    id: activeTopicId,
+                    source: 'apps',
+                    itemName: item.name,
+                    enabled: shouldEnable,
+                });
+            }
+        }
+
+        for (const item of currentCaps.skill.items) {
+            const shouldEnable = enabledSkillNames.has(item.name);
+            if (item.enabled !== shouldEnable) {
+                await trpc.sourceControl.setItemEnabled.mutate({
+                    id: activeTopicId,
+                    source: 'skill',
+                    itemName: item.name,
+                    enabled: shouldEnable,
+                });
+            }
+        }
+
+        for (const group of currentCaps.mcp.groups) {
+            const serverShouldEnable = enabledMCPsSet.has(group.serverName);
+            if (group.enabled !== serverShouldEnable) {
+                await trpc.sourceControl.setItemEnabled.mutate({
+                    id: activeTopicId,
+                    source: 'mcp',
+                    itemName: group.key,
+                    enabled: serverShouldEnable,
+                });
+            }
+
+            for (const item of group.items) {
+                const canonicalKey = buildMcpToolItemKey(group.serverName, item.name);
+                const legacyScopedKey = `${group.serverName}::${item.name}`;
+                const legacyUnscopedKey = item.name;
+                const toolShouldEnable = !(
+                    disabledToolsSet.has(item.key)
+                    || disabledToolsSet.has(canonicalKey)
+                    || disabledToolsSet.has(legacyScopedKey)
+                    || disabledToolsSet.has(legacyUnscopedKey)
+                );
+
+                if (item.enabled !== toolShouldEnable) {
+                    await trpc.sourceControl.setItemEnabled.mutate({
+                        id: activeTopicId,
+                        source: 'mcp',
+                        itemName: item.key,
+                        enabled: toolShouldEnable,
+                    });
+                }
+            }
+        }
+    }, [bridge, projectPath]);
+
     const saveAgents = useCallback(async (nextAgents: AgentConfig[], nextActiveId: string | null) => {
         setAgents(nextAgents);
         setActiveAgentId(nextActiveId);
         setSaving(true);
         try {
             await bridge.saveAgents(nextAgents, nextActiveId);
+            await syncActiveTopicAgentSources(nextAgents);
         } catch (error) {
             console.error('[AgentTab] Failed to save agents:', error);
         } finally {
             setSaving(false);
         }
-    }, [bridge]);
+    }, [bridge, syncActiveTopicAgentSources]);
 
     const updateAgent = useCallback((agentId: string, updates: Partial<AgentConfig>) => {
         const next = agents.map((a) => (a.id === agentId ? { ...a, ...updates } : a));
