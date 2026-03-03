@@ -31,6 +31,13 @@ export class IMGatewayManager extends EventEmitter {
     this.channels.set(plugin.id, plugin)
   }
 
+  /**
+   * Look up a registered channel plugin by id.
+   */
+  getChannel(channelId: string): IChannelPlugin | undefined {
+    return this.channels.get(channelId)
+  }
+
   getRegisteredChannelIds(): string[] {
     return Array.from(this.channels.keys())
   }

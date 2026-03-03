@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { GuiUpdateEvent } from '../../src/core/host-manager-v2.js'
 import { IMRuntimeBridge } from '../../src/im/im-runtime-bridge.js'
+import type { IReplyHandler } from '../../src/im/channel-plugin.js'
 
 // Mock the db module so defaultEnsureTopic works without a real SQLite DB
 vi.mock('../../src/db/index.js', () => ({
@@ -47,15 +48,16 @@ describe('IMRuntimeBridge', () => {
       register: vi.fn(),
       startAll: vi.fn(async () => undefined),
       stopAll: vi.fn(async () => undefined),
+      getChannel: vi.fn(() => undefined),
     }
 
-    const pluginFactory = vi.fn(({ dispatch }: { dispatch: (message: any) => Promise<void> }) => {
+    const pluginFactory = vi.fn((dispatch: (message: any) => Promise<void>) => {
       refs.inboundDispatch = dispatch
-      return {
+      return [{
         id: 'feishu',
         start: vi.fn(async () => undefined),
         stop: vi.fn(async () => undefined),
-      }
+      }]
     })
 
     const bridge = new IMRuntimeBridge({
@@ -65,8 +67,7 @@ describe('IMRuntimeBridge', () => {
       } as any,
       getConfig: async () => createConfig(),
       createGatewayManager: () => gateway as any,
-      createFeishuChannelPlugin: pluginFactory as any,
-      sendFeishuText: vi.fn(async () => ({ messageId: 'om_sent' })),
+      createChannelPlugins: pluginFactory as any,
     })
 
     await bridge.start()
@@ -98,7 +99,7 @@ describe('IMRuntimeBridge', () => {
     )
   })
 
-  it('forwards assistant message back to Feishu after inbound context is recorded', async () => {
+  it('forwards assistant message back via channel plugin reply handler', async () => {
     const sendUserMessage = vi.fn(async () => undefined)
 
     const refs: {
@@ -113,22 +114,31 @@ describe('IMRuntimeBridge', () => {
       }
     })
 
+    const mockReplyHandler: IReplyHandler = {
+      onPartialReply: vi.fn(async () => undefined),
+      onFinalReply: vi.fn(async () => undefined),
+      onReasoningDelta: vi.fn(async () => undefined),
+      cleanup: vi.fn(async () => undefined),
+    }
+
+    const mockPlugin = {
+      id: 'feishu',
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      createReplyHandler: vi.fn(() => mockReplyHandler),
+    }
+
     const gateway = {
       register: vi.fn(),
       startAll: vi.fn(async () => undefined),
       stopAll: vi.fn(async () => undefined),
+      getChannel: vi.fn((id: string) => id === 'feishu' ? mockPlugin : undefined),
     }
 
-    const pluginFactory = vi.fn(({ dispatch }: { dispatch: (message: any) => Promise<void> }) => {
+    const pluginFactory = vi.fn((dispatch: (message: any) => Promise<void>) => {
       refs.inboundDispatch = dispatch
-      return {
-        id: 'feishu',
-        start: vi.fn(async () => undefined),
-        stop: vi.fn(async () => undefined),
-      }
+      return [mockPlugin]
     })
-
-    const sendFeishuText = vi.fn(async () => ({ messageId: 'om_sent' }))
 
     const bridge = new IMRuntimeBridge({
       hostManager: {
@@ -137,8 +147,7 @@ describe('IMRuntimeBridge', () => {
       } as any,
       getConfig: async () => createConfig(),
       createGatewayManager: () => gateway as any,
-      createFeishuChannelPlugin: pluginFactory as any,
-      sendFeishuText,
+      createChannelPlugins: pluginFactory as any,
     })
 
     await bridge.start()
@@ -170,109 +179,17 @@ describe('IMRuntimeBridge', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(sendFeishuText).toHaveBeenCalledWith(
+    // Plugin should have created a one-shot reply handler
+    expect(mockPlugin.createReplyHandler).toHaveBeenCalledWith(
       expect.objectContaining({
-        receiveIdType: 'open_id',
-        receiveId: 'ou_2',
-        text: 'reply from host',
-      }),
-    )
-  })
-
-  it('auto-fetches tenant token and sends reply when botToken is missing', async () => {
-    const sendUserMessage = vi.fn(async () => undefined)
-
-    const refs: {
-      guiHandler?: (event: GuiUpdateEvent) => void
-      inboundDispatch?: (message: any) => Promise<void>
-    } = {}
-
-    const onGuiUpdate = vi.fn((handler: (event: GuiUpdateEvent) => void) => {
-      refs.guiHandler = handler
-      return () => {
-        refs.guiHandler = undefined
-      }
-    })
-
-    const gateway = {
-      register: vi.fn(),
-      startAll: vi.fn(async () => undefined),
-      stopAll: vi.fn(async () => undefined),
-    }
-
-    const pluginFactory = vi.fn(({ dispatch }: { dispatch: (message: any) => Promise<void> }) => {
-      refs.inboundDispatch = dispatch
-      return {
-        id: 'feishu',
-        start: vi.fn(async () => undefined),
-        stop: vi.fn(async () => undefined),
-      }
-    })
-
-    const configWithoutBotToken = createConfig()
-    delete configWithoutBotToken.im.channels.feishu.botToken
-
-    const sendFeishuText = vi.fn(async () => ({ messageId: 'om_sent' }))
-    const fetchTenantToken = vi.fn(async () => 'auto_fetched_token')
-
-    const bridge = new IMRuntimeBridge({
-      hostManager: {
-        sendUserMessage,
-        onGuiUpdate,
-      } as any,
-      getConfig: async () => configWithoutBotToken,
-      createGatewayManager: () => gateway as any,
-      createFeishuChannelPlugin: pluginFactory as any,
-      sendFeishuText,
-      fetchTenantToken,
-    })
-
-    await bridge.start()
-
-    if (!refs.inboundDispatch) {
-      throw new Error('inbound dispatch handler is not ready')
-    }
-
-    await refs.inboundDispatch({
-      sessionKey: 'agent:agent-main:feishu:direct:ou_3',
-      messageId: 'om_3',
-      body: 'hey',
-      channel: 'feishu',
-      chatType: 'direct',
-      senderId: 'ou_3',
-      chatId: 'oc_3',
-      agentId: 'agent-main',
-    })
-
-    if (!refs.guiHandler) {
-      throw new Error('gui handler is not ready')
-    }
-
-    refs.guiHandler({
-      type: 'assistant',
-      topicId: 'agent:agent-main:feishu:direct:ou_3',
-      message: { role: 'assistant', content: 'reply from host' } as any,
-    })
-
-    await new Promise((resolve) => setTimeout(resolve, 0))
-
-    // Should have auto-fetched token
-    expect(fetchTenantToken).toHaveBeenCalledWith(
-      expect.objectContaining({
-        appId: 'cli_x',
-        appSecret: 'sec_x',
+        chatType: 'direct',
+        chatId: 'oc_2',
+        senderId: 'ou_2',
       }),
     )
 
-    // Should have sent the reply with the auto-fetched token
-    expect(sendFeishuText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        botToken: 'auto_fetched_token',
-        receiveIdType: 'open_id',
-        receiveId: 'ou_3',
-        text: 'reply from host',
-      }),
-    )
+    // onFinalReply should have been called with the reply text
+    expect(mockReplyHandler.onFinalReply).toHaveBeenCalledWith('reply from host')
   })
 
   it('calls ensureTopic with agentId before sending user message', async () => {
@@ -291,12 +208,12 @@ describe('IMRuntimeBridge', () => {
         register: vi.fn(),
         startAll: vi.fn(async () => undefined),
         stopAll: vi.fn(async () => undefined),
+        getChannel: vi.fn(() => undefined),
       }),
-      createFeishuChannelPlugin: vi.fn(({ dispatch }: any) => {
+      createChannelPlugins: vi.fn((dispatch: any) => {
         refs.inboundDispatch = dispatch
-        return { id: 'feishu', start: vi.fn(async () => undefined), stop: vi.fn(async () => undefined) }
+        return [{ id: 'feishu', start: vi.fn(async () => undefined), stop: vi.fn(async () => undefined) }]
       }) as any,
-      sendFeishuText: vi.fn(async () => ({ messageId: 'om_sent' })),
       ensureTopic,
     })
 
@@ -331,6 +248,7 @@ describe('IMRuntimeBridge', () => {
       register: vi.fn(),
       startAll: vi.fn(async () => undefined),
       stopAll: vi.fn(async () => undefined),
+      getChannel: vi.fn(() => undefined),
     }
 
     const bridge = new IMRuntimeBridge({
@@ -340,12 +258,11 @@ describe('IMRuntimeBridge', () => {
       } as any,
       getConfig: async () => createConfig(),
       createGatewayManager: () => gateway as any,
-      createFeishuChannelPlugin: vi.fn(() => ({
+      createChannelPlugins: vi.fn(() => [{
         id: 'feishu',
         start: vi.fn(async () => undefined),
         stop: vi.fn(async () => undefined),
-      })) as any,
-      sendFeishuText: vi.fn(async () => ({ messageId: 'om_sent' })),
+      }]) as any,
     })
 
     await bridge.start()
@@ -371,49 +288,44 @@ describe('IMRuntimeBridge', () => {
         }
       })
 
+      // Mock reply handler that tracks all calls
+      const mockReplyHandler: IReplyHandler = {
+        onPartialReply: vi.fn(async () => undefined),
+        onFinalReply: vi.fn(async () => undefined),
+        onReasoningDelta: vi.fn(async () => undefined),
+        cleanup: vi.fn(async () => undefined),
+      }
+
+      const mockPlugin = {
+        id: 'feishu',
+        start: vi.fn(async () => undefined),
+        stop: vi.fn(async () => undefined),
+        createReplyHandler: vi.fn(() => mockReplyHandler),
+      }
+
       const gateway = {
         register: vi.fn(),
         startAll: vi.fn(async () => undefined),
         stopAll: vi.fn(async () => undefined),
+        getChannel: vi.fn((id: string) => id === 'feishu' ? mockPlugin : undefined),
       }
 
-      const pluginFactory = vi.fn(({ dispatch }: { dispatch: (message: any) => Promise<void> }) => {
+      const pluginFactory = vi.fn((dispatch: (message: any) => Promise<void>) => {
         refs.inboundDispatch = dispatch
-        return {
-          id: 'feishu',
-          start: vi.fn(async () => undefined),
-          stop: vi.fn(async () => undefined),
-        }
+        return [mockPlugin]
       })
-
-      const sendFeishuText = vi.fn(async () => ({ messageId: 'om_sent' }))
-      const fetchTenantToken = vi.fn(async () => 'auto_stream_token')
-
-      const streamingSession = {
-        isActive: vi.fn(() => true),
-        start: vi.fn(async () => undefined),
-        update: vi.fn(async () => undefined),
-        close: vi.fn(async () => undefined),
-      }
-      const createStreamingSession = vi.fn(() => streamingSession)
-
-      const configWithoutBotToken = createConfig()
-      delete configWithoutBotToken.im.channels.feishu.botToken
 
       const bridge = new IMRuntimeBridge({
         hostManager: {
           sendUserMessage,
           onGuiUpdate,
         } as any,
-        getConfig: async () => configWithoutBotToken,
+        getConfig: async () => createConfig(),
         createGatewayManager: () => gateway as any,
-        createFeishuChannelPlugin: pluginFactory as any,
-        sendFeishuText,
-        fetchTenantToken,
-        createStreamingSession,
+        createChannelPlugins: pluginFactory as any,
       })
 
-      return { bridge, refs, sendFeishuText, streamingSession, createStreamingSession }
+      return { bridge, refs, mockPlugin, mockReplyHandler }
     }
 
     async function setupSession(b: ReturnType<typeof createStreamingBridge>) {
@@ -431,7 +343,7 @@ describe('IMRuntimeBridge', () => {
       })
     }
 
-    it('creates streaming session on first text_delta and calls update with accumulated text', async () => {
+    it('creates reply handler on first text_delta and delegates onPartialReply', async () => {
       const b = createStreamingBridge()
       await setupSession(b)
 
@@ -442,9 +354,15 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      expect(b.createStreamingSession).toHaveBeenCalledTimes(1)
-      expect(b.streamingSession.start).toHaveBeenCalledWith('ou_s1', 'open_id', expect.anything())
-      expect(b.streamingSession.update).toHaveBeenCalledWith('Hello')
+      expect(b.mockPlugin.createReplyHandler).toHaveBeenCalledTimes(1)
+      expect(b.mockPlugin.createReplyHandler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chatType: 'direct',
+          chatId: 'oc_s1',
+          senderId: 'ou_s1',
+        }),
+      )
+      expect(b.mockReplyHandler.onPartialReply).toHaveBeenCalledWith('Hello')
     })
 
     it('accumulates text across multiple text_delta events', async () => {
@@ -465,10 +383,10 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      // Session created only once
-      expect(b.createStreamingSession).toHaveBeenCalledTimes(1)
+      // Handler created only once
+      expect(b.mockPlugin.createReplyHandler).toHaveBeenCalledTimes(1)
       // Second update has accumulated text
-      expect(b.streamingSession.update).toHaveBeenLastCalledWith('Hello world')
+      expect(b.mockReplyHandler.onPartialReply).toHaveBeenLastCalledWith('Hello world')
     })
 
     it('normalizes cumulative text_delta payloads without duplicate concatenation', async () => {
@@ -490,10 +408,10 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      expect(b.streamingSession.update).toHaveBeenLastCalledWith('好，现在看到了项目结构')
+      expect(b.mockReplyHandler.onPartialReply).toHaveBeenLastCalledWith('好，现在看到了项目结构')
     })
 
-    it('closes streaming session on assistant event after streaming', async () => {
+    it('calls onFinalReply on assistant event after streaming', async () => {
       const b = createStreamingBridge()
       await setupSession(b)
 
@@ -506,7 +424,6 @@ describe('IMRuntimeBridge', () => {
       await new Promise((resolve) => setTimeout(resolve, 0))
 
       // Finalize with assistant event
-      b.streamingSession.isActive.mockReturnValue(true)
       b.refs.guiHandler!({
         type: 'assistant',
         topicId: 'agent:bot:feishu:direct:ou_s1',
@@ -514,12 +431,10 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      expect(b.streamingSession.close).toHaveBeenCalledWith('Hello world, full reply.')
-      // Should NOT fall back to sendFeishuText
-      expect(b.sendFeishuText).not.toHaveBeenCalled()
+      expect(b.mockReplyHandler.onFinalReply).toHaveBeenCalledWith('Hello world, full reply.')
     })
 
-    it('falls back to plain text when no streaming was active', async () => {
+    it('creates one-shot reply handler when no streaming was active', async () => {
       const b = createStreamingBridge()
       await setupSession(b)
 
@@ -531,15 +446,10 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      // No streaming session created
-      expect(b.createStreamingSession).not.toHaveBeenCalled()
-      // Falls back to plain text
-      expect(b.sendFeishuText).toHaveBeenCalledWith(
-        expect.objectContaining({
-          receiveId: 'ou_s1',
-          text: 'quick reply',
-        }),
-      )
+      // Should have created a one-shot reply handler
+      expect(b.mockPlugin.createReplyHandler).toHaveBeenCalledTimes(1)
+      // onFinalReply called with the full text
+      expect(b.mockReplyHandler.onFinalReply).toHaveBeenCalledWith('quick reply')
     })
 
     it('ignores events for unknown sessions', async () => {
@@ -553,10 +463,10 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      expect(b.createStreamingSession).not.toHaveBeenCalled()
+      expect(b.mockPlugin.createReplyHandler).not.toHaveBeenCalled()
     })
 
-    it('cleans up streaming sessions on stop', async () => {
+    it('cleans up reply handlers on stop', async () => {
       const b = createStreamingBridge()
       await setupSession(b)
 
@@ -570,14 +480,13 @@ describe('IMRuntimeBridge', () => {
 
       await b.bridge.stop()
 
-      // The streaming session's close should have been called via cleanup
-      expect(b.streamingSession.close).toHaveBeenCalled()
+      // cleanup should have been called on the reply handler
+      expect(b.mockReplyHandler.cleanup).toHaveBeenCalled()
     })
 
-    it('forwards reasoning_delta events to streaming.updateReasoning', async () => {
+    it('forwards reasoning_delta events to reply handler', async () => {
       const b = createStreamingBridge()
       await setupSession(b)
-      ;(b.streamingSession as any).updateReasoning = vi.fn(async () => undefined)
 
       b.refs.guiHandler!({
         type: 'reasoning_delta',
@@ -586,14 +495,13 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      expect(b.createStreamingSession).toHaveBeenCalledTimes(1)
-      expect((b.streamingSession as any).updateReasoning).toHaveBeenCalledWith('I am thinking')
+      expect(b.mockPlugin.createReplyHandler).toHaveBeenCalledTimes(1)
+      expect(b.mockReplyHandler.onReasoningDelta).toHaveBeenCalledWith('I am thinking')
     })
 
     it('accumulates multiple reasoning_delta events before forwarding', async () => {
       const b = createStreamingBridge()
       await setupSession(b)
-      ;(b.streamingSession as any).updateReasoning = vi.fn(async () => undefined)
 
       b.refs.guiHandler!({
         type: 'reasoning_delta',
@@ -609,7 +517,7 @@ describe('IMRuntimeBridge', () => {
       })
       await new Promise((resolve) => setTimeout(resolve, 0))
 
-      expect((b.streamingSession as any).updateReasoning).toHaveBeenLastCalledWith('thinking more')
+      expect(b.mockReplyHandler.onReasoningDelta).toHaveBeenLastCalledWith('thinking more')
     })
   })
 })

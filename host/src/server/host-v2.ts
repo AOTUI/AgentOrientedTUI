@@ -23,6 +23,7 @@ import { GUIBridge } from './gui-bridge.js';
 import * as db from '../db/index.js';
 import { ModelRegistry } from '../services/model-registry.js';
 import { IMRuntimeBridge } from '../im/im-runtime-bridge.js';
+import { FeishuChannelPlugin } from '../im/channels/feishu/channel.js';
 
 // ═══════════════════════════════════════════════════════════════
 //  Express Routes (REST API for Topics/Messages)
@@ -224,7 +225,12 @@ export async function createHostV2Core(modelRegistry: ModelRegistry): Promise<{
     console.log('[HostV2] WebSocketHandler V2 initialized');
 
     // 9. Boot IM runtime bridge (channels like Feishu)
-    const imRuntimeBridge = new IMRuntimeBridge({ hostManager });
+    const imRuntimeBridge = new IMRuntimeBridge({
+      hostManager,
+      createChannelPlugins: (dispatch) => [
+        new FeishuChannelPlugin({ dispatch }),
+      ],
+    });
     await imRuntimeBridge.start();
     console.log('[HostV2] IM Runtime Bridge initialized');
 

@@ -3,16 +3,10 @@ import type { HostManagerV2, GuiUpdateEvent } from '../core/host-manager-v2.js'
 import { Config, type Info } from '../config/config.js'
 import * as db from '../db/index.js'
 import { IMGatewayManager } from './im-gateway-manager.js'
-import { FeishuChannelPlugin } from './channels/feishu/channel.js'
-import { resolveFeishuAccount } from './channels/feishu/accounts.js'
-import { buildFeishuApiBase } from './channels/feishu/client.js'
-import { sendTextMessage } from './channels/feishu/send.js'
-import { getTenantAccessToken } from './channels/feishu/token-manager.js'
-import { FeishuStreamingSession, type StreamingCardCredentials, type StreamingCardDeps } from './channels/feishu/streaming-card.js'
-import { createFeishuReplyDispatcher, type FeishuStreamingSessionLike } from './channels/feishu/reply-dispatcher.js'
+import type { IChannelPlugin, IReplyHandler } from './channel-plugin.js'
 import type { IMInboundMessage } from './types.js'
 
-type IMGatewayLike = Pick<IMGatewayManager, 'register' | 'startAll' | 'stopAll'>
+type IMGatewayLike = Pick<IMGatewayManager, 'register' | 'startAll' | 'stopAll' | 'getChannel'>
 
 type SessionRouteContext = {
   channel: string
@@ -27,16 +21,14 @@ export interface IMRuntimeBridgeOptions {
   hostManager: Pick<HostManagerV2, 'sendUserMessage' | 'onGuiUpdate'>
   getConfig?: () => Promise<Info>
   createGatewayManager?: () => IMGatewayLike
-  createFeishuChannelPlugin?: (options: { dispatch: (message: IMInboundMessage) => Promise<void> }) => {
-    id: string
-    start: (ctx: any) => Promise<void>
-    stop: () => Promise<void>
-  }
-  sendFeishuText?: typeof sendTextMessage
-  fetchTenantToken?: typeof getTenantAccessToken
+  /**
+   * Factory that creates channel plugins.
+   * Receives the bridge's inbound dispatch function so plugins can
+   * route incoming IM messages back into the host pipeline.
+   * When omitted, no channels are registered.
+   */
+  createChannelPlugins?: (dispatch: (message: IMInboundMessage) => Promise<void>) => IChannelPlugin[]
   ensureTopic?: (topicId: string, agentId: string) => void
-  /** Factory for creating streaming card sessions (injectable for testing) */
-  createStreamingSession?: (creds: StreamingCardCredentials) => FeishuStreamingSessionLike
 }
 
 function extractTextContent(message: ModelMessage | undefined): string {
@@ -62,14 +54,6 @@ function extractTextContent(message: ModelMessage | undefined): string {
   }
 
   return ''
-}
-
-function getFeishuChannelConfig(config: Info): Record<string, unknown> | null {
-  const channelConfig = config.im?.channels?.feishu
-  if (!channelConfig || typeof channelConfig !== 'object') {
-    return null
-  }
-  return channelConfig as Record<string, unknown>
 }
 
 /**
@@ -135,19 +119,16 @@ export class IMRuntimeBridge {
   private readonly hostManager: Pick<HostManagerV2, 'sendUserMessage' | 'onGuiUpdate'>
   private readonly getConfig: () => Promise<Info>
   private readonly gatewayManager: IMGatewayLike
-  private readonly createFeishuChannelPlugin: NonNullable<IMRuntimeBridgeOptions['createFeishuChannelPlugin']>
-  private readonly sendFeishuText: typeof sendTextMessage
-  private readonly fetchTenantToken: typeof getTenantAccessToken
+  private readonly createChannelPlugins: (dispatch: (message: IMInboundMessage) => Promise<void>) => IChannelPlugin[]
   private readonly ensureTopic: (topicId: string, agentId: string) => void
-  private readonly createStreamingSession: (creds: StreamingCardCredentials) => FeishuStreamingSessionLike
 
   private unsubscribeGui: (() => void) | null = null
   private started = false
   private currentConfig: Info | null = null
   private readonly sessionRouteContext = new Map<string, SessionRouteContext>()
 
-  /** Active reply dispatchers per session (manages streaming card lifecycle) */
-  private readonly replyDispatchers = new Map<string, ReturnType<typeof createFeishuReplyDispatcher>>()
+  /** Active reply handlers per session (manages streaming lifecycle) */
+  private readonly replyHandlers = new Map<string, IReplyHandler>()
   /** Normalized stream text per session for text_delta events */
   private readonly accumulatedText = new Map<string, string>()
   /** Accumulated reasoning text per session for reasoning_delta events */
@@ -157,11 +138,8 @@ export class IMRuntimeBridge {
     this.hostManager = options.hostManager
     this.getConfig = options.getConfig ?? (() => Config.get())
     this.gatewayManager = options.createGatewayManager ? options.createGatewayManager() : new IMGatewayManager()
-    this.createFeishuChannelPlugin = options.createFeishuChannelPlugin ?? ((pluginOptions) => new FeishuChannelPlugin(pluginOptions))
-    this.sendFeishuText = options.sendFeishuText ?? sendTextMessage
-    this.fetchTenantToken = options.fetchTenantToken ?? getTenantAccessToken
+    this.createChannelPlugins = options.createChannelPlugins ?? (() => [])
     this.ensureTopic = options.ensureTopic ?? defaultEnsureTopic
-    this.createStreamingSession = options.createStreamingSession ?? ((creds) => new FeishuStreamingSession(creds))
   }
 
   async start(): Promise<void> {
@@ -172,31 +150,35 @@ export class IMRuntimeBridge {
     console.log('[IM] IMRuntimeBridge starting...')
     this.currentConfig = await this.getConfig()
 
-    const feishuPlugin = this.createFeishuChannelPlugin({
-      dispatch: async (message) => {
-        console.log(`[IM] dispatching inbound message: session=${message.sessionKey}, channel=${message.channel}, agentId=${message.agentId}`)
-        this.sessionRouteContext.set(message.sessionKey, {
-          channel: message.channel,
-          chatType: message.chatType,
-          chatId: message.chatId,
-          senderId: message.senderId,
-          accountId: message.accountId,
-          agentId: message.agentId,
-        })
+    // Build the inbound dispatch function that wires IM → HostManager
+    const dispatch = async (message: IMInboundMessage): Promise<void> => {
+      console.log(`[IM] dispatching inbound message: session=${message.sessionKey}, channel=${message.channel}, agentId=${message.agentId}`)
+      this.sessionRouteContext.set(message.sessionKey, {
+        channel: message.channel,
+        chatType: message.chatType,
+        chatId: message.chatId,
+        senderId: message.senderId,
+        accountId: message.accountId,
+        agentId: message.agentId,
+      })
 
-        // Ensure a Topic record exists in the DB with the correct agentId
-        // so that SessionManagerV3.createSession() can apply agent customization.
-        try {
-          this.ensureTopic(message.sessionKey, message.agentId)
-        } catch (err) {
-          console.error(`[IM] failed to ensure topic for ${message.sessionKey}:`, err)
-        }
+      // Ensure a Topic record exists in the DB with the correct agentId
+      // so that SessionManagerV3.createSession() can apply agent customization.
+      try {
+        this.ensureTopic(message.sessionKey, message.agentId)
+      } catch (err) {
+        console.error(`[IM] failed to ensure topic for ${message.sessionKey}:`, err)
+      }
 
-        await this.hostManager.sendUserMessage(message.body, message.sessionKey, message.messageId)
-      },
-    })
+      await this.hostManager.sendUserMessage(message.body, message.sessionKey, message.messageId)
+    }
 
-    this.gatewayManager.register(feishuPlugin as any)
+    // Create and register all channel plugins
+    const plugins = this.createChannelPlugins(dispatch)
+    for (const plugin of plugins) {
+      this.gatewayManager.register(plugin)
+    }
+
     await this.gatewayManager.startAll(this.currentConfig as Record<string, unknown>)
 
     this.unsubscribeGui = this.hostManager.onGuiUpdate((event: GuiUpdateEvent) => {
@@ -218,14 +200,14 @@ export class IMRuntimeBridge {
     }
 
     // Cleanup any in-flight streaming sessions
-    for (const [key, dispatcher] of this.replyDispatchers) {
+    for (const [key, handler] of this.replyHandlers) {
       try {
-        await dispatcher.cleanup()
+        await handler.cleanup()
       } catch (e) {
         console.error(`[IM] failed to cleanup streaming for ${key}:`, e)
       }
     }
-    this.replyDispatchers.clear()
+    this.replyHandlers.clear()
     this.accumulatedText.clear()
     this.accumulatedReasoning.clear()
 
@@ -242,73 +224,61 @@ export class IMRuntimeBridge {
     }
 
     const context = this.sessionRouteContext.get(event.topicId)
-    if (!context || context.channel !== 'feishu') {
+    if (!context) {
       return
     }
 
-    const config = this.currentConfig ?? (await this.getConfig())
-    const channelConfig = getFeishuChannelConfig(config)
-    if (!channelConfig) {
-      console.warn('[IM] no feishu channel config found for outbound reply')
+    // Look up the channel plugin — delegate outbound to the plugin's reply handler
+    const plugin = this.gatewayManager.getChannel(context.channel)
+    if (!plugin?.createReplyHandler) {
       return
     }
 
-    let account
-    try {
-      account = resolveFeishuAccount(channelConfig as any, context.accountId)
-    } catch {
-      return
-    }
-
-    const receiveIdType = context.chatType === 'group' ? 'chat_id' : 'open_id'
-    const receiveId = context.chatType === 'group' ? context.chatId : context.senderId
-    const apiBaseUrl = buildFeishuApiBase(account.domain as 'feishu' | 'lark', account.apiBaseUrl)
-    // ── reasoning_delta: accumulate & stream to reasoning card element ────────
+    // ── reasoning_delta: accumulate & stream to reasoning element ────────
     if (event.type === 'reasoning_delta' && event.delta) {
       const prev = this.accumulatedReasoning.get(event.topicId) ?? ''
       const accumulated = normalizeStreamText(prev, event.delta)
       this.accumulatedReasoning.set(event.topicId, accumulated)
 
-      let dispatcher = this.replyDispatchers.get(event.topicId)
-      if (!dispatcher) {
-        dispatcher = this.createDispatcherForSession(
-          event.topicId,
-          account,
-          receiveIdType,
-          receiveId,
-          apiBaseUrl,
-        )
-        this.replyDispatchers.set(event.topicId, dispatcher)
+      let handler = this.replyHandlers.get(event.topicId)
+      if (!handler) {
+        handler = plugin.createReplyHandler({
+          chatType: context.chatType,
+          chatId: context.chatId,
+          senderId: context.senderId,
+          accountId: context.accountId,
+        })
+        this.replyHandlers.set(event.topicId, handler)
       }
 
       try {
-        await dispatcher.onReasoningDelta(accumulated)
+        await handler.onReasoningDelta?.(accumulated)
       } catch (err) {
         console.error(`[IM] reasoning delta update failed for ${event.topicId}:`, err)
       }
       return
     }
+
     // ── text_delta: accumulate & stream ────────────────────────────
     if (event.type === 'text_delta' && event.delta) {
       const prev = this.accumulatedText.get(event.topicId) ?? ''
       const accumulated = normalizeStreamText(prev, event.delta)
       this.accumulatedText.set(event.topicId, accumulated)
 
-      // Get or create reply dispatcher for this session
-      let dispatcher = this.replyDispatchers.get(event.topicId)
-      if (!dispatcher) {
-        dispatcher = this.createDispatcherForSession(
-          event.topicId,
-          account,
-          receiveIdType,
-          receiveId,
-          apiBaseUrl,
-        )
-        this.replyDispatchers.set(event.topicId, dispatcher)
+      // Get or create reply handler for this session
+      let handler = this.replyHandlers.get(event.topicId)
+      if (!handler) {
+        handler = plugin.createReplyHandler({
+          chatType: context.chatType,
+          chatId: context.chatId,
+          senderId: context.senderId,
+          accountId: context.accountId,
+        })
+        this.replyHandlers.set(event.topicId, handler)
       }
 
       try {
-        await dispatcher.onPartialReply(accumulated)
+        await handler.onPartialReply(accumulated)
       } catch (err) {
         console.error(`[IM] streaming update failed for ${event.topicId}:`, err)
       }
@@ -320,103 +290,35 @@ export class IMRuntimeBridge {
       const text = extractTextContent(event.message)
       if (!text.trim()) return
 
-      console.log(`[IM] outbound reply for session=${event.topicId}, channel=feishu, chatType=${context.chatType}`)
+      console.log(`[IM] outbound reply for session=${event.topicId}, channel=${context.channel}, chatType=${context.chatType}`)
 
-      const dispatcher = this.replyDispatchers.get(event.topicId)
-      if (dispatcher) {
+      const handler = this.replyHandlers.get(event.topicId)
+      if (handler) {
         // Streaming was active — close with final text
         try {
-          await dispatcher.onFinalReply(text)
-          console.log(`[IM] feishu streaming reply finalized for ${event.topicId}`)
+          await handler.onFinalReply(text)
+          console.log(`[IM] streaming reply finalized for ${event.topicId}`)
         } catch (err) {
           console.error(`[IM] failed to finalize streaming reply for ${event.topicId}:`, err)
         }
-        this.replyDispatchers.delete(event.topicId)
+        this.replyHandlers.delete(event.topicId)
         this.accumulatedText.delete(event.topicId)
         this.accumulatedReasoning.delete(event.topicId)
       } else {
-        // No streaming was started (very fast response) — fallback to plain text
-        await this.sendPlainTextFallback(account, receiveIdType, receiveId, apiBaseUrl, text)
-      }
-    }
-  }
-
-  /**
-   * Create a reply dispatcher for a session, wired to streaming card.
-   */
-  private createDispatcherForSession(
-    sessionKey: string,
-    account: { appId?: string; appSecret?: string; domain?: string; apiBaseUrl?: string },
-    receiveIdType: 'chat_id' | 'open_id' | 'user_id' | 'email' | 'union_id',
-    receiveId: string,
-    apiBaseUrl: string,
-  ) {
-    const creds: StreamingCardCredentials = {
-      appId: account.appId ?? '',
-      appSecret: account.appSecret ?? '',
-      domain: (account.domain as 'feishu' | 'lark' | undefined) ?? 'feishu',
-      apiBaseUrl: account.apiBaseUrl,
-    }
-    const self = this
-
-    return createFeishuReplyDispatcher({
-      createStreamingSession: () => self.createStreamingSession(creds),
-      sendMarkdownCard: async (payload) => {
-        // Fallback: send as plain text when streaming wasn't used
-        await self.sendPlainTextFallback(
-          account,
-          payload.receiveIdType,
-          payload.receiveId,
-          apiBaseUrl,
-          payload.text,
-        )
-      },
-      receiveId,
-      receiveIdType,
-      replyToMessageId: undefined,
-    })
-  }
-
-  /**
-   * Fallback: send a plain text message (used when streaming card isn't active).
-   */
-  private async sendPlainTextFallback(
-    account: { appId?: string; appSecret?: string; domain?: string; apiBaseUrl?: string; botToken?: string },
-    receiveIdType: 'chat_id' | 'open_id' | 'user_id' | 'email' | 'union_id',
-    receiveId: string,
-    apiBaseUrl: string,
-    text: string,
-  ): Promise<void> {
-    let botToken = account.botToken
-    if (!botToken) {
-      if (!account.appId || !account.appSecret) {
-        console.warn('[IM] cannot send reply: no botToken and no appId/appSecret configured')
-        return
-      }
-      try {
-        botToken = await this.fetchTenantToken({
-          appId: account.appId,
-          appSecret: account.appSecret,
-          domain: account.domain as 'feishu' | 'lark' | undefined,
-          apiBaseUrl: account.apiBaseUrl,
+        // No streaming was started (very fast response) — create handler for one-shot send
+        const oneshot = plugin.createReplyHandler({
+          chatType: context.chatType,
+          chatId: context.chatId,
+          senderId: context.senderId,
+          accountId: context.accountId,
         })
-      } catch (err) {
-        console.error('[IM] failed to obtain tenant_access_token for feishu reply:', err)
-        return
+        try {
+          await oneshot.onFinalReply(text)
+          console.log(`[IM] one-shot reply sent for ${event.topicId}`)
+        } catch (err) {
+          console.error(`[IM] failed to send one-shot reply for ${event.topicId}:`, err)
+        }
       }
-    }
-
-    try {
-      await this.sendFeishuText({
-        apiBaseUrl,
-        botToken,
-        receiveIdType,
-        receiveId,
-        text,
-      })
-      console.log(`[IM] feishu plain text reply sent to ${receiveIdType}=${receiveId}`)
-    } catch (err) {
-      console.error('[IM] failed to send feishu reply:', err)
     }
   }
 }

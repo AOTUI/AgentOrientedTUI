@@ -122,4 +122,14 @@ describe('IMGatewayManager', () => {
     expect(good.stop).toHaveBeenCalledTimes(1)
     expect(manager.getActiveChannelIds()).toEqual([])
   })
+
+  it('getChannel returns plugin by id or undefined', () => {
+    const manager = new IMGatewayManager()
+    const feishu = createPlugin('feishu')
+
+    manager.register(feishu)
+
+    expect(manager.getChannel('feishu')).toBe(feishu)
+    expect(manager.getChannel('unknown')).toBeUndefined()
+  })
 })

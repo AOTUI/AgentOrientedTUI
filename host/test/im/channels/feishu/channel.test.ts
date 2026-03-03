@@ -222,4 +222,177 @@ describe('FeishuChannelPlugin', () => {
       }),
     )
   })
+
+  describe('createReplyHandler', () => {
+    function createStartedPlugin(overrides: {
+      createStreamingSession?: any
+      sendText?: any
+      fetchTenantToken?: any
+    } = {}) {
+      const plugin = new FeishuChannelPlugin({
+        dispatch: vi.fn(async () => undefined),
+        createGateway: vi.fn(() => ({
+          start: vi.fn(async () => undefined),
+          stop: vi.fn(async () => undefined),
+          processWebhook: vi.fn(async () => ({ accepted: true })),
+        } as any)),
+        createBotHandler: vi.fn(() => ({ handle: vi.fn(async () => ({ accepted: true })) } as any)),
+        ...overrides,
+      })
+
+      return plugin
+    }
+
+    const startCtx = {
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_app',
+        appSecret: 'sec_app',
+        domain: 'feishu',
+        botToken: 'bot_tk',
+      },
+    }
+
+    it('throws when plugin is not started', () => {
+      const plugin = createStartedPlugin()
+
+      expect(() =>
+        plugin.createReplyHandler({
+          chatType: 'direct',
+          chatId: 'oc_1',
+          senderId: 'ou_1',
+        }),
+      ).toThrow(/not started/i)
+    })
+
+    it('returns an IReplyHandler with expected methods', async () => {
+      const plugin = createStartedPlugin()
+      await plugin.start(startCtx)
+
+      const handler = plugin.createReplyHandler({
+        chatType: 'direct',
+        chatId: 'oc_1',
+        senderId: 'ou_1',
+      })
+
+      expect(handler).toHaveProperty('onPartialReply')
+      expect(handler).toHaveProperty('onFinalReply')
+      expect(handler).toHaveProperty('onReasoningDelta')
+      expect(handler).toHaveProperty('cleanup')
+    })
+
+    it('delegates onFinalReply to the underlying reply dispatcher', async () => {
+      const streamingSession = {
+        isActive: vi.fn(() => false),
+        start: vi.fn(async () => undefined),
+        update: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      }
+
+      const sendText = vi.fn(async () => ({ messageId: 'om_sent' }))
+
+      const plugin = createStartedPlugin({
+        createStreamingSession: vi.fn(() => streamingSession),
+        sendText,
+      })
+      await plugin.start(startCtx)
+
+      const handler = plugin.createReplyHandler({
+        chatType: 'direct',
+        chatId: 'oc_1',
+        senderId: 'ou_1',
+      })
+
+      // With no streaming active, onFinalReply should send plain text via sendMarkdownCard fallback
+      await handler.onFinalReply('hello world')
+
+      expect(sendText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          botToken: 'bot_tk',
+          receiveId: 'ou_1',
+          receiveIdType: 'open_id',
+          text: 'hello world',
+        }),
+      )
+    })
+
+    it('passes group chat context to reply dispatcher', async () => {
+      const streamingSession = {
+        isActive: vi.fn(() => true),
+        start: vi.fn(async () => undefined),
+        update: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      }
+
+      const plugin = createStartedPlugin({
+        createStreamingSession: vi.fn(() => streamingSession),
+      })
+      await plugin.start(startCtx)
+
+      const handler = plugin.createReplyHandler({
+        chatType: 'group',
+        chatId: 'oc_group',
+        senderId: 'ou_sender',
+      })
+
+      // Send a partial to trigger start — should use chat_id for group
+      await handler.onPartialReply('streaming text')
+
+      expect(streamingSession.start).toHaveBeenCalledWith(
+        'oc_group',
+        'chat_id',
+        expect.anything(),
+      )
+    })
+
+    it('auto-fetches token when botToken is missing', async () => {
+      const fetchTenantToken = vi.fn(async () => 'auto_token')
+      const sendText = vi.fn(async () => ({ messageId: 'om_sent' }))
+      const streamingSession = {
+        isActive: vi.fn(() => false),
+        start: vi.fn(async () => undefined),
+        update: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      }
+
+      const plugin = createStartedPlugin({
+        createStreamingSession: vi.fn(() => streamingSession),
+        sendText,
+        fetchTenantToken,
+      })
+
+      await plugin.start({
+        config: {},
+        channelConfig: {
+          enabled: true,
+          appId: 'cli_app',
+          appSecret: 'sec_app',
+          domain: 'feishu',
+          // no botToken
+        },
+      })
+
+      const handler = plugin.createReplyHandler({
+        chatType: 'direct',
+        chatId: 'oc_1',
+        senderId: 'ou_1',
+      })
+
+      await handler.onFinalReply('need token')
+
+      expect(fetchTenantToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appId: 'cli_app',
+          appSecret: 'sec_app',
+        }),
+      )
+      expect(sendText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          botToken: 'auto_token',
+          text: 'need token',
+        }),
+      )
+    })
+  })
 })
