@@ -29,10 +29,16 @@
     "build:browser": "esbuild src/browser.ts --bundle --format=esm --outfile=../dev-tools/lib/aotui-runtime.browser.js --external:happy-dom",
     "prepublishOnly": "npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["aotui", "tui", "agent", "llm", "runtime"],
+  "author": "AOTUI",
+  "license": "MIT",
+  "description": "AOTUI Core Runtime - Worker isolation, TUI snapshot engine, and operation dispatch",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@types/node": "^24.10.2",
     "@typescript-eslint/eslint-plugin": "^8.49.0",
@@ -50,7 +56,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@aotui/agent-driver-v2": "file:../agent-driver-v2",
+    "@aotui/agent-driver-v2": "^0.2.0",
     "ai": "^6.0.77",
     "happy-dom": "^20.1.0",
     "linkedom": "^0.18.12",
