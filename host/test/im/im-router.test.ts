@@ -37,7 +37,7 @@ vi.mock('../../src/skills/skill-config.js', () => ({
 vi.mock('../../src/skills/skill-importer.js', () => ({
   importSkillZipToDirectory: vi.fn(),
 }))
-vi.mock('../../src/core/source-control-keys.js', () => ({
+vi.mock('../../src/shared/source-control-keys.js', () => ({
   buildMcpServerItemKey: vi.fn(),
   buildMcpToolItemKey: vi.fn(),
 }))

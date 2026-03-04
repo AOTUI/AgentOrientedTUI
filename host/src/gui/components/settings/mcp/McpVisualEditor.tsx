@@ -14,7 +14,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconDelete, IconPlug } from '../../Icons.js';
-import { buildMcpServerItemKey } from '../../../../core/source-control-keys.js';
+import { buildMcpServerItemKey } from '../../../../shared/source-control-keys.js';
 
 // ── 类型定义 ──────────────────────────────────────────────────────────────────
 

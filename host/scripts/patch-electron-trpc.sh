@@ -5,24 +5,40 @@
 # which causes errors when loaded in the main process
 # We keep ipcMain but remove the renderer-only APIs
 
-MAIN_FILE="node_modules/electron-trpc/dist/main.mjs"
+# Resolve script directory to find node_modules relative to project root
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-if [ -f "$MAIN_FILE" ]; then
-  echo "Patching electron-trpc/dist/main.mjs..."
-  
-  # Backup if not already done
-  [ ! -f "$MAIN_FILE.bak" ] && cp "$MAIN_FILE" "$MAIN_FILE.bak"
-  
-  # Find and replace the import line to only keep ipcMain with its alias
-  # This regex preserves the variable name that ipcMain is aliased to
-  sed -i '' 's/import { ipcMain as \([^,]*\), contextBridge as [^,]*, ipcRenderer as [^ ]* } from "electron";/import { ipcMain as \1 } from "electron";/' "$MAIN_FILE"
-  
-  if [ $? -eq 0 ]; then
-    echo "✓ Patched electron-trpc successfully"
+patch_file() {
+  local file="$1"
+  if grep -q 'ipcRenderer' "$file" 2>/dev/null; then
+    sed -i '' 's/import { ipcMain as \([^,]*\), contextBridge as [^,]*, ipcRenderer as [^ ]* } from "electron";/import { ipcMain as \1 } from "electron";/' "$file"
+    if [ $? -eq 0 ]; then
+      echo "✓ Patched $file"
+    else
+      echo "✗ Failed to patch $file"
+      return 1
+    fi
   else
-    echo "✗ Failed to patch electrontrpc"
-    exit 1
+    echo "✓ Already patched: $file"
   fi
-else
+}
+
+PATCHED=0
+
+# Patch top-level node_modules copy
+MAIN_FILE="$PROJECT_DIR/node_modules/electron-trpc/dist/main.mjs"
+if [ -f "$MAIN_FILE" ]; then
+  patch_file "$MAIN_FILE" && PATCHED=$((PATCHED + 1))
+fi
+
+# Patch all copies in pnpm store (.pnpm directory)
+for f in "$PROJECT_DIR"/node_modules/.pnpm/electron-trpc@*/node_modules/electron-trpc/dist/main.mjs; do
+  if [ -f "$f" ]; then
+    patch_file "$f" && PATCHED=$((PATCHED + 1))
+  fi
+done
+
+if [ $PATCHED -eq 0 ]; then
   echo "⚠ electron-trpc/dist/main.mjs not found - package may not be installed"
 fi

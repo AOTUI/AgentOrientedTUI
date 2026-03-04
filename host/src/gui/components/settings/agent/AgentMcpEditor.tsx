@@ -8,7 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { AgentEditorModal } from './AgentEditorModal.js';
 import { useChatBridge } from '../../../ChatBridge.js';
-import { buildMcpToolItemKey } from '../../../../core/source-control-keys.js';
+import { buildMcpToolItemKey } from '../../../../shared/source-control-keys.js';
 
 interface McpTool { name: string; description: string; enabled: boolean; }
 interface McpServer { name: string; connected: boolean; status?: string; tools: McpTool[]; }

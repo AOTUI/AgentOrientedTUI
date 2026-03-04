@@ -10,7 +10,7 @@ import { AgentEditorModal } from './AgentEditorModal.js';
 import { useChatBridge } from '../../../ChatBridge.js';
 import { IconBrain, IconPrompt, IconApps, IconSkills, IconPlug, IconAgentIdle, IconAgentWorking, IconAgentSleeping, IconAgentPaused } from '../../Icons.js';
 import type { AgentConfig } from './AgentTab.js';
-import { buildMcpToolItemKey } from '../../../../core/source-control-keys.js';
+import { buildMcpToolItemKey } from '../../../../shared/source-control-keys.js';
 
 /* ── Tiny helper types ── */
 interface ModelGroup {

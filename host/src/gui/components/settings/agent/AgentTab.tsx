@@ -16,7 +16,7 @@ import { AgentAppsEditor } from './AgentAppsEditor.js';
 import { AgentSkillsEditor } from './AgentSkillsEditor.js';
 import { AgentMcpEditor } from './AgentMcpEditor.js';
 import { AgentSkinEditor } from './AgentSkinEditor.js';
-import { buildMcpToolItemKey } from '../../../../core/source-control-keys.js';
+import { buildMcpToolItemKey } from '../../../../shared/source-control-keys.js';
 
 export interface AgentConfig {
     id: string;

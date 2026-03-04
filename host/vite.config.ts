@@ -10,22 +10,20 @@ export default defineConfig({
     build: {
         outDir: 'dist-gui',
         rollupOptions: {
-            external: [
-                // Exclude Node.js modules and backend code from frontend bundle
-                'electron',
-                'fs',
-                'path',
-                'os',
-                'crypto',
-                'url',
-                // Exclude backend services and database
-                /^.*\/db\/.*$/,
-                /^.*\/services\/model-registry\.js$/,
-                /^.*\/services\/llm-config-manager\.js$/,
-                /^.*\/core\/.*$/,
-                /^.*\/server\/.*$/,
-                /^.*\/electron\/.*$/,
-            ],
+            external: (id) => {
+                // Node.js built-in modules
+                if (['electron', 'fs', 'path', 'os', 'crypto', 'url'].includes(id)) return true;
+                // Never exclude npm packages (bare specifiers or resolved node_modules paths)
+                if (!id.startsWith('.') && !id.startsWith('/')) return false;
+                if (id.includes('node_modules')) return false;
+                // Exclude backend-only local modules from the GUI bundle
+                if (/\/db\//.test(id)) return true;
+                if (/\/services\/model-registry\.js$/.test(id)) return true;
+                if (/\/services\/llm-config-manager\.js$/.test(id)) return true;
+                if (/\/server\//.test(id)) return true;
+                if (/\/electron\//.test(id)) return true;
+                return false;
+            },
         },
     },
     resolve: {

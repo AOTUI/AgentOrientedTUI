@@ -3,7 +3,7 @@ import { Tool } from "ai";
 import { MCP } from "./index.js";
 import { Bus, BusEvent } from "./utils.js";
 import { Log } from "./utils.js";
-import { buildMcpToolKeyPrefix } from "../core/source-control-keys.js";
+import { buildMcpToolKeyPrefix } from "../shared/source-control-keys.js";
 
 const log = Log.create({ service: "mcp-driven-source" });
 

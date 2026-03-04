@@ -16,7 +16,7 @@ import { McpOAuthProvider } from "./oauth-provider.js"
 import { McpOAuthCallback } from "./oauth-callback.js"
 import { McpAuth } from "./auth.js"
 import open from "open"
-import { buildMcpToolItemKey } from "../core/source-control-keys.js"
+import { buildMcpToolItemKey } from "../shared/source-control-keys.js"
 
 export namespace MCP {
   const log = Log.create({ service: "mcp" })

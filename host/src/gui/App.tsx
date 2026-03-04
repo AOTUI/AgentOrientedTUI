@@ -17,7 +17,7 @@ import { DeleteConfirmModal } from './components/DeleteConfirmModal.js';
 import { Toast } from './components/Toast.js';
 import { SettingsPanel } from './components/settings/SettingsPanel.js';
 import type { AgentConfig } from './components/settings/agent/AgentTab.js';
-import { buildMcpToolItemKey } from '../core/source-control-keys.js';
+import { buildMcpToolItemKey } from '../shared/source-control-keys.js';
 
 type ViewMode = 'chat' | 'tui';
 

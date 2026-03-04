@@ -32,7 +32,7 @@ import type { DesktopManager } from './desktop-manager.js';
 import * as db from '../db/index.js';
 import { projectService } from './project-service.js';
 import { toLLMConfig } from '../types/llm-config.js';
-import { buildMcpServerItemKey, buildMcpToolItemKey, isMcpServerItemKey, parseMcpServerItemKey } from './source-control-keys.js';
+import { buildMcpServerItemKey, buildMcpToolItemKey, isMcpServerItemKey, parseMcpServerItemKey } from '../shared/source-control-keys.js';
 import { Config } from '../config/config.js';
 
 type AOTUIControllableSource = {

@@ -15,7 +15,7 @@ import { Config } from '../config/config.js';
 import { SkillCatalogService } from '../skills/skill-catalog-service.js';
 import { getGlobalSkillsDir, getProjectSkillsDir } from '../skills/skill-config.js';
 import { importSkillZipToDirectory } from '../skills/skill-importer.js';
-import { buildMcpServerItemKey, buildMcpToolItemKey } from '../core/source-control-keys.js';
+import { buildMcpServerItemKey, buildMcpToolItemKey } from '../shared/source-control-keys.js';
 
 import type { GuiUpdateEvent } from '../core/host-manager-v2.js';
 
