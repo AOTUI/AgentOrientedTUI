@@ -90,7 +90,7 @@ export class DesktopManager {
      * Chat/conversation is handled by ConversationManager in the Product Layer.
      * 
      * [Option D] Third-party apps are installed via AppRegistry.installAll()
-     * using config-driven workerScript from ~/.tui/config.json
+     * using config-driven workerScript from ~/.agentina/config.json
      * 
      * @param desktopId - Optional: specify a custom Desktop ID (for historical topics)
      * @param config - Optional: runtime config to inject into apps (e.g. projectPath)

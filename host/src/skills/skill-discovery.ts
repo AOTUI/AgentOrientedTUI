@@ -44,7 +44,7 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 function cacheRootFor(baseUrl: string): string {
     const hash = createHash('sha256').update(baseUrl).digest('hex').slice(0, 16);
-    return path.join(os.homedir(), '.tui', 'cache', 'skills', hash);
+    return path.join(os.homedir(), '.agentina', 'cache', 'skills', hash);
 }
 
 export class SkillDiscovery {

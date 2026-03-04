@@ -4,7 +4,7 @@
  * 管理第三方 TUI App 的注册和加载。
  * 
  * 职责:
- * - 从 ~/.tui/config.json 加载配置
+ * - 从 ~/.agentina/config.json 加载配置
  * - 动态加载 App 模块
  * - 为 Desktop 提供 App 安装服务
  * 
@@ -42,7 +42,7 @@ export interface LoadedApp {
  * AppRegistry 配置
  */
 export interface AppRegistryOptions {
-    /** 配置文件路径 (默认 ~/.tui/config.json) */
+    /** 配置文件路径 (默认 ~/.agentina/config.json) */
     configPath?: string;
     /** 是否自动加载 (默认 true) */
     autoLoad?: boolean;
@@ -450,7 +450,7 @@ export class AppRegistry {
 
     private getDefaultConfigPath(): string {
         const home = process.env.HOME || process.env.USERPROFILE || '~';
-        return `${home}/.tui/config.json`;
+        return `${home}/.agentina/config.json`;
     }
 
     private async readConfig(): Promise<TUIConfig> {

@@ -1,8 +1,8 @@
 /**
  * Config - 项目配置管理模块
  *
- * - MCP 服务器配置持久化（存储于 ~/.tui/mcp.json）
- * - IM 配置持久化（存储于 ~/.tui/im.json）
+ * - MCP 服务器配置持久化（存储于 ~/.agentina/mcp.json）
+ * - IM 配置持久化（存储于 ~/.agentina/im.json）
  * - 供 mcp/index.ts 和 trpc/router.ts 使用
  */
 
@@ -214,23 +214,23 @@ export interface TuiInfo {
 
 // ─── 配置文件路径 ─────────────────────────────────────────────────────────────
 
-/** 全局 MCP 配置文件路径 (~/.tui/mcp.json) */
+/** 全局 MCP 配置文件路径 (~/.agentina/mcp.json) */
 function getGlobalConfigPath(): string {
-  return path.join(os.homedir(), ".tui", "mcp.json")
+  return path.join(os.homedir(), ".agentina", "mcp.json")
 }
 
 function getProjectConfigPath(projectPath: string): string {
-  return path.join(projectPath, ".tui", "mcp.json")
+  return path.join(projectPath, ".agentina", "mcp.json")
 }
 
-/** 全局 TUI 配置文件路径 (~/.tui/config.json) */
+/** 全局 TUI 配置文件路径 (~/.agentina/config.json) */
 function getTuiConfigPath(): string {
-  return path.join(os.homedir(), ".tui", "config.json")
+  return path.join(os.homedir(), ".agentina", "config.json")
 }
 
-/** 全局 IM 配置文件路径 (~/.tui/im.json) */
+/** 全局 IM 配置文件路径 (~/.agentina/im.json) */
 function getImConfigPath(): string {
-  return path.join(os.homedir(), ".tui", "im.json")
+  return path.join(os.homedir(), ".agentina", "im.json")
 }
 
 // ─── JSONC 预处理器（单遍字符级状态机）────────────────────────────────────────
@@ -354,12 +354,12 @@ export namespace Config {
   export type TuiInfoType = TuiInfo
   export type TuiAppConfigEntryType = TuiAppConfigEntry
 
-  /** 获取全局配置（从 ~/.tui/mcp.json 读取） */
+  /** 获取全局配置（从 ~/.agentina/mcp.json 读取） */
   export async function getGlobal(): Promise<Info> {
     return readConfigFile(getGlobalConfigPath())
   }
 
-  /** 获取项目配置（从 <projectPath>/.tui/mcp.json 读取） */
+  /** 获取项目配置（从 <projectPath>/.agentina/mcp.json 读取） */
   export async function getProject(projectPath: string): Promise<Info> {
     return readConfigFile(getProjectConfigPath(projectPath))
   }
@@ -378,8 +378,8 @@ export namespace Config {
   }
 
   /**
-   * 获取全局 IM 配置（优先读取 ~/.tui/im.json）。
-   * 兼容策略：若 im.json 不存在或不含 `im` 字段，则回退到 ~/.tui/mcp.json 的 `im`。
+   * 获取全局 IM 配置（优先读取 ~/.agentina/im.json）。
+   * 兼容策略：若 im.json 不存在或不含 `im` 字段，则回退到 ~/.agentina/mcp.json 的 `im`。
    */
   export async function getGlobalIm(legacyGlobalConfig?: Info): Promise<Info["im"] | undefined> {
     const imConfig = await readConfigFile(getImConfigPath())
@@ -390,7 +390,7 @@ export namespace Config {
     return legacy.im
   }
 
-  /** 替换写入全局 IM 配置到 ~/.tui/im.json */
+  /** 替换写入全局 IM 配置到 ~/.agentina/im.json */
   export async function replaceGlobalIm(im: Info["im"]): Promise<Info["im"] | undefined> {
     const filepath = getImConfigPath()
     await fs.mkdir(path.dirname(filepath), { recursive: true })
@@ -502,7 +502,7 @@ export namespace Config {
     const current = currentApps[name]
 
     if (!current) {
-      throw new Error(`App \"${name}\" not found in ~/.tui/config.json`)
+      throw new Error(`App "${name}" not found in ~/.agentina/config.json`)
     }
 
     return replaceGlobalApps({

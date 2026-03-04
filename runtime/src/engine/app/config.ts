@@ -1,7 +1,7 @@
 /**
  * TUI App Configuration Types
  * 
- * 定义 ~/.tui/config.json 的结构
+ * 定义 ~/.agentina/config.json 的结构
  * 
  * [Option D] Version 2 adds runtime.workerScript for config-driven Worker installation.
  * 
@@ -74,8 +74,8 @@ export interface RuntimeConfig {
 }
 
 /**
- * ~/.tui/config.json 结构
- * 
+ * ~/.agentina/config.json 结构
+ *
  * Version 1: 基础 App 配置
  * Version 2: 增加 runtime.workerScript 配置
  */

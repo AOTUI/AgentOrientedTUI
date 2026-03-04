@@ -68,16 +68,16 @@ pnpm --filter ./terminal-app build
 pnpm --filter ./token-monitor-app build
 ```
 
-#### 4. Install TUI CLI
+#### 4. Install agentina CLI
 
 ```bash
-# Link host as global 'tui' command
+# Link host as global 'agentina' command
 cd host
 npm link
 cd ..
 
 # Verify installation
-tui --version
+agentina --version
 ```
 
 #### 5. Link TUI Applications
@@ -208,25 +208,25 @@ cd host && pnpm electron:dev
    await desktop.openApp('my-app', { /* config */ });
    ```
 
-## TUI CLI Commands
+## agentina CLI Commands
 
-Once the `tui` CLI is installed, you can use these commands:
+Once the `agentina` CLI is installed, you can use these commands:
 
 ```bash
 # List all available TUI apps
-tui list
+agentina list
 
 # Link a new app to the host
-tui link <app-name>
+agentina link <app-name>
 
 # Show app information
-tui info <app-name>
+agentina info <app-name>
 
 # Unlink an app
-tui unlink <app-name>
+agentina unlink <app-name>
 
 # Show version
-tui --version
+agentina --version
 ```
 
 ## Troubleshooting

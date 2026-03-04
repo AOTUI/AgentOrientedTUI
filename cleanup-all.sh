@@ -10,8 +10,8 @@ echo "========================"
 echo ""
 
 echo "🔗 Removing all registered TUI apps..."
-if command -v tui >/dev/null 2>&1; then
-    tui_list_output="$(tui list 2>&1 || true)"
+if command -v agentina >/dev/null 2>&1; then
+    tui_list_output="$(agentina list 2>&1 || true)"
 
     app_names="$({
         printf '%s\n' "$tui_list_output" | sed -n 's/^\[AppRegistry\] Loaded app: //p'
@@ -34,11 +34,11 @@ if command -v tui >/dev/null 2>&1; then
         while IFS= read -r app_name; do
             [ -z "$app_name" ] && continue
             echo "🗑️  Removing app: $app_name"
-            tui remove "$app_name" || true
+            agentina remove "$app_name" || true
         done <<< "$app_names"
     fi
 else
-    echo "⚠️  tui command not found, skipping app removal"
+    echo "⚠️  agentina command not found, skipping app removal"
 fi
 
 echo ""

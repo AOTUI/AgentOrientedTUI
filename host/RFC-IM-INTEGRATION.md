@@ -616,7 +616,7 @@ CREATE INDEX IF NOT EXISTS idx_im_messages_session
 ### 6.3 配置结构 (im.json)
 
 ```jsonc
-// ~/.tui/im.json
+// ~/.agentina/im.json
 {
   "im": {
     "channels": {

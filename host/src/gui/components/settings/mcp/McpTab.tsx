@@ -153,7 +153,7 @@ export const McpTab: React.FC = () => {
             {savedBanner && (
                 <div className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-success)]/90 text-white text-[13px] shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    MCP config saved to ~/.tui/mcp.json
+                    MCP config saved to ~/.agentina/mcp.json
                 </div>
             )}
         </div>

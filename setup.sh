@@ -88,19 +88,19 @@ echo ""
 echo "✅ All packages built successfully!"
 echo ""
 
-# Check if tui CLI is available
-echo "🔗 Setting up TUI CLI..."
+# Check if agentina CLI is available
+echo "🔗 Setting up agentina CLI..."
 echo "----------------------------------------------"
 
-# Link host as global tui command
-cd host
+# Link runtime as global agentina command
+cd runtime
 npm link
 cd ..
 
-if command -v tui &> /dev/null; then
-    echo "✅ tui CLI is now available ($(tui --version 2>/dev/null || echo 'version check not available'))"
+if command -v agentina &> /dev/null; then
+    echo "✅ agentina CLI is now available ($(agentina --version 2>/dev/null || echo 'version check not available'))"
 else
-    echo "⚠️  tui command may not be in PATH yet"
+    echo "⚠️  agentina command may not be in PATH yet"
     echo "   Try running: source ~/.bashrc or source ~/.zshrc"
     echo "   Or restart your terminal"
 fi
@@ -114,7 +114,7 @@ apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app" "lite-browse
 
 for app in "${apps[@]}"; do
     if [ -d "$app" ]; then
-        echo "🔗 Linking $app with tui..."
+        echo "🔗 Linking $app with agentina..."
         cd "$app"
         
         # Build app to generate dist artifacts
@@ -129,14 +129,14 @@ for app in "${apps[@]}"; do
             exit 1
         fi
 
-        # Link current app directory to tui (idempotent on reruns)
-        if ! link_output=$(tui link . 2>&1); then
+        # Link current app directory to agentina (idempotent on reruns)
+        if ! link_output=$(agentina link . 2>&1); then
             if echo "$link_output" | grep -q "already registered"; then
                 app_name=$(echo "$link_output" | sed -n "s/.*Operation '\(.*\)' is already registered.*/\1/p")
                 if [ -n "$app_name" ]; then
                     echo "ℹ️  App '$app_name' is already registered, replacing link..."
-                    tui remove "$app_name"
-                    tui link .
+                    agentina remove "$app_name"
+                    agentina link .
                 else
                     echo "$link_output"
                     echo "❌ Failed to parse already-registered app name"
@@ -175,6 +175,6 @@ for app in "${apps[@]}"; do
 done
 echo ""
 echo "To verify installation:"
-echo "  tui list              # List all available apps"
-echo "  tui link <app-name>   # Link additional apps"
+echo "  agentina list              # List all available apps"
+echo "  agentina link <app-name>   # Link additional apps"
 echo ""

@@ -90,7 +90,7 @@ export const AppsTab: React.FC = () => {
                         AOTUI Apps
                     </h3>
                     <p className="text-[13px] text-[var(--color-text-tertiary)] mt-1">
-                        Manage enabled state from ~/.tui/config.json.
+                        Manage enabled state from ~/.agentina/config.json.
                     </p>
                 </div>
             </div>
@@ -99,7 +99,7 @@ export const AppsTab: React.FC = () => {
                 <div className="mat-content rounded-[16px] overflow-hidden p-2">
                     {appNames.length === 0 ? (
                         <div className="h-full min-h-[180px] flex items-center justify-center text-[13px] text-[var(--color-text-tertiary)]">
-                            No apps found in ~/.tui/config.json
+                            No apps found in ~/.agentina/config.json
                         </div>
                     ) : (
                         <div className="space-y-1 max-h-full overflow-y-auto p-1">

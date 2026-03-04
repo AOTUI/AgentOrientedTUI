@@ -11,7 +11,7 @@ export interface SkillSourcesByScope {
 }
 
 export function getGlobalSkillsDir(): string {
-    return path.join(os.homedir(), '.tui', 'agent', 'skills');
+    return path.join(os.homedir(), '.agentina', 'agent', 'skills');
 }
 
 export function getProjectSkillsDir(projectPath: string): string {

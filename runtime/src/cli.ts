@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * TUI CLI - Third-Party App Management
+ * agentina CLI - Third-Party App Management
  * 
  * 命令:
- *   tui add <source>     安装 App
- *   tui remove <name>    卸载 App
- *   tui list             列出已安装
- *   tui enable <name>    启用 App
- *   tui disable <name>   禁用 App
- *   tui autostart <name> <on|off>  设置自动启动
- *   tui link <path>      链接本地开发目录
- *   tui run [name]       Run installed apps (or specific app)
+ *   agentina add <source>     安装 App
+ *   agentina remove <name>    卸载 App
+ *   agentina list             列出已安装
+ *   agentina enable <name>    启用 App
+ *   agentina disable <name>   禁用 App
+ *   agentina autostart <name> <on|off>  设置自动启动
+ *   agentina link <path>      链接本地开发目录
+ *   agentina run [name]       Run installed apps (or specific app)
  * 
  * @module @aotui/cli
  */
@@ -21,31 +21,30 @@ import { createRuntime } from './facades/index.js';
 import * as readline from 'readline';
 
 const HELP = `
-TUI App Manager
+Agentina App Manager
 
-Usage: tui <command> [options]
+Usage: agentina <command> [options]
 
 Commands:
-  add <source>         Install an app
+  link <path>          Link a local app directory
   remove <name>        Uninstall an app
   list                 List installed apps
   enable <name>        Enable an app
   disable <name>       Disable an app
   autostart <name> <on|off>  Set auto-start behavior
-  link <path>          Link a local development directory
   run [name]           Run installed apps (or specific app)
 
 Options:
-  --force              Force install (overwrite existing)
-  --as <alias>         Install with different name
-  --no-autostart       Install without auto-start
+  --force              Force link (overwrite existing)
+  --as <alias>         Link with a different name
+  --no-autostart       Link without auto-start
   --help               Show help
 
 Examples:
-  tui add @tui/weather           # Install from npm
-  tui add ./my-app               # Install from local directory
-  tui run grep-demo              # Run grep-demo app
-  tui list                       # Show all installed apps
+  agentina link .                     # Link current directory as an app
+  agentina link ./my-app              # Link a local app directory
+  agentina list                       # Show all installed apps
+  agentina run my-app                 # Run a specific app
 `;
 
 async function main(): Promise<void> {
@@ -62,10 +61,6 @@ async function main(): Promise<void> {
 
     try {
         switch (command) {
-            case 'add':
-                await handleAdd(registry, args.slice(1));
-                break;
-
             case 'remove':
                 await handleRemove(registry, args.slice(1));
                 break;
@@ -109,54 +104,9 @@ async function main(): Promise<void> {
 //  Command Handlers
 // ════════════════════════════════════════════════════════════════
 
-async function handleAdd(registry: AppRegistry, args: string[]): Promise<void> {
-    if (args.length === 0) {
-        console.error('Usage: tui add <source> [--force] [--as <alias>]');
-        process.exit(1);
-    }
-
-    let source = args[0];
-    let force = false;
-    let alias: string | undefined;
-    let noAutoStart = false;
-
-    // Parse flags
-    for (let i = 1; i < args.length; i++) {
-        if (args[i] === '--force') {
-            force = true;
-        } else if (args[i] === '--as' && args[i + 1]) {
-            alias = args[++i];
-        } else if (args[i] === '--no-autostart') {
-            noAutoStart = true;
-        }
-    }
-
-    // Normalize source
-    if (!source.includes(':')) {
-        if (source.startsWith('.') || source.startsWith('/')) {
-            // Local path
-            source = `local:${source}`;
-        } else if (source.startsWith('@') || /^[a-z0-9-]+$/.test(source)) {
-            // npm package
-            source = `npm:${source}`;
-        }
-    }
-
-    console.log(`Installing ${source}...`);
-    const name = await registry.add(source, { force, alias });
-
-    // [RFC-014] Set autoStart=false if --no-autostart flag was used
-    if (noAutoStart) {
-        await registry.setAutoStart(name, false);
-        console.log(`✅ Successfully installed: ${name} (auto-start: off)`);
-    } else {
-        console.log(`✅ Successfully installed: ${name}`);
-    }
-}
-
 async function handleRemove(registry: AppRegistry, args: string[]): Promise<void> {
     if (args.length === 0) {
-        console.error('Usage: tui remove <name>');
+        console.error('Usage: agentina remove <name>');
         process.exit(1);
     }
 
@@ -207,7 +157,7 @@ function handleList(registry: AppRegistry): void {
 
 async function handleEnable(registry: AppRegistry, args: string[], enable: boolean): Promise<void> {
     if (args.length === 0) {
-        console.error(`Usage: tui ${enable ? 'enable' : 'disable'} <name>`);
+        console.error(`Usage: agentina ${enable ? 'enable' : 'disable'} <name>`);
         process.exit(1);
     }
 
@@ -221,7 +171,7 @@ async function handleEnable(registry: AppRegistry, args: string[], enable: boole
  */
 async function handleAutoStart(registry: AppRegistry, args: string[]): Promise<void> {
     if (args.length < 2) {
-        console.error('Usage: tui autostart <name> <on|off>');
+        console.error('Usage: agentina autostart <name> <on|off>');
         process.exit(1);
     }
 
@@ -239,7 +189,7 @@ async function handleAutoStart(registry: AppRegistry, args: string[]): Promise<v
 
 async function handleLink(registry: AppRegistry, args: string[]): Promise<void> {
     if (args.length === 0) {
-        console.error('Usage: tui link <path>');
+        console.error('Usage: agentina link <path>');
         process.exit(1);
     }
 
