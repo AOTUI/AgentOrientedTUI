@@ -1,6 +1,6 @@
 {
     "name": "@aotui/system-chat",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "AOTUI System Chat Application - Agent-Human conversation interface",
     "type": "module",
     "main": "dist/electron/main.mjs",
@@ -34,6 +34,9 @@
         ],
         "mac": {
             "icon": "build/icons/mac/icon.icns"
+        },
+        "dmg": {
+            "artifactName": "${productName}.dmg"
         },
         "win": {
             "icon": "build/icons/win/icon.ico"
