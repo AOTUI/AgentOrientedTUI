@@ -2,7 +2,7 @@
 
 An all-in-one platform for building and managing AI Agents. The core idea is to empower agents through **Agent Apps** — unleashing AI productivity through applications, while keeping agents safely contained.
 
-> [中文 README](./README.zh-CN.md)
+> Deep dive into the design philosophy: [Building TUI Apps for AI Agents](./README.zh-CN.md)
 
 ## Features
 

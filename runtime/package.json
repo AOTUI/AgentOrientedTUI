@@ -31,7 +31,7 @@
   },
   "keywords": ["aotui", "tui", "agent", "llm", "runtime"],
   "author": "AOTUI",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "description": "AOTUI Core Runtime - Worker isolation, TUI snapshot engine, and operation dispatch",
   "publishConfig": {
     "access": "public"

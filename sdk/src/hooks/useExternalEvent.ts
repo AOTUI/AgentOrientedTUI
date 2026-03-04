@@ -3,8 +3,7 @@ import { useEffect } from 'preact/hooks';
 /**
  * Hook to subscribe to external system events.
  * 
- * Part of TUI IDE Phase 1: The Bridge.
- * Allows components to react to events from Host/System Tools (e.g. LSP, Git, Watcher).
+ * @deprecated This hook is not currently used or validated. External event handling may be redesigned in a future version.
  * 
  * @param eventType The specific event type to listen for (e.g., 'grep-result', 'file-changed')
  * @param callback Function to execute when event is received

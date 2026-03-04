@@ -66,6 +66,7 @@ export type { SplitPaneProps, BoxProps } from "./components/layout/index.js";
 
 // Operation Component (v3 - Type Safe)
 // [SSOT] Types are now defined in operation/types.ts
+/** @deprecated Use `useViewTypeTool` instead */
 export { Operation, defineParams } from "./components/index.js";
 export type {
   OperationProps,
@@ -127,6 +128,7 @@ export {
   useLLMOutputChannel,
   useLLMOutputHistory,
   // [Milestone 1] System Event Hook
+  /** @deprecated Not currently used or validated */
   useExternalEvent,
 } from "./hooks/index.js";
 export type {

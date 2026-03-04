@@ -88,6 +88,7 @@ export type {
 
 /**
  * Operation Component
+ * @deprecated Use `useViewTypeTool` instead. Operation is kept for backward compatibility only.
  */
 export function Operation<T extends ParamSchema = ParamSchema>({
   name,
