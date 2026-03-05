@@ -14,7 +14,7 @@ import type { LLMConfig } from '@aotui/agent-driver-v2';
 import type { LLMConfigRecord, LLMConfigInput, ProviderInfo } from '../types/llm-config.js';
 import { toLLMConfig, DEFAULT_CONFIGS } from '../types/llm-config.js';
 import * as llmConfigDb from '../db/llm-config-db.js';
-import { getDb } from '../db/index.js';
+import { getDb, persistDatabase } from '../db/index.js';
 import { Logger } from '../utils/logger.js';
 import type { ModelRegistry } from '../services/model-registry.js';
 import {
@@ -65,6 +65,7 @@ export class LLMConfigService {
                 llmConfigDb.updateLLMConfig(db, record.id, {
                     baseUrl: record.baseUrl,
                 });
+                persistDatabase();
             }
         }
 
@@ -164,6 +165,7 @@ export class LLMConfigService {
         
         const db = getDb();
         const record = llmConfigDb.createLLMConfig(db, input);
+        persistDatabase();
 
         this.logger.info('LLM config created', { 
             id: record.id, 
@@ -347,6 +349,7 @@ export class LLMConfigService {
     setActiveConfig(id: number): void {
         const db = getDb();
         llmConfigDb.setActiveLLMConfig(db, id);
+        persistDatabase();
 
         const record = llmConfigDb.getLLMConfig(db, id);
         this.logger.info('Active LLM config changed', { id, name: record?.name });
@@ -395,6 +398,7 @@ export class LLMConfigService {
         }
 
         llmConfigDb.updateLLMConfig(db, id, mergedUpdates);
+        persistDatabase();
 
         this.logger.info('LLM config updated', { id });
     }
@@ -502,6 +506,7 @@ export class LLMConfigService {
         }
 
         llmConfigDb.deleteLLMConfig(db, id);
+        persistDatabase();
         this.logger.info('LLM config deleted', { id });
     }
 

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { resolve, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { createIPCHandler } from 'electron-trpc/main';
 import { appRouter } from '../trpc/router.js';
 import { createHostV2Core } from '../server/host-v2.js';
@@ -9,6 +10,32 @@ import { ModelRegistry } from '../services/model-registry.js';
 // ESM Polyfill for __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Suppress EPIPE errors on stdout/stderr in packaged app (pipe closed during shutdown)
+process.stdout?.on?.('error', () => {});
+process.stderr?.on?.('error', () => {});
+
+// Fix PATH for packaged Electron — Finder/Dock launches have a minimal PATH
+// that won't include Homebrew, nvm, volta, pyenv, etc.
+if (app.isPackaged) {
+    try {
+        const shell = process.env.SHELL || '/bin/zsh';
+        const shellPath = execSync(`${shell} -ilc 'echo $PATH'`, { encoding: 'utf8' }).trim();
+        if (shellPath) {
+            process.env.PATH = shellPath;
+        }
+    } catch {
+        // Fallback: append common macOS paths
+        process.env.PATH = [
+            process.env.PATH,
+            '/opt/homebrew/bin',
+            '/opt/homebrew/sbin',
+            '/usr/local/bin',
+            join(process.env.HOME || '', '.nvm/versions/node/*/bin'),
+            join(process.env.HOME || '', '.volta/bin'),
+        ].join(':');
+    }
+}
 
 let serverPort = 0;
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;

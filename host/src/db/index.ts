@@ -27,8 +27,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
 const DEFAULT_DATA_DIR = join(PROJECT_ROOT, 'data');
 const DEFAULT_DB_FILE = join(DEFAULT_DATA_DIR, 'chat.sqlite');
-const DB_FILE = process.env.DB_PATH ? resolve(process.env.DB_PATH) : DEFAULT_DB_FILE;
-const DATA_DIR = dirname(DB_FILE);
+
+// Lazily resolve DB_FILE so process.env.DB_PATH (set in Electron's app.whenReady) is available
+function getDbFile(): string {
+    return process.env.DB_PATH ? resolve(process.env.DB_PATH) : DEFAULT_DB_FILE;
+}
 
 // Singleton instance
 let db: Database | null = null;
@@ -40,9 +43,12 @@ let SQL: initSqlJs.SqlJsStatic | null = null;
 export async function initDatabase(): Promise<Database> {
     if (db) return db;
 
+    const dbFile = getDbFile();
+    const dataDir = dirname(dbFile);
+
     // 1. Ensure Data Directory
-    if (!existsSync(DATA_DIR)) {
-        mkdirSync(DATA_DIR, { recursive: true });
+    if (!existsSync(dataDir)) {
+        mkdirSync(dataDir, { recursive: true });
     }
 
     // 2. Load WASM Engine
@@ -51,10 +57,10 @@ export async function initDatabase(): Promise<Database> {
     }
 
     // 3. Load Data from Disk (if exists) or Create New
-    if (existsSync(DB_FILE)) {
-        const buffer = readFileSync(DB_FILE);
+    if (existsSync(dbFile)) {
+        const buffer = readFileSync(dbFile);
         db = new SQL.Database(buffer);
-        console.log('[DB] WASM Database loaded from disk:', DB_FILE);
+        console.log('[DB] WASM Database loaded from disk:', dbFile);
     } else {
         db = new SQL.Database();
         console.log('[DB] New WASM Database created in memory');
@@ -74,7 +80,7 @@ export async function initDatabase(): Promise<Database> {
 function saveToDisk() {
     if (!db) return;
     const data = db.export();
-    writeFileSync(DB_FILE, data);
+    writeFileSync(getDbFile(), data);
 }
 
 /**

@@ -1,4 +1,15 @@
 {
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "better-sqlite3",
+      "esbuild",
+      "@heroui/shared-utils",
+      "electron-winstaller",
+      "phantomjs-prebuilt",
+      "protobufjs"
+    ]
+  },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.3",
     "happy-dom": "^20.5.3",

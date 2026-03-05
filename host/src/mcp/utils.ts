@@ -1,9 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 
 export namespace Global {
     export namespace Path {
-        export const data = path.join(process.cwd(), '.aotui', 'mcp');
+        export const data = path.join(os.homedir(), '.aotui', 'mcp');
     }
 }
 
@@ -67,7 +68,7 @@ export namespace Instance {
         return getState;
     }
 
-    export const directory = process.cwd();
+    export const directory = os.homedir();
 }
 
 export namespace Installation {

@@ -10,7 +10,7 @@ const commonExternal = [
   'electron-trpc/renderer',
   'better-sqlite3',
   '@aotui/runtime',
-  '@aotui/agent-driver',
+  '@aotui/agent-driver-v2',
   '@aotui/sdk',
   '@ai-sdk/anthropic',
   '@ai-sdk/openai',
