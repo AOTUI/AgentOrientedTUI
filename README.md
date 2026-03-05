@@ -1,8 +1,8 @@
 # Agentina
 
-An all-in-one platform for building and managing AI Agents. The core idea is to empower agents through **Agent Apps** — unleashing AI productivity through applications, while keeping agents safely contained.
+An all-in-one platform for building and managing AI Agents. The core idea is to empower agents through **[Agent Apps](https://agentina-agent-apps.vercel.app/en)** — unleashing AI productivity through applications, while keeping agents safely contained.
 
-> Deep dive into the design philosophy: [Building TUI Apps for AI Agents](./README.zh-CN.md)
+[中文README](./README.zh-CN.md)
 
 ## Features
 

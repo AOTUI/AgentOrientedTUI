@@ -1,6 +1,6 @@
 # Agentina
 
-一站式 Agent 搭建和管理平台。核心理念是通过 **Agent Apps** 构建智能体——用应用来释放 AI Agent 的生产力，同时将其安全地关在笼子里。
+一站式 Agent 搭建和管理平台。核心理念是通过 **[Agent Apps](https://agentina-agent-apps.vercel.app/en)** 构建智能体——用应用来释放 AI Agent 的生产力，同时将其安全地关在笼子里。
 
 
 ## Feature
