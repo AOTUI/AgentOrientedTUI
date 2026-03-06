@@ -21,10 +21,20 @@ import {
     type IKernel,
     type AppLaunchConfig,
     // Third-party Apps
-    AppRegistry
+    AppRegistry,
+    installNpmPackage,
+    parseInstallSource,
+    resolveCatalog,
+    resolveCatalogOptionsFromConfig,
+    searchCatalog,
+    type AppConfigEntry,
+    type CatalogSearchResult,
+    type ResolvedCatalog
 } from '@aotui/runtime';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
+import { Config } from '../config/config.js';
 
 export type { DesktopID };
 
@@ -33,6 +43,34 @@ export interface DesktopInfo {
     // [RFC-021] appId is now optional since we may not have any apps installed
     appId?: string;
     thirdPartyAppCount: number;
+}
+
+export interface InstallAppOptions {
+    force?: boolean;
+    alias?: string;
+    autoStart?: boolean;
+    enabled?: boolean;
+}
+
+export interface InstallAppResult {
+    name: string;
+    source: string;
+    originalSource: string;
+    distributionType: 'local' | 'npm';
+}
+
+export interface CatalogSearchEntry extends CatalogSearchResult {
+    installed: boolean;
+    installedName: string | null;
+}
+
+export interface CatalogSearchResponse {
+    source: ResolvedCatalog['source'];
+    remoteUrl?: string;
+    cachedAt?: string;
+    signatureVerified: boolean;
+    warnings: string[];
+    apps: CatalogSearchEntry[];
 }
 
 export class DesktopManager {
@@ -203,6 +241,127 @@ export class DesktopManager {
                 modulePath: this.appRegistry.resolveModulePath(app.source)
             }))
             .filter(app => app.modulePath !== null) as { modulePath: string }[];
+    }
+
+    async getAppsConfig(): Promise<Record<string, AppConfigEntry>> {
+        return { ...(await Config.getAppsConfig()) };
+    }
+
+    async getAppDetail(name: string): Promise<AppConfigEntry> {
+        const app = (await this.getAppsConfig())[name];
+        if (!app) {
+            throw new Error(`App "${name}" not found`);
+        }
+        return app;
+    }
+
+    async searchAppsCatalog(query?: string): Promise<CatalogSearchResponse> {
+        const installedApps = await this.getAppsConfig();
+        const installedEntries = Object.entries(installedApps);
+        const resolvedCatalog = await resolveCatalog(resolveCatalogOptionsFromConfig(this.appRegistry.getConfig().catalog));
+
+        const apps = searchCatalog(query, resolvedCatalog.catalog).map((entry) => {
+            const installedMatch = installedEntries.find(([, app]) => (
+                app.distribution?.packageName === entry.packageName
+                || app.originalSource === `npm:${entry.packageName}`
+                || app.originalSource?.startsWith(`npm:${entry.packageName}@`)
+            ));
+
+            return {
+                ...entry,
+                installed: Boolean(installedMatch),
+                installedName: installedMatch?.[0] ?? null
+            };
+        });
+
+        return {
+            source: resolvedCatalog.source,
+            remoteUrl: resolvedCatalog.remoteUrl,
+            cachedAt: resolvedCatalog.cachedAt,
+            signatureVerified: resolvedCatalog.signatureVerified,
+            warnings: resolvedCatalog.warnings,
+            apps
+        };
+    }
+
+    async installApp(sourceInput: string, options?: InstallAppOptions): Promise<InstallAppResult> {
+        const resolved = parseInstallSource(sourceInput);
+
+        if (resolved.kind === 'local') {
+            if (!fs.existsSync(resolved.absolutePath)) {
+                throw new Error(`Local path does not exist: ${resolved.absolutePath}`);
+            }
+
+            const name = await this.appRegistry.add(resolved.source, {
+                force: options?.force,
+                alias: options?.alias,
+                autoStart: options?.autoStart,
+                enabled: options?.enabled,
+                originalSource: resolved.source,
+                distribution: {
+                    type: 'local',
+                    installedPath: resolved.absolutePath,
+                    installedAt: new Date().toISOString()
+                }
+            });
+
+            return {
+                name,
+                source: resolved.source,
+                originalSource: resolved.source,
+                distributionType: 'local'
+            };
+        }
+
+        const installResult = await installNpmPackage(resolved.packageSpec, {
+            forceReinstall: options?.force
+        });
+
+        const name = await this.appRegistry.add(installResult.localSource, {
+            force: options?.force,
+            alias: options?.alias,
+            autoStart: options?.autoStart,
+            enabled: options?.enabled,
+            originalSource: resolved.source,
+            distribution: {
+                type: 'npm',
+                packageName: installResult.packageName,
+                requested: installResult.packageSpec,
+                resolvedVersion: installResult.resolvedVersion ?? undefined,
+                installedPath: installResult.installedPath,
+                installedAt: new Date().toISOString()
+            }
+        });
+
+        return {
+            name,
+            source: installResult.localSource,
+            originalSource: resolved.source,
+            distributionType: 'npm'
+        };
+    }
+
+    async updateApp(name: string): Promise<InstallAppResult> {
+        const current = await this.getAppDetail(name);
+        const originalSource = current.originalSource;
+        if (!originalSource || !originalSource.startsWith('npm:')) {
+            throw new Error(`App "${name}" is not installed from npm and cannot be updated yet`);
+        }
+
+        return this.installApp(originalSource, {
+            force: true,
+            alias: name,
+            autoStart: current.autoStart,
+            enabled: current.enabled
+        });
+    }
+
+    async removeApp(name: string): Promise<void> {
+        await this.appRegistry.remove(name);
+    }
+
+    async setAppEnabled(name: string, enabled: boolean): Promise<void> {
+        await this.appRegistry.setEnabled(name, enabled);
     }
 }
 

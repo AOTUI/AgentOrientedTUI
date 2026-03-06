@@ -98,11 +98,11 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@aotui/agent-driver-v2@0.2.0':
-    resolution: {integrity: sha512-BHNNUwoda4hpXlpdPHnXD1CBYFKCDiaavO+rpjgviOoIHCcIHE8viNRNkmT+e+QrBv48qVKIPPRV/pjxQ6U6Jw==}
+  '@aotui/agent-driver-v2@0.2.1':
+    resolution: {integrity: sha512-4F+wpjQg43qj1Mb4m3YrszMQymxr8t/krhkVP9dWih4Z8O1P0aBeVnjchCM2I6UQJaGVVyWJ/C5YoaAppmrt1Q==}
 
-  '@aotui/runtime@1.0.0':
-    resolution: {integrity: sha512-lszU4VtIhQ7qZK+2Msq0RVmsU1fnWxBq3LempwomgZXVwLkO5c5lLsYKt7M9a9C0ijXmg998zTeI8+kP9oqeAg==}
+  '@aotui/runtime@1.0.3':
+    resolution: {integrity: sha512-jh2uKK7646shG+U2oO6akZjAEmvRWGTv8O+uSAv4UlxXAAG09p6L+iWu27HwOQuVC13NYDdGlEk8Q3XP1ZAYQA==}
     hasBin: true
 
   '@aotui/runtime@file:../runtime':
@@ -874,7 +874,7 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.16(zod@4.3.6)
       zod: 4.3.6
 
-  '@aotui/agent-driver-v2@0.2.0(zod@4.3.6)':
+  '@aotui/agent-driver-v2@0.2.1(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.50(zod@4.3.6)
       '@ai-sdk/deepseek': 1.0.34(zod@4.3.6)
@@ -888,9 +888,9 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@aotui/runtime@1.0.0':
+  '@aotui/runtime@1.0.3':
     dependencies:
-      '@aotui/agent-driver-v2': 0.2.0(zod@4.3.6)
+      '@aotui/agent-driver-v2': 0.2.1(zod@4.3.6)
       ai: 6.0.105(zod@4.3.6)
       happy-dom: 20.7.0
       linkedom: 0.18.12
@@ -904,7 +904,7 @@ snapshots:
 
   '@aotui/runtime@file:../runtime':
     dependencies:
-      '@aotui/agent-driver-v2': 0.2.0(zod@4.3.6)
+      '@aotui/agent-driver-v2': 0.2.1(zod@4.3.6)
       ai: 6.0.105(zod@4.3.6)
       happy-dom: 20.7.0
       linkedom: 0.18.12
@@ -918,7 +918,7 @@ snapshots:
 
   '@aotui/sdk@file:../sdk(preact@10.28.4)':
     dependencies:
-      '@aotui/runtime': 1.0.0
+      '@aotui/runtime': 1.0.3
       '@preact/signals': 2.8.1(preact@10.28.4)
       linkedom: 0.18.12
       preact: 10.28.4

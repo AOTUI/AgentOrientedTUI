@@ -1,5 +1,5 @@
-{
-    "name": "system-ide",
+    {
+    "name": "aotui-ide",
     "displayName": "AOTUI IDE",
     "version": "0.1.0",
     "description": "Integrated Development Environment for LLM Agents. Provides file browsing, searching, reading, and editing capabilities.",

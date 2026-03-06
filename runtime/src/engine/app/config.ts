@@ -60,6 +60,56 @@ export interface AppConfigEntry {
 
     /** [Fix] App 角色 */
     promptRole?: 'user' | 'assistant';
+
+    /**
+     * 原始安装来源（用于分发场景），例如：
+     * - npm:@scope/my-app@1.2.3
+     */
+    originalSource?: string;
+
+    /**
+     * 分发元数据（用于展示与排障）
+     */
+    distribution?: {
+        type: 'local' | 'npm' | 'git' | 'catalog';
+        packageName?: string;
+        requested?: string;
+        resolvedVersion?: string;
+        installRoot?: string;
+        installedPath?: string;
+        installedAt?: string;
+        catalogId?: string;
+        [key: string]: unknown;
+    };
+}
+
+export interface CatalogTrustKeyConfig {
+    keyId: string;
+    algorithm?: 'ed25519';
+    publicKey: string;
+}
+
+export interface CatalogConfig {
+    /**
+     * 远端应用目录地址（静态 JSON / API）
+     */
+    url?: string;
+
+    /**
+     * 目录缓存文件路径
+     * 为空时使用 ~/.agentina/cache/app-catalog.json
+     */
+    cachePath?: string;
+
+    /**
+     * 是否强制要求远端目录签名有效
+     */
+    requireSignature?: boolean;
+
+    /**
+     * 受信任的签名公钥集合
+     */
+    trustedKeys?: CatalogTrustKeyConfig[];
 }
 
 /**
@@ -85,6 +135,9 @@ export interface TUIConfig {
 
     /** [Option D] Runtime 配置 */
     runtime?: RuntimeConfig;
+
+    /** 远端目录配置 */
+    catalog?: CatalogConfig;
 
     /** 已安装的 App */
     apps: Record<string, AppConfigEntry>;

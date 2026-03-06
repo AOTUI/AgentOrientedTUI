@@ -18,6 +18,7 @@
 
 import type { ModelMessage } from 'ai';
 import type { LLMConfig } from '@aotui/agent-driver-v2';
+import type { AppConfigEntry } from '@aotui/runtime';
 import type { IDesktop, IKernel } from '@aotui/runtime/spi';
 import { MessageServiceV2 } from './message-service-v2.js';
 import { Logger } from '../utils/logger.js';
@@ -26,6 +27,12 @@ import { LLMConfigService } from './llm-config-service.js';
 import { SessionManagerV3 } from './session-manager-v3.js';
 import type { ModelRegistry } from '../services/model-registry.js';
 import type { GuiUpdateEvent } from '../types/session.js';
+import type {
+    CatalogSearchResponse,
+    CatalogSearchEntry,
+    InstallAppOptions,
+    InstallAppResult
+} from './desktop-manager.js';
 
 /**
  * Re-export GuiUpdateEvent for backward compatibility
@@ -254,6 +261,41 @@ export class HostManagerV2 {
         }
 
         this.sessionManager.setSourceItemEnabled(topicId, source, itemName, enabled);
+    }
+
+    async getAppsConfig(): Promise<Record<string, AppConfigEntry>> {
+        return this.requireDesktopManager().getAppsConfig();
+    }
+
+    async getAppDetail(name: string): Promise<AppConfigEntry> {
+        return this.requireDesktopManager().getAppDetail(name);
+    }
+
+    async searchAppsCatalog(query?: string): Promise<CatalogSearchResponse> {
+        return this.requireDesktopManager().searchAppsCatalog(query);
+    }
+
+    async installApp(source: string, options?: InstallAppOptions): Promise<InstallAppResult> {
+        return this.requireDesktopManager().installApp(source, options);
+    }
+
+    async updateApp(name: string): Promise<InstallAppResult> {
+        return this.requireDesktopManager().updateApp(name);
+    }
+
+    async removeApp(name: string): Promise<void> {
+        await this.requireDesktopManager().removeApp(name);
+    }
+
+    async setAppEnabled(name: string, enabled: boolean): Promise<void> {
+        await this.requireDesktopManager().setAppEnabled(name, enabled);
+    }
+
+    private requireDesktopManager(): import('./desktop-manager.js').DesktopManager {
+        if (!this.desktopManager) {
+            throw new Error('DesktopManager not initialized. Call initAgentDriver first.');
+        }
+        return this.desktopManager;
     }
 
     /**

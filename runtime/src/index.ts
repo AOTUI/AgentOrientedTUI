@@ -63,6 +63,46 @@ export type { LoadedApp, AppRegistryOptions, TUIConfig, AppConfigEntry } from '.
 export { createSystemOperationRegistry } from './engine/system/operations/index.js';
 
 // ============================================================================
+// 🟢 Public: App Distribution Helpers
+// Used by Product Layer / CLI for discovery and installation workflows
+// ============================================================================
+export {
+    DEFAULT_APP_CATALOG,
+    type CatalogAppEntry,
+    type CatalogData
+} from './cli/default-catalog.js';
+export {
+    searchCatalog,
+    isCatalogData,
+    type CatalogSearchResult
+} from './cli/catalog.js';
+export {
+    resolveCatalog,
+    resolveCatalogOptionsFromConfig,
+    fetchRemoteCatalog,
+    verifyCatalogSignature,
+    stableStringify,
+    type CatalogSignature,
+    type CatalogResolverOptions,
+    type ResolvedCatalog,
+    type TrustedCatalogKey,
+    type RemoteCatalogEnvelope
+} from './cli/catalog-resolver.js';
+export {
+    parseInstallSource,
+    parseNpmSpecifier,
+    type ParsedInstallSource,
+    type ParsedLocalSource,
+    type ParsedNpmSource,
+    type NpmSpecifier
+} from './cli/sources.js';
+export {
+    installNpmPackage,
+    type NpmInstallOptions,
+    type NpmInstallResult
+} from './cli/npm-installer.js';
+
+// ============================================================================
 // 🔴 REMOVED: Engine Layer Exports
 //
 // [方案 B] Engine internals are no longer exported to external consumers.

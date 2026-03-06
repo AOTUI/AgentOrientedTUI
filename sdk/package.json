@@ -1,6 +1,6 @@
 {
     "name": "@aotui/sdk",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "AOTUI Developer SDK - Build Agent-Oriented TUI Apps with Preact",
     "type": "module",
     "main": "dist/index.js",
@@ -22,7 +22,7 @@
         "preact": "^10.0.0"
     },
     "dependencies": {
-        "@aotui/runtime": "^1.0.0",
+        "@aotui/runtime": "^1.0.1",
         "@preact/signals": "^2.5.1",
         "linkedom": "^0.18.9"
     },

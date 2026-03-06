@@ -408,8 +408,8 @@ const modelRegistryRouter = router({
 
 const appsRouter = router({
     getConfig: publicProcedure
-        .query(async () => {
-            return Config.getAppsConfig();
+        .query(async ({ ctx }) => {
+            return await ctx.hostManager.getAppsConfig();
         }),
 
     setEnabled: publicProcedure
@@ -417,8 +417,48 @@ const appsRouter = router({
             name: z.string(),
             enabled: z.boolean(),
         }))
-        .mutation(async ({ input }) => {
-            await Config.setGlobalAppEnabled(input.name, input.enabled);
+        .mutation(async ({ input, ctx }) => {
+            await ctx.hostManager.setAppEnabled(input.name, input.enabled);
+            return { success: true };
+        }),
+
+    searchCatalog: publicProcedure
+        .input(z.object({
+            query: z.string().optional(),
+        }).optional())
+        .query(async ({ input, ctx }) => {
+            return ctx.hostManager.searchAppsCatalog(input?.query);
+        }),
+
+    install: publicProcedure
+        .input(z.object({
+            source: z.string(),
+            force: z.boolean().optional(),
+            alias: z.string().optional(),
+            autoStart: z.boolean().optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            return ctx.hostManager.installApp(input.source, {
+                force: input.force,
+                alias: input.alias,
+                autoStart: input.autoStart,
+            });
+        }),
+
+    update: publicProcedure
+        .input(z.object({
+            name: z.string(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            return ctx.hostManager.updateApp(input.name);
+        }),
+
+    remove: publicProcedure
+        .input(z.object({
+            name: z.string(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            await ctx.hostManager.removeApp(input.name);
             return { success: true };
         }),
 
@@ -426,17 +466,8 @@ const appsRouter = router({
         .input(z.object({
             name: z.string(),
         }))
-        .query(async ({ input }) => {
-            const apps = await Config.getAppsConfig();
-            const app = apps[input.name];
-            if (!app) {
-                throw new Error(`App \"${input.name}\" not found`);
-            }
-
-            return {
-                source: app.source,
-                installedAt: app.installedAt,
-            };
+        .query(async ({ input, ctx }) => {
+            return await ctx.hostManager.getAppDetail(input.name);
         }),
 });
 

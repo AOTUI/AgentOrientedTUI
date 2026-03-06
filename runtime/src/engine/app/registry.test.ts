@@ -92,6 +92,95 @@ describe('AppRegistry', () => {
 
             expect(registry.has('non-existent')).toBe(false);
         });
+
+        it('should prefer source-derived stable name when manifest name is missing', async () => {
+            const registry = new AppRegistry({ configPath });
+            await registry.loadFromConfig();
+
+            const factoryWithoutManifestName = {
+                displayName: 'AOTUI IDE',
+                manifest: undefined,
+                create: vi.fn(),
+            } as unknown as TUIAppFactory;
+
+            // @ts-ignore
+            registry.loadFactory = vi.fn().mockResolvedValue(factoryWithoutManifestName);
+
+            const name = await registry.add('local:/tmp/cache/node_modules/@agentina/aotui-ide');
+            expect(name).toBe('aotui-ide');
+            expect(registry.getConfig().apps['aotui-ide']).toBeDefined();
+        });
+
+        it('should delete managed npm install artifacts on remove', async () => {
+            const registry = new AppRegistry({ configPath });
+            await registry.loadFromConfig();
+
+            const installRoot = path.join(tempDir, '.agentina', 'apps', 'npm', 'scope-agentina__aotui-ide', 'latest');
+            const installedPath = path.join(installRoot, 'node_modules', '@agentina', 'aotui-ide');
+            await fs.mkdir(installedPath, { recursive: true });
+            await fs.writeFile(path.join(installRoot, 'package.json'), JSON.stringify({ name: 'agentina-app-cache', private: true }));
+
+            // @ts-ignore
+            registry['config'].apps['aotui-ide'] = {
+                source: `local:${installedPath}`,
+                enabled: true,
+                originalSource: 'npm:@agentina/aotui-ide',
+                distribution: {
+                    type: 'npm',
+                    packageName: '@agentina/aotui-ide',
+                    installedPath,
+                }
+            };
+            // @ts-ignore
+            registry['apps'].set('aotui-ide', {
+                name: 'aotui-ide',
+                source: `local:${installedPath}`,
+                factory: createMockFactory('aotui-ide'),
+                manifest: createMockFactory('aotui-ide').manifest,
+            });
+            // @ts-ignore
+            registry.getDefaultNpmCacheRoot = vi.fn().mockReturnValue(path.join(tempDir, '.agentina', 'apps', 'npm'));
+
+            await registry.remove('aotui-ide');
+
+            await expect(fs.stat(installRoot)).rejects.toThrow();
+            expect(registry.getConfig().apps['aotui-ide']).toBeUndefined();
+        });
+
+        it('should not delete npm artifacts outside managed root on remove', async () => {
+            const registry = new AppRegistry({ configPath });
+            await registry.loadFromConfig();
+
+            const installRoot = path.join(tempDir, 'external-cache', 'latest');
+            const installedPath = path.join(installRoot, 'node_modules', '@agentina', 'aotui-ide');
+            await fs.mkdir(installedPath, { recursive: true });
+
+            // @ts-ignore
+            registry['config'].apps['aotui-ide'] = {
+                source: `local:${installedPath}`,
+                enabled: true,
+                originalSource: 'npm:@agentina/aotui-ide',
+                distribution: {
+                    type: 'npm',
+                    packageName: '@agentina/aotui-ide',
+                    installRoot,
+                    installedPath,
+                }
+            };
+            // @ts-ignore
+            registry['apps'].set('aotui-ide', {
+                name: 'aotui-ide',
+                source: `local:${installedPath}`,
+                factory: createMockFactory('aotui-ide'),
+                manifest: createMockFactory('aotui-ide').manifest,
+            });
+            // @ts-ignore
+            registry.getDefaultNpmCacheRoot = vi.fn().mockReturnValue(path.join(tempDir, '.agentina', 'apps', 'npm'));
+
+            await registry.remove('aotui-ide');
+
+            expect(await fs.stat(installRoot)).toBeDefined();
+        });
     });
 
     describe('Manifest Validation', () => {

@@ -27,7 +27,7 @@ export const persistenceService = {
         if (db) return;
 
         const dbDir = path.join(os.homedir(), '.aotui');
-        const dbPath = path.join(dbDir, 'system-ide-db.json');
+        const dbPath = path.join(dbDir, 'aotui-ide-db.json');
         await fs.mkdir(dbDir, { recursive: true });
         const adapter = new JSONFile<Schema>(dbPath);
         db = new Low(adapter, { workspaces: {} });

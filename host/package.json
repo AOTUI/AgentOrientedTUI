@@ -33,8 +33,7 @@
             "**/worker-runtime/**/*"
         ],
         "mac": {
-            "icon": "build/icons/mac/icon.icns",
-            "identity": null
+            "icon": "build/icons/mac/icon.icns"
         },
         "dmg": {
             "artifactName": "${productName}.dmg"

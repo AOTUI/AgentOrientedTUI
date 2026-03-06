@@ -20,6 +20,7 @@ import { createDefaultConfig, validateConfig } from './config.js';
 // [Option C] ESM-compatible imports for file system operations
 import * as fs from 'fs';
 import * as pathModule from 'path';
+import * as os from 'os';
 
 // Re-export
 export type { TUIConfig, AppConfigEntry } from './config.js';
@@ -116,15 +117,21 @@ export class AppRegistry {
      * @param source 来源 (npm:xxx, local:xxx, git:xxx)
      * @param options 选项
      */
-    async add(source: string, options?: { force?: boolean; alias?: string }): Promise<string> {
+    async add(
+        source: string,
+        options?: {
+            force?: boolean;
+            alias?: string;
+            enabled?: boolean;
+            autoStart?: boolean;
+            originalSource?: string;
+            distribution?: AppConfigEntry['distribution'];
+        }
+    ): Promise<string> {
         // 加载工厂
         const factory = await this.loadFactory(source);
 
-        // [方案 B] 支持两种模式获取名称
-        const name = options?.alias
-            ?? factory.manifest?.name
-            ?? factory.displayName
-            ?? source.split('/').pop() ?? 'unknown';
+        const name = this.resolveRegistrationName(source, factory, options?.alias);
 
         // 检查名称冲突
         if (this.config.apps[name] && !options?.force) {
@@ -137,8 +144,11 @@ export class AppRegistry {
         // 注册到配置
         this.config.apps[name] = {
             source,
-            enabled: true,
-            installedAt: new Date().toISOString()
+            enabled: options?.enabled ?? true,
+            autoStart: options?.autoStart,
+            installedAt: new Date().toISOString(),
+            originalSource: options?.originalSource,
+            distribution: options?.distribution
         };
 
         // 添加到内存
@@ -164,11 +174,7 @@ export class AppRegistry {
         // 加载工厂
         const factory = await this.loadFactory(source);
 
-        // [方案 B] 支持两种模式获取名称
-        const name = options?.alias
-            ?? factory.manifest?.name
-            ?? factory.displayName
-            ?? source.split('/').pop() ?? 'unknown';
+        const name = this.resolveRegistrationName(source, factory, options?.alias);
 
         // 检查名称冲突 (仅检查内存中)
         if (this.apps.has(name)) {
@@ -192,10 +198,12 @@ export class AppRegistry {
      * 移除 App
      */
     async remove(name: string): Promise<void> {
-        if (!this.config.apps[name]) {
+        const entry = this.config.apps[name];
+        if (!entry) {
             throw new AOTUIError('APP_NOT_FOUND', { appId: name });
         }
 
+        await this.cleanupInstalledArtifacts(entry);
         delete this.config.apps[name];
         this.apps.delete(name);
 
@@ -485,6 +493,126 @@ export class AppRegistry {
         // 写入配置
         const content = JSON.stringify(this.config, null, 2);
         await fs.writeFile(this.configPath, content, 'utf-8');
+    }
+
+    private async cleanupInstalledArtifacts(entry: AppConfigEntry): Promise<void> {
+        if (entry.distribution?.type !== 'npm') {
+            return;
+        }
+
+        const installRoot = this.resolveNpmInstallRoot(entry);
+        if (!installRoot) {
+            return;
+        }
+
+        const allowedRoot = this.getDefaultNpmCacheRoot();
+        const normalizedAllowedRoot = pathModule.resolve(allowedRoot);
+        const normalizedInstallRoot = pathModule.resolve(installRoot);
+
+        if (
+            normalizedInstallRoot !== normalizedAllowedRoot &&
+            !normalizedInstallRoot.startsWith(`${normalizedAllowedRoot}${pathModule.sep}`)
+        ) {
+            console.warn(`[AppRegistry] Skip deleting npm cache outside managed root: ${normalizedInstallRoot}`);
+            return;
+        }
+
+        const fsPromises = await import('fs/promises');
+        await fsPromises.rm(normalizedInstallRoot, { recursive: true, force: true });
+        await this.pruneEmptyParentDirs(pathModule.dirname(normalizedInstallRoot), normalizedAllowedRoot);
+    }
+
+    private resolveRegistrationName(source: string, factory: TUIAppFactory, alias?: string): string {
+        if (alias) {
+            return alias;
+        }
+
+        if (factory.manifest?.name) {
+            return factory.manifest.name;
+        }
+
+        const sourceName = this.extractStableNameFromSource(source);
+        if (sourceName) {
+            return sourceName;
+        }
+
+        if (factory.displayName) {
+            return factory.displayName;
+        }
+
+        return 'unknown';
+    }
+
+    private extractStableNameFromSource(source: string): string | null {
+        if (source.startsWith('local:')) {
+            const localPath = source.slice(6);
+            const candidate = pathModule.basename(localPath);
+            return candidate || null;
+        }
+
+        if (source.startsWith('npm:')) {
+            const spec = source.slice(4);
+            const withoutVersion = spec.startsWith('@')
+                ? spec.replace(/(@[^/]+\/[^@]+).*/, '$1')
+                : spec.replace(/([^@]+).*/, '$1');
+            const parts = withoutVersion.split('/');
+            return parts[parts.length - 1] || null;
+        }
+
+        const candidate = source.split('/').pop();
+        return candidate || null;
+    }
+
+    private resolveNpmInstallRoot(entry: AppConfigEntry): string | null {
+        const explicitInstallRoot = entry.distribution?.installRoot;
+        if (typeof explicitInstallRoot === 'string' && explicitInstallRoot.trim()) {
+            return explicitInstallRoot;
+        }
+
+        const installedPath = entry.distribution?.installedPath;
+        if (typeof installedPath !== 'string' || !installedPath.trim()) {
+            return null;
+        }
+
+        const packageName = entry.distribution?.packageName;
+        if (typeof packageName === 'string' && packageName.trim()) {
+            const nodeModulesSuffix = pathModule.join('node_modules', ...packageName.split('/'));
+            const normalizedInstalledPath = pathModule.normalize(installedPath);
+            if (normalizedInstalledPath.endsWith(nodeModulesSuffix)) {
+                return normalizedInstalledPath.slice(0, normalizedInstalledPath.length - nodeModulesSuffix.length - 1);
+            }
+        }
+
+        const segments = pathModule.normalize(installedPath).split(pathModule.sep);
+        const nodeModulesIndex = segments.lastIndexOf('node_modules');
+        if (nodeModulesIndex > 0) {
+            return segments.slice(0, nodeModulesIndex).join(pathModule.sep) || pathModule.sep;
+        }
+
+        return null;
+    }
+
+    private getDefaultNpmCacheRoot(): string {
+        return pathModule.join(os.homedir(), '.agentina', 'apps', 'npm');
+    }
+
+    private async pruneEmptyParentDirs(startDir: string, stopDir: string): Promise<void> {
+        const fsPromises = await import('fs/promises');
+        let current = pathModule.resolve(startDir);
+        const normalizedStop = pathModule.resolve(stopDir);
+
+        while (current.startsWith(`${normalizedStop}${pathModule.sep}`)) {
+            try {
+                const entries = await fsPromises.readdir(current);
+                if (entries.length > 0) {
+                    break;
+                }
+                await fsPromises.rmdir(current);
+                current = pathModule.dirname(current);
+            } catch {
+                break;
+            }
+        }
     }
 
     private async loadFactory(source: string): Promise<TUIAppFactory> {

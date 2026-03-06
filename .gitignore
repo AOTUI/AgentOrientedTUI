@@ -27,6 +27,7 @@ multi-im-migration-report
 **/dist-gui/
 **/release/
 **/coverage/
+**/.tmp/
 
 # agent
 .agent

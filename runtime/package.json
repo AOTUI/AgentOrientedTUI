@@ -1,6 +1,6 @@
 {
   "name": "@aotui/runtime",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,14 +22,20 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/cli.js",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "build:browser": "esbuild src/browser.ts --bundle --format=esm --outfile=../dev-tools/lib/aotui-runtime.browser.js --external:happy-dom",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["aotui", "tui", "agent", "llm", "runtime"],
+  "keywords": [
+    "aotui",
+    "tui",
+    "agent",
+    "llm",
+    "runtime"
+  ],
   "author": "AOTUI",
   "license": "Apache-2.0",
   "description": "AOTUI Core Runtime - Worker isolation, TUI snapshot engine, and operation dispatch",
@@ -56,7 +62,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@aotui/agent-driver-v2": "^0.2.0",
+    "@aotui/agent-driver-v2": "^0.2.1",
     "ai": "^6.0.77",
     "happy-dom": "^20.1.0",
     "linkedom": "^0.18.12",

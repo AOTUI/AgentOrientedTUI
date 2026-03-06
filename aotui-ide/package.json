@@ -1,6 +1,7 @@
 {
-    "name": "system-ide",
+    "name": "@agentina/aotui-ide",
     "version": "0.1.0",
+    "description": "AOTUI IDE app for agent-oriented code browsing, search, editing, and LSP-assisted analysis.",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -9,14 +10,15 @@
         "watch": "tsc --watch",
         "test": "jest --passWithNoTests",
         "test:watch": "jest --watch",
-        "test:coverage": "jest --coverage"
+        "test:coverage": "jest --coverage",
+        "prepublishOnly": "npm run build"
     },
     "dependencies": {
-        "@aotui/runtime": "file:../runtime",
-        "@aotui/sdk": "file:../sdk",
+        "@aotui/sdk": "^0.1.0",
         "emittery": "^1.2.1",
         "glob": "^10.3.10",
         "lowdb": "^7.0.1",
+        "preact": "^10.28.1",
         "vscode-jsonrpc": "^8.2.1",
         "vscode-languageserver-types": "^3.17.5",
         "zod": "^4.3.6"
@@ -33,5 +35,22 @@
     },
     "optionalDependencies": {
         "pyright": "^1.1.390"
-    }
+    },
+    "keywords": [
+        "aotui",
+        "agent",
+        "tui",
+        "ide",
+        "lsp"
+    ],
+    "license": "Apache-2.0",
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist",
+        "aoapp.json",
+        "README.md",
+        "LSP_SETUP.md"
+    ]
 }

@@ -4,13 +4,15 @@
  * agentina CLI - Third-Party App Management
  * 
  * 命令:
- *   agentina add <source>     安装 App
+ *   agentina install <source> 安装 App (local/npm)
+ *   agentina search [query]   搜索可安装 App
  *   agentina remove <name>    卸载 App
+ *   agentina uninstall <name> 卸载 App (remove alias)
  *   agentina list             列出已安装
  *   agentina enable <name>    启用 App
  *   agentina disable <name>   禁用 App
  *   agentina autostart <name> <on|off>  设置自动启动
- *   agentina link <path>      链接本地开发目录
+ *   agentina link <path>      链接本地开发目录 (install alias)
  *   agentina run [name]       Run installed apps (or specific app)
  * 
  * @module @aotui/cli
@@ -19,6 +21,11 @@
 import { AppRegistry } from './engine/app/index.js';
 import { createRuntime } from './facades/index.js';
 import * as readline from 'readline';
+import fs from 'fs';
+import { installNpmPackage } from './cli/npm-installer.js';
+import { searchCatalog } from './cli/catalog.js';
+import { parseInstallSource, type ParsedInstallSource } from './cli/sources.js';
+import { resolveCatalog, resolveCatalogOptionsFromConfig } from './cli/catalog-resolver.js';
 
 const HELP = `
 Agentina App Manager
@@ -26,8 +33,11 @@ Agentina App Manager
 Usage: agentina <command> [options]
 
 Commands:
-  link <path>          Link a local app directory
+  install <source>     Install app from local path or npm package
+  search [query]       Search installable apps from catalog
+  link <path>          Link a local app directory (alias of install local)
   remove <name>        Uninstall an app
+  uninstall <name>     Uninstall an app (alias of remove)
   list                 List installed apps
   enable <name>        Enable an app
   disable <name>       Disable an app
@@ -35,16 +45,18 @@ Commands:
   run [name]           Run installed apps (or specific app)
 
 Options:
-  --force              Force link (overwrite existing)
-  --as <alias>         Link with a different name
-  --no-autostart       Link without auto-start
+  --force              Force install (overwrite existing, reinstall when needed)
+  --as <alias>         Install with a different app key
+  --no-autostart       Install without auto-start
   --help               Show help
 
 Examples:
-  agentina link .                     # Link current directory as an app
-  agentina link ./my-app              # Link a local app directory
-  agentina list                       # Show all installed apps
-  agentina run my-app                 # Run a specific app
+  agentina install .                          # Install from local directory
+  agentina install @scope/aotui-weather      # Install from npm
+  agentina search weather                     # Search catalog
+  agentina link ./my-app                      # Dev shortcut for local install
+  agentina list                               # Show all installed apps
+  agentina run my-app                         # Run a specific app
 `;
 
 async function main(): Promise<void> {
@@ -61,7 +73,17 @@ async function main(): Promise<void> {
 
     try {
         switch (command) {
+            case 'install':
+            case 'add':
+                await handleInstall(registry, args.slice(1));
+                break;
+
+            case 'search':
+                await handleSearch(registry, args.slice(1));
+                break;
+
             case 'remove':
+            case 'uninstall':
                 await handleRemove(registry, args.slice(1));
                 break;
 
@@ -104,6 +126,147 @@ async function main(): Promise<void> {
 //  Command Handlers
 // ════════════════════════════════════════════════════════════════
 
+interface ParsedInstallArgs {
+    source: string;
+    force: boolean;
+    alias?: string;
+    autoStart: boolean;
+}
+
+function parseInstallArgs(args: string[], commandName: 'install' | 'link'): ParsedInstallArgs {
+    let force = false;
+    let alias: string | undefined;
+    let autoStart = true;
+    const positional: string[] = [];
+
+    for (let i = 0; i < args.length; i++) {
+        const token = args[i];
+        if (token === '--force') {
+            force = true;
+            continue;
+        }
+        if (token === '--no-autostart') {
+            autoStart = false;
+            continue;
+        }
+        if (token === '--as') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('--')) {
+                throw new Error('Missing alias value after --as');
+            }
+            alias = next;
+            i += 1;
+            continue;
+        }
+        if (token.startsWith('--')) {
+            throw new Error(`Unknown option: ${token}`);
+        }
+        positional.push(token);
+    }
+
+    if (positional.length === 0) {
+        throw new Error(`Usage: agentina ${commandName} <${commandName === 'link' ? 'path' : 'source'}> [--force] [--as <alias>] [--no-autostart]`);
+    }
+
+    return {
+        source: positional[0],
+        force,
+        alias,
+        autoStart
+    };
+}
+
+async function handleSearch(registry: AppRegistry, args: string[]): Promise<void> {
+    const query = args[0];
+    const resolvedCatalog = await resolveCatalog(resolveCatalogOptionsFromConfig(registry.getConfig().catalog));
+    const results = searchCatalog(query, resolvedCatalog.catalog);
+
+    if (results.length === 0) {
+        console.log(query ? `No app found for "${query}".` : 'No app found in catalog.');
+        return;
+    }
+
+    console.log(query ? `Catalog search results for "${query}":` : 'Catalog apps:');
+    console.log(`Source: ${resolvedCatalog.source}${resolvedCatalog.remoteUrl ? ` (${resolvedCatalog.remoteUrl})` : ''}`);
+    if (resolvedCatalog.signatureVerified) {
+        console.log('Trust: signed catalog verified');
+    }
+    for (const warning of resolvedCatalog.warnings) {
+        console.log(`Warning: ${warning}`);
+    }
+    console.log('');
+
+    for (const app of results) {
+        console.log(`- ${app.name} (${app.id})`);
+        console.log(`  Package: ${app.packageName}@${app.latestVersion}`);
+        console.log(`  Description: ${app.description}`);
+        console.log(`  Install: agentina install ${app.packageName}`);
+        console.log('');
+    }
+}
+
+async function handleInstall(registry: AppRegistry, args: string[], forceLocalOnly = false): Promise<void> {
+    const parsed = parseInstallArgs(args, forceLocalOnly ? 'link' : 'install');
+    const resolvedSource = parseInstallSource(parsed.source);
+
+    if (forceLocalOnly && resolvedSource.kind !== 'local') {
+        throw new Error('agentina link only accepts local path');
+    }
+
+    const name = await installAppFromSource(registry, resolvedSource, parsed);
+    if (resolvedSource.kind === 'local') {
+        console.log(`✅ Successfully linked local app: ${name}`);
+        return;
+    }
+    console.log(`✅ Successfully installed npm app: ${name}`);
+}
+
+async function installAppFromSource(
+    registry: AppRegistry,
+    source: ParsedInstallSource,
+    options: ParsedInstallArgs
+): Promise<string> {
+    if (source.kind === 'local') {
+        if (!fs.existsSync(source.absolutePath)) {
+            throw new Error(`Local path does not exist: ${source.absolutePath}`);
+        }
+
+        console.log(`Linking ${source.absolutePath}...`);
+        return registry.add(source.source, {
+            force: options.force,
+            alias: options.alias,
+            autoStart: options.autoStart,
+            originalSource: source.source,
+            distribution: {
+                type: 'local',
+                installedPath: source.absolutePath,
+                installedAt: new Date().toISOString()
+            }
+        });
+    }
+
+    console.log(`Installing ${source.packageSpec} from npm...`);
+    const result = await installNpmPackage(source.packageSpec, {
+        forceReinstall: options.force
+    });
+
+    return registry.add(result.localSource, {
+        force: options.force,
+        alias: options.alias,
+        autoStart: options.autoStart,
+        originalSource: source.source,
+        distribution: {
+            type: 'npm',
+            packageName: result.packageName,
+            requested: result.packageSpec,
+            resolvedVersion: result.resolvedVersion ?? undefined,
+            installRoot: result.installRoot,
+            installedPath: result.installedPath,
+            installedAt: new Date().toISOString()
+        }
+    });
+}
+
 async function handleRemove(registry: AppRegistry, args: string[]): Promise<void> {
     if (args.length === 0) {
         console.error('Usage: agentina remove <name>');
@@ -122,7 +285,7 @@ function handleList(registry: AppRegistry): void {
     if (appNames.length === 0) {
         console.log('No apps installed.');
         console.log('');
-        console.log('Install an app with: tui add <package>');
+        console.log('Install an app with: agentina install <source>');
         return;
     }
 
@@ -147,7 +310,12 @@ function handleList(registry: AppRegistry): void {
         } else {
             console.log(`  ${enabledStatus}${autoStartStatus} ${name} (disabled)`);
         }
-        console.log(`     Source: ${entry.source}`);
+        if (entry.originalSource && entry.originalSource !== entry.source) {
+            console.log(`     Source: ${entry.originalSource}`);
+            console.log(`     Resolved: ${entry.source}`);
+        } else {
+            console.log(`     Source: ${entry.source}`);
+        }
         console.log('');
     }
 
@@ -188,18 +356,7 @@ async function handleAutoStart(registry: AppRegistry, args: string[]): Promise<v
 }
 
 async function handleLink(registry: AppRegistry, args: string[]): Promise<void> {
-    if (args.length === 0) {
-        console.error('Usage: agentina link <path>');
-        process.exit(1);
-    }
-
-    const localPath = args[0];
-    const path = await import('path');
-    const absolutePath = path.resolve(localPath);
-
-    console.log(`Linking ${absolutePath}...`);
-    const name = await registry.add(`local:${absolutePath}`);
-    console.log(`✅ Successfully linked: ${name}`);
+    await handleInstall(registry, args, true);
 }
 
 async function handleRun(registry: AppRegistry, args: string[]): Promise<void> {
