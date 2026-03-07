@@ -47,6 +47,12 @@ export interface InstalledApp {
     /** [RFC-014] 懒加载: Worker 脚本路径 */
     workerScript?: string;
 
+    /** [RFC-025] Reopen 时复用的启动配置 */
+    config?: import('../../spi/app/app-config.interface.js').AppLaunchConfig;
+
+    /** [RFC-005] Reopen 时复用的 Runtime 配置 */
+    runtimeConfig?: import('../../spi/config/index.js').RuntimeConfig;
+
     /** [RFC-014] 消息角色 */
     promptRole?: 'user' | 'assistant';
 }
@@ -170,6 +176,10 @@ export class AppManager {
             html: '',  // 初始为空，之后通过 mirrorDOM 同步
             status: 'running',
             installedAt: Date.now(),
+            modulePath: appModulePath,
+            workerScript: options?.workerScriptPath,
+            config: options?.config,
+            runtimeConfig: options?.runtimeConfig,
             promptRole: options?.promptRole,
         });
 
@@ -209,6 +219,8 @@ export class AppManager {
             installedAt: Date.now(),
             modulePath: options.modulePath,
             workerScript: options.workerScriptPath,
+            config: undefined,
+            runtimeConfig: undefined,
             promptRole: options.promptRole,
         });
 
@@ -229,8 +241,8 @@ export class AppManager {
             return false;
         }
 
-        if (app.status !== 'pending') {
-            console.warn(`[AppManager] App ${appId} is not pending (status: ${app.status})`);
+        if (app.status !== 'pending' && app.status !== 'closed') {
+            console.warn(`[AppManager] App ${appId} is not startable (status: ${app.status})`);
             return false;
         }
 
@@ -244,11 +256,15 @@ export class AppManager {
             appId,
             name: app.name,
             description: app.description,
+            whatItIs: app.whatItIs,
+            whenToUse: app.whenToUse,
             workerScriptPath: app.workerScript,
+            config: app.config,
+            runtimeConfig: app.runtimeConfig,
             promptRole: app.promptRole,
         });
 
-        this.desktop.logSystem(`Started pending app: ${appId}`);
+        this.desktop.logSystem(`Started staged app: ${appId}`);
         return true;
     }
 
@@ -310,15 +326,15 @@ export class AppManager {
      * 打开指定 App (显示已关闭/折叠的 App)
      */
     async openApp(appId: AppID): Promise<void> {
-        // [RFC-014] Check if app is pending and start it
+        // [RFC-014] Check if app is staged (pending/closed) and start it
         const app = this.installedApps.get(appId);
-        if (app?.status === 'pending') {
+        if (app && (app.status === 'pending' || app.status === 'closed')) {
             const started = await this.startPendingApp(appId);
             if (!started) {
-                console.warn(`Failed to start pending app ${appId}`);
+                console.warn(`Failed to start staged app ${appId}`);
                 return;
             }
-            // After start, worker should exist and status should be running
+            return;
         }
 
         const worker = this.workers.get(appId);
@@ -337,15 +353,18 @@ export class AppManager {
     }
 
     /**
-     * 关闭指定 App (隐藏 UI)
+     * 关闭指定 App
+     *
+     * 关闭后会真正释放 Worker，并把 App 从活动 Snapshot/Tool 集合中移除。
+     * 安装元数据会保留，因此后续仍可通过 open_app 重新启动。
      */
     async closeApp(appId: AppID): Promise<void> {
         const worker = this.workers.get(appId);
         if (!worker) return;
 
-
-
-        // [RFC-001 Phase 2] UI logic should be handled by Frontend/Product layer based on app status
+        await worker.close();
+        worker.dispose();
+        this.workers.delete(appId);
 
         const app = this.installedApps.get(appId);
         if (app) app.status = 'closed';

@@ -164,6 +164,31 @@ describe('AppManager', () => {
         it('对不存在的 App 静默返回', async () => {
             await expect(manager.closeApp('nonexistent_app' as AppID)).resolves.toBeUndefined();
         });
+
+        it('应该真正关闭 worker 并将 app 标记为 closed', async () => {
+            const appId = 'app_0' as AppID;
+            const worker = {
+                close: vi.fn().mockResolvedValue(undefined),
+                dispose: vi.fn(),
+            };
+
+            (manager as any).installedApps.set(appId, {
+                appId,
+                name: 'ide',
+                html: '',
+                status: 'running',
+                installedAt: Date.now(),
+                modulePath: '/path/to/module',
+            });
+            (manager as any).workers.set(appId, worker);
+
+            await manager.closeApp(appId);
+
+            expect(worker.close).toHaveBeenCalledTimes(1);
+            expect(worker.dispose).toHaveBeenCalledTimes(1);
+            expect(manager.getAllWorkers().has(appId)).toBe(false);
+            expect(manager.getInstalledApps()[0]?.status).toBe('closed');
+        });
     });
 
     describe('collapseApp', () => {
@@ -226,6 +251,38 @@ describe('AppManager', () => {
             installSpy.mockRestore();
         });
 
+        it('openApp 应该自动重新启动 closed 状态的 App', async () => {
+            const installSpy = vi.spyOn(manager, 'install').mockResolvedValue('app_0' as any);
+
+            const appId = manager.registerPendingApp({
+                name: 'lazy-app',
+                modulePath: '/path/to/module',
+                workerScriptPath: '/path/to/worker',
+            });
+
+            const installedApp = manager.getInstalledApps()[0]!;
+            installedApp.status = 'closed';
+            installedApp.whatItIs = 'IDE';
+            installedApp.whenToUse = 'Use for code';
+            installedApp.config = { projectPath: '/repo' };
+
+            await manager.openApp(appId);
+
+            expect(installSpy).toHaveBeenCalledWith('/path/to/module', {
+                appId,
+                name: 'lazy-app',
+                description: undefined,
+                whatItIs: 'IDE',
+                whenToUse: 'Use for code',
+                workerScriptPath: '/path/to/worker',
+                config: { projectPath: '/repo' },
+                runtimeConfig: undefined,
+                promptRole: undefined,
+            });
+
+            installSpy.mockRestore();
+        });
+
         it('startPendingApp 应该启动 App 并更新状态', async () => {
             // Mock install 方法
             const installSpy = vi.spyOn(manager, 'install').mockResolvedValue('app_0' as any);
@@ -249,7 +306,7 @@ describe('AppManager', () => {
             installSpy.mockRestore();
         });
 
-        it('startPendingApp 对非 pending App 应返回 false', async () => {
+        it('startPendingApp 对非 staged App 应返回 false', async () => {
             const result = await manager.startPendingApp('nonexistent' as any);
             expect(result).toBe(false);
         });
