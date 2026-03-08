@@ -7,6 +7,7 @@ backup
 context-compact-migration
 multi-im-migration-report
 openclaw
+.DS_Store
 
 # Python
 **/__pycache__/
