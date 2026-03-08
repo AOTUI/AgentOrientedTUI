@@ -71,33 +71,6 @@ export class Kernel implements IKernel {
         });
     }
 
-    private buildSystemToolIndexMap(): Record<string, unknown> {
-        const indexMap: Record<string, unknown> = {};
-
-        for (const tool of this.getSystemToolDefinitions()) {
-            const fn = (tool as Tool).function;
-            if (!fn?.name) {
-                continue;
-            }
-
-            const properties = fn.parameters?.properties ?? {};
-            const required = new Set(fn.parameters?.required ?? []);
-
-            indexMap[`tool:${fn.name}`] = {
-                description: fn.description,
-                params: Object.entries(properties).map(([name, schema]) => ({
-                    name,
-                    type: schema.type,
-                    required: required.has(name),
-                    description: schema.description,
-                    options: Array.isArray(schema.enum) ? schema.enum : undefined,
-                })),
-            };
-        }
-
-        return indexMap;
-    }
-
     /**
      * Creates a new Desktop instance with a clean state.
      * The Desktop is immediately registered and ready for app installation.
@@ -194,14 +167,10 @@ export class Kernel implements IKernel {
 
         // Desktop implements IDesktopMetadata (getInstalledApps, getSystemLogs, etc.)
         const result = formatter.format(fragments, desktop as any);
-        const indexMap = {
-            ...result.indexMap,
-            ...this.buildSystemToolIndexMap(),
-        };
 
         // [RFC-014] Pass structured output to Registry
         return this.snapshotRegistry.create(
-            indexMap as any,
+            result.indexMap as any,
             result.markup,
             ttl,
             result.structured

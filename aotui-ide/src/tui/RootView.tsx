@@ -152,6 +152,22 @@ export function RootView({
     const index = activeFiles.indexOf(filePath);
     return index >= 0 ? `fd_${index}` : undefined;
   };
+  const isPathInWorkspaceFolders = (targetPath: string) => {
+    if (!path.isAbsolute(targetPath)) {
+      return false;
+    }
+
+    const normalizedTarget = path.resolve(targetPath);
+    return workspaceFolders.some((folderPath) => {
+      if (!path.isAbsolute(folderPath)) {
+        return false;
+      }
+
+      const normalizedFolder = path.resolve(folderPath);
+      const relativePath = path.relative(normalizedFolder, normalizedTarget);
+      return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+    });
+  };
 
   /**
    * File Content View Tools
@@ -1157,6 +1173,7 @@ WHEN TO USE:
 
 HOW TO USE:
 - Provide array of absolute directory paths
+- Each path must be under an opened workspace folder
 - Each directory expanded independently
 - Errors for individual directories don't stop others
 - Directory tree updated in Snapshot
@@ -1174,6 +1191,13 @@ You call: multi_open_dirs({ dirPaths: ["/home/user/project/src", "/home/user/pro
     })
   }, async ({ dirPaths }: { dirPaths: string[] }) => {
     try {
+      if (workspaceFolders.length === 0) {
+        return {
+          success: false,
+          error: { code: 'NO_WORKSPACE', message: 'No workspace folders. Use add_folder_to_workspace first.' }
+        };
+      }
+
       const paths = dirPaths as string[];
       let expanded = 0;
       let failed = 0;
@@ -1185,15 +1209,21 @@ You call: multi_open_dirs({ dirPaths: ["/home/user/project/src", "/home/user/pro
             failed++;
             continue;
           }
+          if (!isPathInWorkspaceFolders(dirPath)) {
+            failed++;
+            continue;
+          }
+
+          const normalizedDirPath = path.resolve(dirPath);
 
           // 使用 fileSystemService 检查是否为目录
-          const content = await fileSystemService.listDirectory(dirPath, {
+          await fileSystemService.listDirectory(normalizedDirPath, {
             ignore: [],
             expandedDirs: new Set(),
             showExpandedMark: false
           });
           // 如果能成功列出目录,说明是有效目录
-          validPaths.push(dirPath);
+          validPaths.push(normalizedDirPath);
           expanded++;
         } catch {
           failed++;
@@ -1216,7 +1246,7 @@ You call: multi_open_dirs({ dirPaths: ["/home/user/project/src", "/home/user/pro
     } catch (error) {
       return { success: false, error: { code: 'MULTI_OPEN_ERROR', message: (error as Error).message } };
     }
-  });
+  }, { enabled: workspaceFolders.length > 0 });
 
   const [MultiCloseDirsUI] = useViewTypeTool('Workspace', 'multi_close_dirs', {
     description: `Collapse multiple directories at once.
@@ -1496,7 +1526,7 @@ You call: refresh_workspace({})`,
           <section data-category="directory-tools">
             <h3>Directory Tools</h3>
             <ul>
-              <li><MultiOpenDirsUI>Expand Multiple Directories</MultiOpenDirsUI></li>
+              {workspaceFolders.length > 0 && <li><MultiOpenDirsUI>Expand Multiple Directories</MultiOpenDirsUI></li>}
               <li><MultiCloseDirsUI>Collapse Multiple Directories</MultiCloseDirsUI></li>
             </ul>
           </section>

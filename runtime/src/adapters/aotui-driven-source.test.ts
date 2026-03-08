@@ -56,6 +56,7 @@ describe('AOTUIDrivenSource type tool routing', () => {
                 markup: '# legacy',
                 structured: {
                     desktopState: 'desktop-state',
+                    desktopTimestamp: 150,
                     appStates: [
                         { appId: 'app_1', appName: 'system_ide', markup: 'IDE MARKUP', timestamp: 101 },
                         { appId: 'app_2', appName: 'notes', markup: 'NOTES MARKUP', timestamp: 102 },
@@ -134,6 +135,7 @@ describe('AOTUIDrivenSource type tool routing', () => {
                 createdAt: 100,
                 structured: {
                     desktopState: 'desktop-state',
+                    desktopTimestamp: 110,
                     appStates: [
                         { appId: 'app_1', appName: 'system_ide', markup: 'IDE MARKUP', timestamp: 101 },
                     ],
@@ -173,6 +175,42 @@ describe('AOTUIDrivenSource type tool routing', () => {
 
         const result = await source.executeTool('app_1.editor.open_file', {}, 'call_3');
         expect(result?.error?.code).toBe('E_SOURCE_DISABLED');
+    });
+
+    it('uses structured.desktopTimestamp for desktop state messages', async () => {
+        const kernel = {
+            acquireSnapshot: vi.fn().mockResolvedValue({
+                id: 'snap_desktop_ts',
+                createdAt: 100,
+                structured: {
+                    desktopState: 'desktop-state',
+                    desktopTimestamp: 999,
+                    appStates: [
+                        { appId: 'app_1', appName: 'system_ide', markup: 'IDE MARKUP', timestamp: 101 },
+                    ],
+                },
+                indexMap: {},
+            }),
+            releaseSnapshot: vi.fn(),
+            acquireLock: vi.fn(),
+            releaseLock: vi.fn(),
+            execute: vi.fn(),
+            getSystemToolDefinitions: vi.fn().mockReturnValue([]),
+        } as any;
+
+        const desktop = {
+            id: 'desktop_desktop_ts',
+            output: {
+                subscribe: vi.fn(),
+                unsubscribe: vi.fn(),
+            },
+        } as any;
+
+        const source = new AOTUIDrivenSource(desktop, kernel);
+        const messages = await source.getMessages();
+        const desktopMessage = messages.find((message) => message.content === 'desktop-state');
+
+        expect(desktopMessage?.timestamp).toBe(999);
     });
 
     it('supplements only externally exposed system tools', async () => {

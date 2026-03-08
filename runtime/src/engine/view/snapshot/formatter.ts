@@ -159,6 +159,7 @@ export class SnapshotFormatter implements ISnapshotFormatter {
         const structured: StructuredSnapshot = {
             systemInstruction: SYSTEM_INSTRUCTION_PURE,
             desktopState: this.buildDesktopStateOnly(metadata),
+            desktopTimestamp: this.computeDesktopTimestamp(metadata, appStates, viewStates),
             appStates,
             viewStates,
         };
@@ -206,6 +207,31 @@ export class SnapshotFormatter implements ISnapshotFormatter {
 ${logsMarkup}
 
 </desktop>`;
+    }
+
+    private computeDesktopTimestamp(
+        metadata: IDesktopMetadata,
+        _appStates: ReadonlyArray<AppStateFragment>,
+        _viewStates: ReadonlyArray<ViewStateFragment>
+    ): number | undefined {
+        const candidates: number[] = [];
+
+        try {
+            const logs = metadata.getSystemLogs(this.systemLogLimit);
+            for (const log of logs) {
+                if (typeof log.timestamp === 'number') {
+                    candidates.push(log.timestamp);
+                }
+            }
+        } catch {
+            // Graceful degradation: desktop timestamp is best-effort metadata.
+        }
+
+        if (candidates.length === 0) {
+            return undefined;
+        }
+
+        return Math.max(...candidates);
     }
 
     /**
