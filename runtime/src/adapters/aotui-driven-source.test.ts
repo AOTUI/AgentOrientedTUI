@@ -175,6 +175,64 @@ describe('AOTUIDrivenSource type tool routing', () => {
         expect(result?.error?.code).toBe('E_SOURCE_DISABLED');
     });
 
+    it('supplements only externally exposed system tools', async () => {
+        const kernel = {
+            acquireSnapshot: vi.fn().mockResolvedValue({
+                id: 'snap_system_tools',
+                indexMap: {},
+            }),
+            releaseSnapshot: vi.fn(),
+            acquireLock: vi.fn(),
+            releaseLock: vi.fn(),
+            execute: vi.fn(),
+            getSystemToolDefinitions: vi.fn().mockReturnValue([
+                {
+                    type: 'function',
+                    function: {
+                        name: 'system-open_app',
+                        description: 'Open an app',
+                        parameters: {
+                            type: 'object',
+                            properties: {
+                                app_id: { type: 'string', description: 'Application ID' },
+                            },
+                            required: ['app_id'],
+                        },
+                    },
+                },
+                {
+                    type: 'function',
+                    function: {
+                        name: 'system-close_app',
+                        description: 'Close an app',
+                        parameters: {
+                            type: 'object',
+                            properties: {
+                                app_id: { type: 'string', description: 'Application ID' },
+                            },
+                            required: ['app_id'],
+                        },
+                    },
+                },
+            ]),
+        } as any;
+
+        const desktop = {
+            id: 'desktop_tools',
+            output: {
+                subscribe: vi.fn(),
+                unsubscribe: vi.fn(),
+            },
+        } as any;
+
+        const source = new AOTUIDrivenSource(desktop, kernel, { includeInstruction: false });
+        const tools = await source.getTools();
+
+        expect(Object.keys(tools)).toContain('system-open_app');
+        expect(Object.keys(tools)).toContain('system-close_app');
+        expect(Object.keys(tools)).not.toContain('system-dismount_view');
+    });
+
     it('emits view-level messages when structured.viewStates exists', async () => {
         const kernel = {
             acquireSnapshot: vi.fn().mockResolvedValue({

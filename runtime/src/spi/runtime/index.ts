@@ -16,6 +16,8 @@ export type {
     IRegistry,
     IKernel,
     ShutdownOptions,
+    ReinitializeDesktopAppsOptions,
+    ReinitializeDesktopAppsResult,
 } from './kernel.interface.js';
 
 // ============================================================================
@@ -129,4 +131,3 @@ export type {
 // LLM Output Channel Service Interface (RFC-011)
 // ============================================================================
 export type { ILLMOutputChannelService } from './llm-output-channel.interface.js';
-

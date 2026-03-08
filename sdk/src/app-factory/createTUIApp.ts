@@ -16,6 +16,7 @@ import type {
     IAOTUIApp,
     IView,
     AppKernelConfig,
+    AppReinitializeContext,
     AppOperationHandler,
     SignalPolicy,
     RuntimeContext,
@@ -64,6 +65,9 @@ export interface TUIAppConfig {
 
     /** App删除时的清理回调 (可选) */
     onDelete?: (context: AppContext) => Promise<void>;
+
+    /** App 重新初始化时的清理回调 (可选) */
+    onReinitialize?: (context: AppReinitializeContext) => Promise<void> | void;
 
     /** App启动配置 (可选,传递给组件) */
     launchConfig?: Record<string, any>;
@@ -142,6 +146,7 @@ export function createTUIApp(config: TUIAppConfig): TUIComponentAppFactory {
         component: undefined as any, // 将在下面的返回对象中被覆盖
         onOperation: config.onOperation,
         onDelete: config.onDelete,
+        onReinitialize: config.onReinitialize,
         launchConfig: config.launchConfig,
         signalPolicy: config.signalPolicy,
     };

@@ -83,7 +83,6 @@ Agent: First call 'create_todo', WAIT for result, then call 'mark_done'
 |-----------|-------------|
 | \`system-open_app\` | Need an app that's not currently open |
 | \`system-close_app\` | Done with an app, free context space |
-| \`system-dismount_view\` | Remove a specific view to reduce clutter |
 
 ### Tone and Style
 
@@ -262,7 +261,6 @@ IMPORTANT: Never skip the WAIT step. An idle agent should be waiting, not output
 |-----------|------------|-------------|
 | 'system-open_app' | '{ application: "app_id" }' | Need an app that's not currently open |
 | 'system-close_app' | '{ application: "app_id" }' | Done with an app, free context space |
-| 'system-dismount_view' | '{ app_id: "id", view_id: "id" }' | Remove a specific view |
 
 # TUI Structure Reference
 
@@ -309,9 +307,10 @@ export function formatTimestamp(timestamp: number): string {
 /**
  * Format application status for TUI display
  */
-export function formatAppStatus(status: 'pending' | 'running' | 'closed' | 'collapsed'): string {
+export function formatAppStatus(status: 'pending' | 'running' | 'paused' | 'closed' | 'collapsed'): string {
   switch (status) {
     case 'running': return 'running';
+    case 'paused': return 'paused';
     case 'pending': return 'available (not started)';
     case 'closed': return 'not launched';
     case 'collapsed': return 'minimized';

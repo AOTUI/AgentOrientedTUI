@@ -22,34 +22,40 @@ export function RootView({
 }: RootViewProps) {
     const terminalIds = terminals.map(terminal => terminal.id).join(', ') || 'None';
     const hasTerminals = terminals.length > 0;
-    const [CloseTerminalTool] = useViewTypeTool(
-        'Terminal',
-        'close_terminal',
+    const [CloseTerminalsTool] = useViewTypeTool(
+        'TerminalConsole',
+        'close_terminals',
         {
-            description: `WHEN TO USE: Close an existing terminal session.
-HOW TO USE: Provide a Terminal reference id (type: Terminal).`,
+            description: `WHEN TO USE: Close one or more existing terminal sessions.
+HOW TO USE: Provide one or more Terminal reference ids (type: Terminal).`,
             params: defineParams({
-                terminal: { type: 'reference', refType: 'Terminal', required: true, desc: 'Terminal ref id' }
+                terminals: { type: 'array', itemType: 'reference', refType: 'Terminal', required: true, desc: 'Terminal ref ids to close' }
             })
         },
-        async (args: { terminal: ToolTerminalArg }) => {
-            const terminalId = args.terminal?.id ?? null;
-            if (!terminalId) {
-                return { success: false, error: { code: 'TERMINAL_NOT_FOUND', message: 'Terminal reference is required.' } };
+        async (args) => {
+            const terminals = (args.terminals as ToolTerminalArg[]);
+            if (!terminals?.length) {
+                return { success: false, error: { code: 'TERMINAL_NOT_FOUND', message: 'At least one Terminal reference is required.' } };
             }
-
-            const closed = onCloseTerminal(terminalId);
-            if (!closed) {
-                return { success: false, error: { code: 'TERMINAL_NOT_FOUND', message: 'Terminal not found' } };
+            const closed: string[] = [];
+            const notFound: string[] = [];
+            for (const t of terminals) {
+                const terminalId = t?.id;
+                if (!terminalId) { notFound.push('unknown'); continue; }
+                if (onCloseTerminal(terminalId)) { closed.push(terminalId); }
+                else { notFound.push(terminalId); }
             }
-            return { success: true, data: { message: `Terminal closed (${terminalId}).` } };
+            if (closed.length === 0) {
+                return { success: false, error: { code: 'TERMINAL_NOT_FOUND', message: `No terminals found: ${notFound.join(', ')}` } };
+            }
+            return { success: true, data: { message: `Closed: ${closed.join(', ')}.${notFound.length ? ` Not found: ${notFound.join(', ')}` : ''}` } };
         },
         { enabled: hasTerminals }
     );
 
     const [SendCommandTool] = useViewTypeTool(
-        'Terminal',
-        'send_command',
+        'TerminalConsole',
+        'send_command_to_exist_terminal',
         {
             description: `WHEN TO USE: Execute a command in an existing terminal.
 HOW TO USE: Provide terminal reference and command.`,
@@ -75,7 +81,7 @@ HOW TO USE: Provide terminal reference and command.`,
 
     const [SendCommandNewTerminalTool] = useViewTypeTool(
         'TerminalConsole',
-        'send_command_new_terminal',
+        'new_terminal_and_send_command',
         {
             description: `WHEN TO USE: Create a new terminal and execute a command immediately.
 HOW TO USE: Provide command.`,
@@ -103,7 +109,7 @@ HOW TO USE: Provide command.`,
 HOW TO USE: Provide terminal reference and tail_lines.`,
             params: defineParams({
                 terminal: { type: 'reference', refType: 'Terminal', required: true, desc: 'Terminal ref id' },
-                tail_lines: { type: 'number', required: true, desc: 'Number of lines to show' }
+                tail_lines: { type: 'number', required: true, desc: 'Number of additional lines to load' }
             })
         },
         async (args: { terminal: ToolTerminalArg; tail_lines: number }) => {
@@ -116,7 +122,7 @@ HOW TO USE: Provide terminal reference and tail_lines.`,
             if (!updated) {
                 return { success: false, error: { code: 'TERMINAL_NOT_FOUND', message: 'Terminal not found' } };
             }
-            return { success: true, data: { message: `Output tail set to ${args.tail_lines}.`, terminal_id: terminalId } };
+            return { success: true, data: { message: `Loaded ${args.tail_lines} more lines of output.`, terminal_id: terminalId } };
         },
         { enabled: hasTerminals }
     );
@@ -148,6 +154,8 @@ HOW TO USE: Provide terminal reference and tail_lines.`,
                     <h4>Terminal Console Available Tools</h4>
                     <ul>
                         <li><SendCommandNewTerminalTool /></li>
+                        {hasTerminals && <li><CloseTerminalsTool /></li>}
+                        {hasTerminals && <li><SendCommandTool /></li>}
                     </ul>
                     {hasTerminals && (
                         <>
@@ -156,8 +164,6 @@ HOW TO USE: Provide terminal reference and tail_lines.`,
                             <p>Shows command history, current directory, current command status, and output tail.</p>
                             <h4>Terminal View Available Tools</h4>
                             <ul>
-                                <li><CloseTerminalTool /></li>
-                                <li><SendCommandTool /></li>
                                 <li><LoadMoreOutputTool /></li>
                             </ul>
                         </>
@@ -177,13 +183,13 @@ HOW TO USE: Provide terminal reference and tail_lines.`,
                     <h2>Terminal Console Tools</h2>
                     <ul>
                         <li><SendCommandNewTerminalTool /></li>
+                        {hasTerminals && <li><CloseTerminalsTool /></li>}
+                        {hasTerminals && <li><SendCommandTool /></li>}
                     </ul>
                     {hasTerminals && (
                         <>
                             <h2>Terminal Tools</h2>
                             <ul>
-                                <li><CloseTerminalTool /></li>
-                                <li><SendCommandTool /></li>
                                 <li><LoadMoreOutputTool /></li>
                             </ul>
                         </>

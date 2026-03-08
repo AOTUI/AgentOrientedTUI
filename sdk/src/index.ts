@@ -164,6 +164,7 @@ export type {
 
 // [P0 FIX] Re-export LLM Output Channel types for App developers
 export type { LLMOutputEvent, LLMOutputListener } from "@aotui/runtime/spi";
+export type { AppReinitializeContext } from "@aotui/runtime/spi";
 
 // ─────────────────────────────────────────────────────────────
 //  Adapter (Component Mode Only)

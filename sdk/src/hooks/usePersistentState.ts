@@ -9,12 +9,28 @@ type PersistOptions<T> = {
   storageKey?: string;
   serialize?: (value: T) => unknown;
   deserialize?: (value: unknown) => T;
+  rehydrateOnReinitialize?: boolean;
 };
 
 type PersistMeta = {
   ready: boolean;
   clear: () => Promise<void>;
 };
+
+export type AOTUILifecycleMetadata = {
+  startupKind?: "normal" | "reinitialize";
+  reason?: string;
+};
+
+export function shouldHydratePersistentState(
+  lifecycle: AOTUILifecycleMetadata | undefined,
+  options: Pick<PersistOptions<unknown>, "rehydrateOnReinitialize"> = {}
+): boolean {
+  if (lifecycle?.startupKind === "reinitialize") {
+    return options.rehydrateOnReinitialize === true;
+  }
+  return true;
+}
 
 function sanitizeSegment(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -105,6 +121,7 @@ export function usePersistentState<T>(
   const { appId, desktopId } = useAppRuntimeContext();
   const dataDir = useAppEnv<string>("AOTUI_DATA_DIR");
   const appKeyFromEnv = useAppEnv<string>("AOTUI_APP_KEY") || useAppEnv<string>("AOTUI_APP_NAME");
+  const lifecycle = useAppEnv<AOTUILifecycleMetadata>("__aotuiLifecycle");
   const appKey = options.storageKey || appKeyFromEnv || String(appId);
 
   const [state, setState] = useState<T>(initial);
@@ -130,14 +147,16 @@ export function usePersistentState<T>(
     const load = async () => {
       const filePath = await resolveStoragePath(dataDir, String(desktopId), appKey, key);
       filePathRef.current = filePath;
-      const rawValue = await readJson(filePath);
-      if (cancelled) {
-        return;
-      }
-      if (rawValue !== undefined) {
-        const normalizedRaw = unwrapLegacyValue(rawValue);
-        const value = deserializeRef.current ? deserializeRef.current(normalizedRaw) : (normalizedRaw as T);
-        setState(value);
+      if (shouldHydratePersistentState(lifecycle, options)) {
+        const rawValue = await readJson(filePath);
+        if (cancelled) {
+          return;
+        }
+        if (rawValue !== undefined) {
+          const normalizedRaw = unwrapLegacyValue(rawValue);
+          const value = deserializeRef.current ? deserializeRef.current(normalizedRaw) : (normalizedRaw as T);
+          setState(value);
+        }
       }
       setReady(true);
     };
@@ -147,7 +166,7 @@ export function usePersistentState<T>(
     return () => {
       cancelled = true;
     };
-  }, [dataDir, desktopId, appKey, key]);
+  }, [dataDir, desktopId, appKey, key, lifecycle?.startupKind, options.rehydrateOnReinitialize]);
 
   // Register with PersistenceManager for shutdown-only persistence
   useEffect(() => {

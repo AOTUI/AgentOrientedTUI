@@ -120,6 +120,9 @@ parentPort?.on('message', async (msg: MainToWorkerMessage) => {
             case 'APP_SHUTDOWN':
                 await handleAppShutdown(msg.requestId);
                 break;
+            case 'APP_REINITIALIZE':
+                await handleAppReinitialize(msg.requestId, msg.reason);
+                break;
             case 'APP_CLOSE':
                 await handleAppClose(msg.requestId);
                 break;
@@ -164,7 +167,7 @@ parentPort?.on('message', async (msg: MainToWorkerMessage) => {
 // ============================================================================
 
 async function handleReset(requestId: RequestID): Promise<void> {
-    console.log(`[Worker] Resetting worker state for reuse...`);
+    // console.log(`[Worker] Resetting worker state for reuse...`);
 
     // 1. 停止 DOM 观察
     if (domObserver) {
@@ -199,7 +202,7 @@ async function handleReset(requestId: RequestID): Promise<void> {
     desktopId = createDesktopId('');
     isDirty = false;
 
-    console.log(`[Worker] Worker state reset complete`);
+    // console.log(`[Worker] Worker state reset complete`);
 
     // 发送响应
     parentPort?.postMessage({
@@ -219,17 +222,17 @@ async function handleInit(msg: InitMessage): Promise<void> {
     appId = msg.appId;
     desktopId = msg.desktopId;
     if (!hasLoggedLinkedOM) {
-        console.log('[Worker] LinkedOM initialized');
+        // console.log('[Worker] LinkedOM initialized');
         hasLoggedLinkedOM = true;
     }
 
     // [重构] 不再使用 globalThis，config 将通过 AppKernel 构造函数传递
     const launchConfig = msg.config;
     if (launchConfig) {
-        console.log(`[Worker] App config received:`, launchConfig);
+        // console.log(`[Worker] App config received:`, launchConfig);
     }
 
-    console.log(`[Worker] Initializing app ${appId} from ${msg.appModulePath}`);
+    // console.log(`[Worker] Initializing app ${appId} from ${msg.appModulePath}`);
 
     // 动态加载 App 模块
     try {
@@ -245,7 +248,7 @@ async function handleInit(msg: InitMessage): Promise<void> {
         if (factory?.kernelConfig) {
             // 新模式: 使用 kernelConfig 在 Worker Runtime 中实例化 AppKernel
             // [重构] 将 launchConfig 注入到 kernelConfig 中
-            console.log('[Worker] Using kernelConfig mode (方案 B)');
+            // console.log('[Worker] Using kernelConfig mode (方案 B)');
             const configWithLaunch = {
                 ...factory.kernelConfig,
                 launchConfig,  // 注入运行时配置
@@ -254,7 +257,7 @@ async function handleInit(msg: InitMessage): Promise<void> {
             // [RFC-012] 读取 signalPolicy
             if (factory.kernelConfig.signalPolicy) {
                 signalPolicy = factory.kernelConfig.signalPolicy;
-                console.log(`[Worker] SignalPolicy set to: ${signalPolicy}`);
+                // console.log(`[Worker] SignalPolicy set to: ${signalPolicy}`);
             }
 
             app = new AppKernel(configWithLaunch);
@@ -284,10 +287,10 @@ async function handleInit(msg: InitMessage): Promise<void> {
         document.body.appendChild(appContainer as unknown as Node);
 
         // [RFC-002] Global ref registry loading removed in favor of AppKernel export
-        console.log('[Worker] App initialized via AppKernel');
+        // console.log('[Worker] App initialized via AppKernel');
 
         sendResponse(msg.requestId, 'INIT_RESPONSE', true);
-        console.log(`[Worker] App ${appId} initialized`);
+        // console.log(`[Worker] App ${appId} initialized`);
     } catch (error) {
         sendError(msg.requestId, 'E_INIT_FAILED', String(error));
     }
@@ -319,7 +322,7 @@ async function handleAppOpen(requestId: RequestID): Promise<void> {
             // Check if a deferred render was requested during the render phase
             if (needsRerender) {
                 needsRerender = false;
-                console.log('[Worker] Deferred render scheduled (update during render)');
+                // console.log('[Worker] Deferred render scheduled (update during render)');
                 // Use queueMicrotask to break the synchronous call chain
                 queueMicrotask(() => scheduleRender());
             }
@@ -331,7 +334,7 @@ async function handleAppOpen(requestId: RequestID): Promise<void> {
         desktopId,
 
         markDirty: () => {
-            console.log('[Worker] AppContext.markDirty() called, isRendering:', isRendering);
+            // console.log('[Worker] AppContext.markDirty() called, isRendering:', isRendering);
             isDirty = true;
 
             // If currently rendering, defer the re-render
@@ -342,19 +345,19 @@ async function handleAppOpen(requestId: RequestID): Promise<void> {
 
             // Not in render phase - schedule render normally
             if (renderCallback) {
-                console.log('[Worker] Calling scheduleRender()');
+                // console.log('[Worker] Calling scheduleRender()');
                 scheduleRender();
             }
         },
         onRender: (callback: () => void) => {
-            console.log('[Worker] onRender callback registered');
+            // console.log('[Worker] onRender callback registered');
             renderCallback = callback;
         },
     };
 
     await app.onOpen(context, appContainer);
 
-    console.log('[Worker] After onOpen, appContainer.innerHTML:', appContainer.innerHTML.slice(0, 200));
+    // console.log('[Worker] After onOpen, appContainer.innerHTML:', appContainer.innerHTML.slice(0, 200));
 
     // [Worker-Only] 启动 DOM 观察并推送初始状态
     startDomObserver();
@@ -381,6 +384,21 @@ async function handleAppResume(requestId: RequestID): Promise<void> {
 async function handleAppClose(requestId: RequestID): Promise<void> {
     if (app) {
         await app.onClose();
+    }
+    sendResponse(requestId, 'LIFECYCLE_RESPONSE', true);
+}
+
+async function handleAppReinitialize(requestId: RequestID, _reason?: string): Promise<void> {
+    if (app?.onReinitialize) {
+        await app.onReinitialize({
+            appId,
+            desktopId,
+            markDirty: () => {
+                isDirty = true;
+            },
+            onRender: () => {},
+            reason: _reason,
+        });
     }
     sendResponse(requestId, 'LIFECYCLE_RESPONSE', true);
 }
@@ -569,7 +587,7 @@ function handleLLMTextPush(msg: {
     }
 }): void {
     const totalLength = (msg.reasoning?.length ?? 0) + (msg.content?.length ?? 0);
-    console.log(`[Worker] Received LLM_OUTPUT_PUSH, total length: ${totalLength}`);
+    // console.log(`[Worker] Received LLM_OUTPUT_PUSH, total length: ${totalLength}`);
 
     if (!appContainer) {
         console.warn('[Worker] Cannot dispatch LLM text: appContainer not initialized');
@@ -590,7 +608,7 @@ function handleLLMTextPush(msg: {
         }
     });
     appContainer.dispatchEvent(event);
-    console.log('[Worker] LLM text event dispatched');
+    // console.log('[Worker] LLM text event dispatched');
 }
 
 
@@ -631,7 +649,7 @@ function startDomObserver(): void {
         characterData: true,
     });
 
-    console.log(`[Worker] DOM observer started for ${appId}, signalPolicy: ${signalPolicy}`);
+    // console.log(`[Worker] DOM observer started for ${appId}, signalPolicy: ${signalPolicy}`);
 }
 
 /**
@@ -688,7 +706,7 @@ function pushSnapshotFragment(): void {
         const refCount = Object.keys(refIndexMap).length;
         if (refCount > 0) {
             finalIndexMap = { ...transformerIndexMap, ...refIndexMap } as typeof transformerIndexMap;
-            console.log(`[Worker] Merged ${refCount} refs from Registry into IndexMap`);
+            // console.log(`[Worker] Merged ${refCount} refs from Registry into IndexMap`);
         }
     }
 
@@ -707,9 +725,9 @@ function pushSnapshotFragment(): void {
     let typeToolsMarkdown: string | undefined;
     if (kernel?.getAllTypeTools) {
         const allTypeTools = kernel.getAllTypeTools();
-        console.log('[Worker] Type Tools from AppKernel:', Array.from(allTypeTools.entries()).map(([type, tools]) => `${type}: ${tools.length} tools`));
+        // console.log('[Worker] Type Tools from AppKernel:', Array.from(allTypeTools.entries()).map(([type, tools]) => `${type}: ${tools.length} tools`));
         typeToolsMarkdown = renderTypeTools(allTypeTools);
-        console.log('[Worker] Type Tools Markdown length:', typeToolsMarkdown?.length || 0);
+        // console.log('[Worker] Type Tools Markdown length:', typeToolsMarkdown?.length || 0);
 
         // [RFC-020] Export Type Tools to IndexMap for AgentDriver discovery
         // AgentDriver uses generateToolsFromIndexMap to find tools
@@ -747,12 +765,12 @@ function pushSnapshotFragment(): void {
                 };
             }
         }
-        console.log(`[Worker] Exported ${Object.keys(finalIndexMap).length - Object.keys(transformerIndexMap).length} tools/refs to IndexMap`);
+        // console.log(`[Worker] Exported ${Object.keys(finalIndexMap).length - Object.keys(transformerIndexMap).length} tools/refs to IndexMap`);
     } else {
-        console.log('[Worker] ⚠️  AppKernel.getAllTypeTools not available');
+        // console.log('[Worker] ⚠️  AppKernel.getAllTypeTools not available');
     }
 
-    console.log('[Worker] pushSnapshotFragment, markup length:', markup.length, 'indexMap keys:', Object.keys(finalIndexMap).length);
+    // console.log('[Worker] pushSnapshotFragment, markup length:', markup.length, 'indexMap keys:', Object.keys(finalIndexMap).length);
     parentPort?.postMessage({
         type: 'SNAPSHOT_FRAGMENT',
         appId,
@@ -913,4 +931,4 @@ function renderTypeTools(
     return markdown;
 }
 
-console.log('[Worker] Runtime started, waiting for messages...');
+// console.log('[Worker] Runtime started, waiting for messages...');

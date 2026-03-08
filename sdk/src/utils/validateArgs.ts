@@ -288,6 +288,10 @@ function isBaseTypeMatch(actual: string, expected: ParamBaseType): boolean {
     // object type should match plain objects, not null or array
     return actual === "object";
   }
+  if (expected === "reference") {
+    // reference can be a raw string (LLM-provided ref id) or a resolved object
+    return actual === "string" || actual === "object";
+  }
   return actual === expected;
 }
 

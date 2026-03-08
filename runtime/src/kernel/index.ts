@@ -21,11 +21,14 @@ import type {
     IDispatcher,
     OperationLogScope,
     IRuntimeContext, // New
+    ReinitializeDesktopAppsOptions,
+    ReinitializeDesktopAppsResult,
 } from '../spi/index.js';
 
 import { AOTUIError, failedResult } from '../spi/core/errors.js';
 import { createOperationId } from '../spi/core/id-factory.js';
 import { buildOperationLogEntry } from '../engine/core/operation-log-formatter.js';
+import type { Tool } from '../spi/core/tool-call.js';
 
 /**
  * Kernel - The core orchestrator of the AOTUI Runtime.
@@ -48,6 +51,11 @@ import { buildOperationLogEntry } from '../engine/core/operation-log-formatter.j
  * ```
  */
 export class Kernel implements IKernel {
+    private static readonly EXTERNAL_SYSTEM_TOOL_NAMES = new Set([
+        'system-open_app',
+        'system-close_app',
+    ]);
+
     constructor(
         private desktopManager: IDesktopManager,
         private snapshotRegistry: IRegistry,
@@ -57,7 +65,37 @@ export class Kernel implements IKernel {
     ) { }
 
     getSystemToolDefinitions() {
-        return this.systemOps.getToolDefinitions();
+        return this.systemOps.getToolDefinitions().filter((tool) => {
+            const name = (tool as Tool).function?.name;
+            return !!name && Kernel.EXTERNAL_SYSTEM_TOOL_NAMES.has(name);
+        });
+    }
+
+    private buildSystemToolIndexMap(): Record<string, unknown> {
+        const indexMap: Record<string, unknown> = {};
+
+        for (const tool of this.getSystemToolDefinitions()) {
+            const fn = (tool as Tool).function;
+            if (!fn?.name) {
+                continue;
+            }
+
+            const properties = fn.parameters?.properties ?? {};
+            const required = new Set(fn.parameters?.required ?? []);
+
+            indexMap[`tool:${fn.name}`] = {
+                description: fn.description,
+                params: Object.entries(properties).map(([name, schema]) => ({
+                    name,
+                    type: schema.type,
+                    required: required.has(name),
+                    description: schema.description,
+                    options: Array.isArray(schema.enum) ? schema.enum : undefined,
+                })),
+            };
+        }
+
+        return indexMap;
     }
 
     /**
@@ -156,10 +194,14 @@ export class Kernel implements IKernel {
 
         // Desktop implements IDesktopMetadata (getInstalledApps, getSystemLogs, etc.)
         const result = formatter.format(fragments, desktop as any);
+        const indexMap = {
+            ...result.indexMap,
+            ...this.buildSystemToolIndexMap(),
+        };
 
         // [RFC-014] Pass structured output to Registry
         return this.snapshotRegistry.create(
-            result.indexMap as any,
+            indexMap as any,
             result.markup,
             ttl,
             result.structured
@@ -168,6 +210,18 @@ export class Kernel implements IKernel {
 
     releaseSnapshot(snapshotId: SnapshotID): void {
         this.snapshotRegistry.release(snapshotId);
+    }
+
+    async reinitializeDesktopApps(
+        desktopId: DesktopID,
+        options?: ReinitializeDesktopAppsOptions
+    ): Promise<ReinitializeDesktopAppsResult> {
+        const desktop = this.desktopManager.get(desktopId);
+        if (!desktop) {
+            throw new AOTUIError('DESKTOP_NOT_FOUND', { desktopId });
+        }
+
+        return desktop.reinitializeApps(options);
     }
 
     async execute(desktopId: DesktopID, operation: Operation, ownerId: string): Promise<OperationResult> {
@@ -450,4 +504,3 @@ export class Kernel implements IKernel {
     }
 
 }
-

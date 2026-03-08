@@ -1,4 +1,4 @@
-import type { IDesktop, DesktopID, AppID, ViewID, UpdateSignal, AppState, DesktopStatus, AppContext, OperationPayload, IAppHostService, ISignalService, ILLMOutputChannelService, IRuntimeContext } from '../../spi/index.js';
+import type { IDesktop, DesktopID, AppID, ViewID, UpdateSignal, AppState, DesktopStatus, AppContext, OperationPayload, IAppHostService, ISignalService, ILLMOutputChannelService, IRuntimeContext, ReinitializeDesktopAppsOptions, ReinitializeDesktopAppsResult } from '../../spi/index.js';
 import { createDesktopId, createSnapshotId, createOperationId } from '../../spi/index.js';
 import { AOTUIError, failedResult } from '../../spi/core/errors.js';
 import { SignalBus, createSignalOutputStream, type SignalOutputStream } from './signal-bus.js';
@@ -162,6 +162,21 @@ export class Desktop implements IDesktop {
 
     async closeApp(appId: AppID): Promise<void> {
         return this.appManager.closeApp(appId);
+    }
+
+    async reinitializeApps(
+        options?: ReinitializeDesktopAppsOptions
+    ): Promise<ReinitializeDesktopAppsResult> {
+        const result = await this.appManager.reinitializeAll(options);
+        const desktopResult: ReinitializeDesktopAppsResult = {
+            desktopId: this.id,
+            ...result,
+        };
+
+        this.logSystem(`Reinitialized desktop apps: ${desktopResult.reinitializedAppIds.length} restarted, ${desktopResult.skippedAppIds.length} skipped, ${desktopResult.failedAppIds.length} failed.`);
+        this.emitSignal('manual_refresh');
+
+        return desktopResult;
     }
 
     async collapseApp(appId: AppID): Promise<void> {

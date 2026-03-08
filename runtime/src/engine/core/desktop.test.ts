@@ -18,6 +18,44 @@ describe('Desktop', () => {
         expect(desktop.id).toContain('dt_');
     });
 
+    it('reinitializeApps delegates to AppManager and emits one coherent refresh signal', async () => {
+        const appManager = {
+            reinitializeAll: vi.fn().mockResolvedValue({
+                reinitializedAppIds: ['app_0'],
+                skippedAppIds: ['app_1'],
+                failedAppIds: [],
+            }),
+            closeAll: vi.fn().mockResolvedValue(undefined),
+            getInstalledApps: vi.fn().mockReturnValue([]),
+            getAppStates: vi.fn().mockReturnValue([]),
+            getDynamicAppIds: vi.fn().mockReturnValue([]),
+            getAllWorkers: vi.fn().mockReturnValue(new Map()),
+            broadcastLLMOutput: vi.fn(),
+        };
+        const delegatedDesktop = new Desktop('dt_phase1' as any, {
+            appManager: appManager as any,
+        });
+        const emitSignalSpy = vi.spyOn((delegatedDesktop as any).signalBus, 'emitSignal');
+
+        const result = await delegatedDesktop.reinitializeApps({
+            reason: 'context_compaction',
+        });
+
+        expect(appManager.reinitializeAll).toHaveBeenCalledWith({
+            reason: 'context_compaction',
+        });
+        expect(result).toEqual({
+            desktopId: 'dt_phase1',
+            reinitializedAppIds: ['app_0'],
+            skippedAppIds: ['app_1'],
+            failedAppIds: [],
+        });
+        expect(emitSignalSpy).toHaveBeenCalledWith('dt_phase1', 'manual_refresh');
+
+        delegatedDesktop.dispose();
+        emitSignalSpy.mockRestore();
+    });
+
 
 
     // [Worker-Only] 以下测试使用已废弃的 installApp() API

@@ -151,6 +151,146 @@ describe('AppManager', () => {
         });
     });
 
+    describe('reinitializeAll', () => {
+        it('对 running / paused / collapsed app 重新初始化，并跳过 closed / pending', async () => {
+            const installSpy = vi.spyOn(manager, 'install').mockResolvedValue('app_running' as any);
+
+            const runningWorker = {
+                reinitialize: vi.fn().mockResolvedValue(undefined),
+                close: vi.fn().mockResolvedValue(undefined),
+                dispose: vi.fn(),
+            };
+            const pausedWorker = {
+                reinitialize: vi.fn().mockResolvedValue(undefined),
+                close: vi.fn().mockResolvedValue(undefined),
+                dispose: vi.fn(),
+            };
+            const collapsedWorker = {
+                reinitialize: vi.fn().mockResolvedValue(undefined),
+                close: vi.fn().mockResolvedValue(undefined),
+                dispose: vi.fn(),
+            };
+
+            (manager as any).installedApps.set('app_running', {
+                appId: 'app_running',
+                name: 'ide',
+                html: '',
+                status: 'running',
+                installedAt: Date.now(),
+                modulePath: '/running',
+                config: { projectPath: '/repo' },
+            });
+            (manager as any).installedApps.set('app_paused', {
+                appId: 'app_paused',
+                name: 'paused-app',
+                html: '',
+                status: 'paused',
+                installedAt: Date.now(),
+                modulePath: '/paused',
+            });
+            (manager as any).installedApps.set('app_collapsed', {
+                appId: 'app_collapsed',
+                name: 'collapsed-app',
+                html: '',
+                status: 'collapsed',
+                installedAt: Date.now(),
+                modulePath: '/collapsed',
+            });
+            (manager as any).installedApps.set('app_closed', {
+                appId: 'app_closed',
+                name: 'closed-app',
+                html: '',
+                status: 'closed',
+                installedAt: Date.now(),
+                modulePath: '/closed',
+            });
+            (manager as any).installedApps.set('app_pending', {
+                appId: 'app_pending',
+                name: 'pending-app',
+                html: '',
+                status: 'pending',
+                installedAt: Date.now(),
+                modulePath: '/pending',
+            });
+
+            (manager as any).workers.set('app_running', runningWorker);
+            (manager as any).workers.set('app_paused', pausedWorker);
+            (manager as any).workers.set('app_collapsed', collapsedWorker);
+
+            installSpy
+                .mockResolvedValueOnce('app_running' as any)
+                .mockResolvedValueOnce('app_paused' as any)
+                .mockResolvedValueOnce('app_collapsed' as any);
+
+            const result = await manager.reinitializeAll({ reason: 'context_compaction' });
+
+            expect(result).toEqual({
+                reinitializedAppIds: ['app_running', 'app_paused', 'app_collapsed'],
+                skippedAppIds: ['app_closed', 'app_pending'],
+                failedAppIds: [],
+            });
+            expect(runningWorker.reinitialize).toHaveBeenCalledWith('context_compaction');
+            expect(pausedWorker.reinitialize).toHaveBeenCalledWith('context_compaction');
+            expect(collapsedWorker.reinitialize).toHaveBeenCalledWith('context_compaction');
+            expect(runningWorker.close).toHaveBeenCalledTimes(1);
+            expect(pausedWorker.close).toHaveBeenCalledTimes(1);
+            expect(collapsedWorker.close).toHaveBeenCalledTimes(1);
+            expect(installSpy).toHaveBeenNthCalledWith(1, '/running', expect.objectContaining({ appId: 'app_running' }));
+            expect(installSpy).toHaveBeenNthCalledWith(2, '/paused', expect.objectContaining({ appId: 'app_paused' }));
+            expect(installSpy).toHaveBeenNthCalledWith(3, '/collapsed', expect.objectContaining({ appId: 'app_collapsed' }));
+            expect(manager.getInstalledApps().find((app) => app.appId === 'app_closed')?.status).toBe('closed');
+            expect(manager.getInstalledApps().find((app) => app.appId === 'app_pending')?.status).toBe('pending');
+
+            installSpy.mockRestore();
+        });
+
+        it('单个 app 重新初始化失败时不影响其他 app，并将失败 app 置为 closed', async () => {
+            const installSpy = vi.spyOn(manager, 'install').mockResolvedValue('app_ok' as any);
+
+            const okWorker = {
+                reinitialize: vi.fn().mockResolvedValue(undefined),
+                close: vi.fn().mockResolvedValue(undefined),
+                dispose: vi.fn(),
+            };
+            const badWorker = {
+                reinitialize: vi.fn().mockRejectedValue(new Error('boom')),
+                close: vi.fn().mockRejectedValue(new Error('boom')),
+                dispose: vi.fn(),
+            };
+
+            (manager as any).installedApps.set('app_ok', {
+                appId: 'app_ok',
+                name: 'ok-app',
+                html: '',
+                status: 'running',
+                installedAt: Date.now(),
+                modulePath: '/ok',
+            });
+            (manager as any).installedApps.set('app_bad', {
+                appId: 'app_bad',
+                name: 'bad-app',
+                html: '',
+                status: 'running',
+                installedAt: Date.now(),
+                modulePath: '/bad',
+            });
+
+            (manager as any).workers.set('app_ok', okWorker);
+            (manager as any).workers.set('app_bad', badWorker);
+
+            const result = await manager.reinitializeAll({ reason: 'context_compaction' });
+
+            expect(result.reinitializedAppIds).toEqual(['app_ok']);
+            expect(result.failedAppIds).toEqual(['app_bad']);
+            expect(result.skippedAppIds).toEqual([]);
+            expect(installSpy).toHaveBeenCalledTimes(1);
+            expect(installSpy).toHaveBeenCalledWith('/ok', expect.objectContaining({ appId: 'app_ok' }));
+            expect(manager.getInstalledApps().find((app) => app.appId === 'app_bad')?.status).toBe('closed');
+
+            installSpy.mockRestore();
+        });
+    });
+
     describe('openApp', () => {
         it('对不存在的 App 打印警告', async () => {
             const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });

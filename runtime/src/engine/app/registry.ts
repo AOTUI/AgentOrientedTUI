@@ -39,6 +39,11 @@ export interface LoadedApp {
     source: string;
 }
 
+export interface AppRegistryEntry extends AppConfigEntry {
+    /** Registry key used to reference the app */
+    name: string;
+}
+
 /**
  * AppRegistry 配置
  */
@@ -65,6 +70,7 @@ export interface AppRegistryOptions {
  */
 export class AppRegistry {
     private apps = new Map<string, LoadedApp>();
+    private entryConfigs = new Map<string, AppConfigEntry>();
     private config: TUIConfig = createDefaultConfig();
     private configPath: string;
 
@@ -82,32 +88,34 @@ export class AppRegistry {
     async loadFromConfig(): Promise<void> {
         // 读取配置
         this.config = await this.readConfig();
+        this.apps.clear();
+        this.entryConfigs.clear();
 
         // 加载每个启用的 App
         for (const [name, entry] of Object.entries(this.config.apps)) {
-            if (!entry.enabled) continue;
+            await this.loadEntry(name, entry);
+        }
+    }
 
-            // [Hybrid Model] 跳过 system: 协议 - 系统 App 应通过 local: 或 npm: 安装
-            if (entry.source.startsWith('system:')) {
-                console.warn(
-                    `[AppRegistry] Skipped "${name}": 'system:' protocol is deprecated. ` +
-                    `Use 'local:' or 'npm:' instead.`
-                );
-                continue;
-            }
+    /**
+     * 从显式 entries 加载 App，不读取 config.json
+     *
+     * 适用于 Host-owned capability control plane。
+     */
+    async loadFromEntries(
+        entries: AppRegistryEntry[],
+        options?: {
+            replace?: boolean;
+        }
+    ): Promise<void> {
+        if (options?.replace !== false) {
+            this.apps.clear();
+            this.entryConfigs.clear();
+        }
 
-            try {
-                const factory = await this.loadFactory(entry.source);
-                this.apps.set(name, {
-                    name,
-                    manifest: factory.manifest, // 方案 B 模式下可能是 undefined
-                    factory,
-                    source: entry.source
-                });
-                console.log(`[AppRegistry] Loaded app: ${name}`);
-            } catch (error) {
-                console.error(`[AppRegistry] Failed to load app "${name}":`, error);
-            }
+        for (const entry of entries) {
+            const { name, ...appEntry } = entry;
+            await this.loadEntry(name, appEntry);
         }
     }
 
@@ -150,6 +158,7 @@ export class AppRegistry {
             originalSource: options?.originalSource,
             distribution: options?.distribution
         };
+        this.entryConfigs.set(name, { ...this.config.apps[name] });
 
         // 添加到内存
         this.apps.set(name, {
@@ -189,6 +198,11 @@ export class AppRegistry {
             factory,
             source
         });
+        this.entryConfigs.set(name, {
+            source,
+            enabled: true,
+            autoStart: true,
+        });
 
         console.log(`[AppRegistry] Registered transient app: ${name} from ${source}`);
         return name;
@@ -198,16 +212,20 @@ export class AppRegistry {
      * 移除 App
      */
     async remove(name: string): Promise<void> {
-        const entry = this.config.apps[name];
+        const entry = this.entryConfigs.get(name) ?? this.config.apps[name];
         if (!entry) {
             throw new AOTUIError('APP_NOT_FOUND', { appId: name });
         }
 
         await this.cleanupInstalledArtifacts(entry);
+        const shouldPersistRemoval = this.config.apps[name] !== undefined;
         delete this.config.apps[name];
         this.apps.delete(name);
+        this.entryConfigs.delete(name);
 
-        await this.saveConfig();
+        if (shouldPersistRemoval) {
+            await this.saveConfig();
+        }
         console.log(`[AppRegistry] Removed app: ${name}`);
     }
 
@@ -225,6 +243,17 @@ export class AppRegistry {
         return this.apps.get(name);
     }
 
+    getEntry(name: string): AppConfigEntry | undefined {
+        const entry = this.entryConfigs.get(name) ?? this.config.apps[name];
+        return entry ? { ...entry } : undefined;
+    }
+
+    getEntries(): Record<string, AppConfigEntry> {
+        return Object.fromEntries(
+            Array.from(this.entryConfigs.entries()).map(([name, entry]) => [name, { ...entry }])
+        );
+    }
+
     /**
      * 检查 App 是否已安装
      */
@@ -236,12 +265,16 @@ export class AppRegistry {
      * 启用/禁用 App
      */
     async setEnabled(name: string, enabled: boolean): Promise<void> {
-        if (!this.config.apps[name]) {
+        const entry = this.entryConfigs.get(name) ?? this.config.apps[name];
+        if (!entry) {
             throw new AOTUIError('APP_NOT_FOUND', { appId: name });
         }
 
-        this.config.apps[name].enabled = enabled;
-        await this.saveConfig();
+        this.entryConfigs.set(name, { ...entry, enabled });
+        if (this.config.apps[name]) {
+            this.config.apps[name].enabled = enabled;
+            await this.saveConfig();
+        }
 
         console.log(`[AppRegistry] ${enabled ? 'Enabled' : 'Disabled'} app: ${name}`);
     }
@@ -253,12 +286,16 @@ export class AppRegistry {
      * @param autoStart - 是否在 Desktop 创建时自动启动
      */
     async setAutoStart(name: string, autoStart: boolean): Promise<void> {
-        if (!this.config.apps[name]) {
+        const entry = this.entryConfigs.get(name);
+        if (!entry) {
             throw new AOTUIError('APP_NOT_FOUND', { appId: name });
         }
 
-        this.config.apps[name].autoStart = autoStart;
-        await this.saveConfig();
+        this.entryConfigs.set(name, { ...entry, autoStart });
+        if (this.config.apps[name]) {
+            this.config.apps[name].autoStart = autoStart;
+            await this.saveConfig();
+        }
 
         console.log(`[AppRegistry] Set autoStart=${autoStart} for: ${name}`);
     }
@@ -289,92 +326,27 @@ export class AppRegistry {
         // [C1 Fix] defaultWorkerScript is now optional
         // If not provided, Runtime will use its built-in worker-runtime
 
-        const installedIds: AppID[] = [];
+        return this.installEntries(desktop, Array.from(this.apps.keys()), {
+            defaultWorkerScript,
+            dynamicConfig: options?.dynamicConfig,
+        });
+    }
 
-        for (const [name, app] of this.apps) {
-            const configEntry = this.config.apps[name];
-            const dynamicConfig: AppLaunchConfig = { ...(options?.dynamicConfig ?? {}) };
-            if (dynamicConfig.AOTUI_APP_KEY === undefined) {
-                dynamicConfig.AOTUI_APP_KEY = name;
-            }
-            if (dynamicConfig.AOTUI_APP_NAME === undefined) {
-                dynamicConfig.AOTUI_APP_NAME = name;
-            }
-
-            // [RFC-014] 检查 autoStart 配置，默认为 true (向后兼容)
-            const autoStart = configEntry?.autoStart ?? true;
-
-            // Worker 模式需要模块路径，从 source 解析
-            const modulePath = this.resolveModulePath(app.source);
-            if (!modulePath) {
-                console.warn(`[AppRegistry] Skipped "${name}": cannot resolve module path from source: ${app.source}`);
-                continue;
-            }
-
-            // [Option D] 使用 per-app workerScript 或默认值 (可以是 undefined)
-            const workerScript = configEntry?.workerScript ?? defaultWorkerScript;
-
-            try {
-                // [Fix] Extract promptRole from Factory (KernelConfig or Manifest)
-                let promptRole = configEntry?.promptRole;
-                if (!promptRole) {
-                    if (isKernelConfigFactory(app.factory)) {
-                        promptRole = app.factory.kernelConfig.promptRole;
-                    } else if (app.manifest?.promptRole) {
-                        promptRole = app.manifest.promptRole;
-                    }
-                }
-
-                const kernelConfig = isKernelConfigFactory(app.factory)
-                    ? app.factory.kernelConfig
-                    : undefined;
-
-                const whatItIs = configEntry?.whatItIs
-                    ?? kernelConfig?.whatItIs
-                    ?? configEntry?.description
-                    ?? kernelConfig?.description
-                    ?? app.manifest?.whatItIs
-                    ?? app.manifest?.description;
-                const whenToUse = configEntry?.whenToUse
-                    ?? kernelConfig?.whenToUse
-                    ?? app.manifest?.whenToUse;
-
-                if (autoStart) {
-                    // Phase 2: 立即安装并启动
-                    const appId = await desktop.installDynamicWorkerApp(
-                        modulePath,
-                        {
-                            workerScriptPath: workerScript,
-                            name,
-                            description: app.manifest?.description,
-                            whatItIs,
-                            whenToUse,
-                            promptRole, // [Fix] Propagate promptRole
-                            config: dynamicConfig // [RFC-025] Inject dynamic config
-                        }
-                    );
-                    installedIds.push(appId as AppID);
-                    console.log(`[AppRegistry] Installed "${name}" to Desktop ${desktop.id} (Worker mode)`);
-                } else {
-                    // Phase 1: 只注册，不启动 (Pending)
-                    const appId = await desktop.registerPendingApp({
-                        name,
-                        description: app.manifest?.description,
-                        whatItIs,
-                        whenToUse,
-                        modulePath,
-                        workerScriptPath: workerScript,
-                        promptRole // [Fix] Propagate promptRole
-                    });
-                    installedIds.push(appId as AppID);
-                    console.log(`[AppRegistry] Registered "${name}" to Desktop ${desktop.id} (Pending mode)`);
-                }
-            } catch (error) {
-                console.error(`[AppRegistry] Failed to install "${name}":`, error);
-            }
+    async installSelected(
+        desktop: IDesktop,
+        names: string[],
+        options?: {
+            defaultWorkerScript?: string;
+            dynamicConfig?: AppLaunchConfig;
         }
+    ): Promise<AppID[]> {
+        const defaultWorkerScript = options?.defaultWorkerScript
+            ?? this.config.runtime?.workerScript;
 
-        return installedIds;
+        return this.installEntries(desktop, names, {
+            defaultWorkerScript,
+            dynamicConfig: options?.dynamicConfig,
+        });
     }
 
 
@@ -493,6 +465,130 @@ export class AppRegistry {
         // 写入配置
         const content = JSON.stringify(this.config, null, 2);
         await fs.writeFile(this.configPath, content, 'utf-8');
+    }
+
+    private async loadEntry(name: string, entry: AppConfigEntry): Promise<void> {
+        this.entryConfigs.set(name, { ...entry });
+
+        if (!entry.enabled) {
+            return;
+        }
+
+        // [Hybrid Model] 跳过 system: 协议 - 系统 App 应通过 local: 或 npm: 安装
+        if (entry.source.startsWith('system:')) {
+            console.warn(
+                `[AppRegistry] Skipped "${name}": 'system:' protocol is deprecated. ` +
+                `Use 'local:' or 'npm:' instead.`
+            );
+            return;
+        }
+
+        try {
+            const factory = await this.loadFactory(entry.source);
+            this.apps.set(name, {
+                name,
+                manifest: factory.manifest,
+                factory,
+                source: entry.source
+            });
+            console.log(`[AppRegistry] Loaded app: ${name}`);
+        } catch (error) {
+            console.error(`[AppRegistry] Failed to load app "${name}":`, error);
+        }
+    }
+
+    private async installEntries(
+        desktop: IDesktop,
+        names: string[],
+        options: {
+            defaultWorkerScript?: string;
+            dynamicConfig?: AppLaunchConfig;
+        }
+    ): Promise<AppID[]> {
+        const installedIds: AppID[] = [];
+
+        for (const name of names) {
+            const app = this.apps.get(name);
+            if (!app) {
+                throw new AOTUIError('APP_NOT_FOUND', { appId: name });
+            }
+
+            const configEntry = this.entryConfigs.get(name) ?? this.config.apps[name];
+            const dynamicConfig: AppLaunchConfig = { ...(options.dynamicConfig ?? {}) };
+            if (dynamicConfig.AOTUI_APP_KEY === undefined) {
+                dynamicConfig.AOTUI_APP_KEY = name;
+            }
+            if (dynamicConfig.AOTUI_APP_NAME === undefined) {
+                dynamicConfig.AOTUI_APP_NAME = name;
+            }
+
+            const autoStart = configEntry?.autoStart ?? true;
+            const modulePath = this.resolveModulePath(app.source);
+            if (!modulePath) {
+                console.warn(`[AppRegistry] Skipped "${name}": cannot resolve module path from source: ${app.source}`);
+                continue;
+            }
+
+            const workerScript = configEntry?.workerScript ?? options.defaultWorkerScript;
+
+            try {
+                let promptRole = configEntry?.promptRole;
+                if (!promptRole) {
+                    if (isKernelConfigFactory(app.factory)) {
+                        promptRole = app.factory.kernelConfig.promptRole;
+                    } else if (app.manifest?.promptRole) {
+                        promptRole = app.manifest.promptRole;
+                    }
+                }
+
+                const kernelConfig = isKernelConfigFactory(app.factory)
+                    ? app.factory.kernelConfig
+                    : undefined;
+
+                const whatItIs = configEntry?.whatItIs
+                    ?? kernelConfig?.whatItIs
+                    ?? configEntry?.description
+                    ?? kernelConfig?.description
+                    ?? app.manifest?.whatItIs
+                    ?? app.manifest?.description;
+                const whenToUse = configEntry?.whenToUse
+                    ?? kernelConfig?.whenToUse
+                    ?? app.manifest?.whenToUse;
+
+                if (autoStart) {
+                    const appId = await desktop.installDynamicWorkerApp(
+                        modulePath,
+                        {
+                            workerScriptPath: workerScript,
+                            name,
+                            description: app.manifest?.description,
+                            whatItIs,
+                            whenToUse,
+                            promptRole,
+                            config: dynamicConfig
+                        }
+                    );
+                    installedIds.push(appId as AppID);
+                    console.log(`[AppRegistry] Installed "${name}" to Desktop ${desktop.id} (Worker mode)`);
+                } else {
+                    const appId = await desktop.registerPendingApp({
+                        name,
+                        description: app.manifest?.description,
+                        whatItIs,
+                        whenToUse,
+                        modulePath,
+                        workerScriptPath: workerScript,
+                        promptRole
+                    });
+                    installedIds.push(appId as AppID);
+                    console.log(`[AppRegistry] Registered "${name}" to Desktop ${desktop.id} (Pending mode)`);
+                }
+            } catch (error) {
+                console.error(`[AppRegistry] Failed to install "${name}":`, error);
+            }
+        }
+
+        return installedIds;
     }
 
     private async cleanupInstalledArtifacts(entry: AppConfigEntry): Promise<void> {

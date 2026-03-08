@@ -17,7 +17,7 @@
 export interface InstalledAppInfo {
     readonly appId: string;
     readonly name: string;
-    readonly status: 'pending' | 'running' | 'closed' | 'collapsed';
+    readonly status: 'pending' | 'running' | 'paused' | 'closed' | 'collapsed';
     readonly description?: string;
     readonly whatItIs?: string;
     readonly whenToUse?: string;

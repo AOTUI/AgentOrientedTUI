@@ -238,6 +238,18 @@ export class WorkerSandbox {
         this._status = 'running';
     }
 
+    async reinitialize(reason?: string): Promise<void> {
+        this.ensureNotDisposed();
+
+        if (this._status !== 'running' && this._status !== 'paused') {
+            return;
+        }
+
+        if (this.workerHost) {
+            await this.workerHost.reinitialize(reason);
+        }
+    }
+
     /**
      * 关闭 App
      */

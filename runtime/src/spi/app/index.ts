@@ -46,7 +46,7 @@ export type { IViewFactory } from './view-factory.interface.js';
 // ============================================================================
 // App Kernel Configuration (方案 B: 解耦 SDK 和 Runtime)
 // ============================================================================
-export type { AppKernelConfig, AppOperationHandler, SignalPolicy } from './app-kernel.interface.js';
+export type { AppKernelConfig, AppOperationHandler, SignalPolicy, AppReinitializeContext } from './app-kernel.interface.js';
 
 // ============================================================================
 // App Context (Store)

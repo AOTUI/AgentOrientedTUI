@@ -14,7 +14,14 @@ export { AppManager, type InstalledApp, type AppManagerOptions } from './manager
 // ============================================================================
 // AppRegistry - 第三方 App 加载
 // ============================================================================
-export { AppRegistry, type LoadedApp, type AppRegistryOptions, validateManifest, isValidAppName } from './registry.js';
+export {
+    AppRegistry,
+    type LoadedApp,
+    type AppRegistryEntry,
+    type AppRegistryOptions,
+    validateManifest,
+    isValidAppName
+} from './registry.js';
 export { createDefaultConfig, validateConfig, type TUIConfig, type AppConfigEntry } from './config.js';
 
 // ============================================================================
@@ -37,4 +44,3 @@ export { WorkerPool, type WorkerPoolConfig } from './worker-pool.js';
 // WorkerAppHostService - IAppHostService 实现 (Option B)
 // ============================================================================
 export { WorkerAppHostService } from './worker-app-host.service.js';
-

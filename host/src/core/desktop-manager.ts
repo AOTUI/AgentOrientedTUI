@@ -28,13 +28,13 @@ import {
     resolveCatalogOptionsFromConfig,
     searchCatalog,
     type AppConfigEntry,
+    type AppRegistryEntry,
     type CatalogSearchResult,
     type ResolvedCatalog
 } from '@aotui/runtime';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import { Config } from '../config/config.js';
 
 export type { DesktopID };
 
@@ -73,17 +73,28 @@ export interface CatalogSearchResponse {
     apps: CatalogSearchEntry[];
 }
 
+export interface DesktopManagerOptions {
+    kernel?: IKernel;
+    appRegistry?: AppRegistry;
+}
+
+export interface DesktopManagerInitializeOptions {
+    appEntries?: AppRegistryEntry[];
+    loadFromConfig?: boolean;
+    enableDevAutoDiscovery?: boolean;
+}
+
 export class DesktopManager {
     private kernel: IKernel;
     private appRegistry: AppRegistry;
     private desktopAppMap = new Map<DesktopID, string[]>(); // desktopId -> installed app IDs
 
-    constructor() {
+    constructor(options?: DesktopManagerOptions) {
         // [SDK 标准化] 使用 createRuntime() 代替手动实例化 Engine 组件
-        this.kernel = createRuntime();
+        this.kernel = options?.kernel ?? createRuntime();
 
         // [Third-Party Apps] 初始化 AppRegistry
-        this.appRegistry = new AppRegistry();
+        this.appRegistry = options?.appRegistry ?? new AppRegistry();
     }
 
     /**
@@ -91,22 +102,31 @@ export class DesktopManager {
      * 
      * 必须在使用 createDesktop 之前调用此方法
      */
-    async initialize(): Promise<void> {
-        // 加载配置中的第三方 App
-        await this.appRegistry.loadFromConfig();
+    async initialize(options?: DesktopManagerInitializeOptions): Promise<void> {
+        const hasExplicitEntries = Array.isArray(options?.appEntries);
+        const shouldLoadFromConfig = options?.loadFromConfig ?? !hasExplicitEntries;
+        const enableDevAutoDiscovery = options?.enableDevAutoDiscovery ?? !hasExplicitEntries;
+
+        if (hasExplicitEntries) {
+            await this.appRegistry.loadFromEntries(options?.appEntries ?? []);
+        } else if (shouldLoadFromConfig) {
+            await this.appRegistry.loadFromConfig();
+        }
 
         // [Dev Experience] Auto-discover system-todo in development environment
-        try {
-            const fs = await import('fs');
-            const path = await import('path');
-            const devTodoPath = path.resolve(process.cwd(), '../system-todo');
-            
-            if (fs.existsSync(devTodoPath) && fs.statSync(devTodoPath).isDirectory()) {
-                console.log('[DesktopManager] Found system-todo in dev environment, registering...');
-                await this.appRegistry.registerTransient(`local:${devTodoPath}`);
+        if (enableDevAutoDiscovery) {
+            try {
+                const fs = await import('fs');
+                const path = await import('path');
+                const devTodoPath = path.resolve(process.cwd(), '../system-todo');
+                
+                if (fs.existsSync(devTodoPath) && fs.statSync(devTodoPath).isDirectory()) {
+                    console.log('[DesktopManager] Found system-todo in dev environment, registering...');
+                    await this.appRegistry.registerTransient(`local:${devTodoPath}`);
+                }
+            } catch (e) {
+                console.warn('[DesktopManager] Failed to auto-register system-todo:', e);
             }
-        } catch (e) {
-            console.warn('[DesktopManager] Failed to auto-register system-todo:', e);
         }
 
         console.log(`[DesktopManager] Initialized with ${this.appRegistry.list().length} third-party apps`);
@@ -244,7 +264,7 @@ export class DesktopManager {
     }
 
     async getAppsConfig(): Promise<Record<string, AppConfigEntry>> {
-        return { ...(await Config.getAppsConfig()) };
+        return this.appRegistry.getEntries();
     }
 
     async getAppDetail(name: string): Promise<AppConfigEntry> {

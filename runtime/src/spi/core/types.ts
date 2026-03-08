@@ -64,7 +64,7 @@ export interface AppState {
     name?: string;
     html: string;
     /** [RFC-014] 增加 'pending' 状态用于懒加载 */
-    status: 'pending' | 'running' | 'closed' | 'collapsed';
+    status: 'pending' | 'running' | 'paused' | 'closed' | 'collapsed';
     installedAt: number;
 }
 

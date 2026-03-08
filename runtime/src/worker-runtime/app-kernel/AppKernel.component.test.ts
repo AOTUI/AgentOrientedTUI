@@ -194,5 +194,67 @@ describe('AppKernel - Component Mode Operation Routing', () => {
             expect(result.data?.id).toBe('todo_123');
             expect(mockView.onOperation).toHaveBeenCalled();
         });
+
+        it('should invoke onReinitialize hook with reason', async () => {
+            const onReinitialize = vi.fn().mockResolvedValue(undefined);
+            const appKernelWithHook = new AppKernel({
+                name: 'test-component-app',
+                component: {
+                    initializeComponent: vi.fn().mockResolvedValue({}),
+                },
+                onReinitialize,
+                launchConfig: {
+                    __aotuiLifecycle: {
+                        startupKind: 'reinitialize',
+                        reason: 'context_compaction',
+                    },
+                },
+            });
+            appKernelWithHook.setId('app_0' as any);
+
+            await appKernelWithHook.onOpen(mockContext, mockContainer);
+            await appKernelWithHook.onReinitialize({
+                ...mockContext,
+                reason: 'context_compaction',
+            });
+
+            expect(onReinitialize).toHaveBeenCalledWith({
+                ...mockContext,
+                reason: 'context_compaction',
+            });
+        });
+
+        it('should pass launchConfig through runtime context during initialization', async () => {
+            const initializeComponent = vi.fn().mockResolvedValue({});
+            const appKernelWithLaunchConfig = new AppKernel({
+                name: 'test-component-app',
+                component: {
+                    initializeComponent,
+                },
+                launchConfig: {
+                    foo: 'bar',
+                    __aotuiLifecycle: {
+                        startupKind: 'reinitialize',
+                        reason: 'context_compaction',
+                    },
+                },
+            });
+            appKernelWithLaunchConfig.setId('app_0' as any);
+
+            await appKernelWithLaunchConfig.onOpen(mockContext, mockContainer);
+
+            expect(initializeComponent).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({
+                    launchConfig: expect.objectContaining({
+                        foo: 'bar',
+                        __aotuiLifecycle: {
+                            startupKind: 'reinitialize',
+                            reason: 'context_compaction',
+                        },
+                    }),
+                })
+            );
+        });
     });
 });
