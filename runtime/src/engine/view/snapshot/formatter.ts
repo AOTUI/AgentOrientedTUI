@@ -178,7 +178,7 @@ export class SnapshotFormatter implements ISnapshotFormatter {
      * - System Logs
      */
     private buildDesktopStateOnly(metadata: IDesktopMetadata): string {
-        let apps: ReadonlyArray<{ appId: string; name: string; status: 'pending' | 'running' | 'closed' | 'collapsed'; description?: string; whatItIs?: string; whenToUse?: string }> = [];
+        let apps: ReadonlyArray<{ appId: string; name: string; status: 'pending' | 'running' | 'paused' | 'closed' | 'collapsed'; description?: string; whatItIs?: string; whenToUse?: string }> = [];
         let logs: ReadonlyArray<{ timestamp: number; message: string }> = [];
 
         try {
@@ -212,7 +212,7 @@ ${logsMarkup}
      * Format apps list markup (shared between legacy and structured output)
      */
     private formatAppsMarkup(
-        apps: ReadonlyArray<{ appId: string; name: string; status: 'pending' | 'running' | 'closed' | 'collapsed'; description?: string; whatItIs?: string; whenToUse?: string }>
+        apps: ReadonlyArray<{ appId: string; name: string; status: 'pending' | 'running' | 'paused' | 'closed' | 'collapsed'; description?: string; whatItIs?: string; whenToUse?: string }>
     ): string {
         if (apps.length === 0) {
             return '- No applications installed.';
@@ -236,7 +236,7 @@ ${logsMarkup}
      * Build <desktop> section with system info
      */
     private buildDesktopSection(metadata: IDesktopMetadata): string {
-        let apps: ReadonlyArray<{ appId: string; name: string; status: 'pending' | 'running' | 'closed' | 'collapsed'; description?: string; whatItIs?: string; whenToUse?: string }> = [];
+        let apps: ReadonlyArray<{ appId: string; name: string; status: 'pending' | 'running' | 'paused' | 'closed' | 'collapsed'; description?: string; whatItIs?: string; whenToUse?: string }> = [];
         let logs: ReadonlyArray<{ timestamp: number; message: string }> = [];
 
         // Graceful degradation for missing methods
@@ -258,7 +258,7 @@ ${logsMarkup}
 
         // Format installed apps list
         // [RFC-014] Group apps by status: Running vs Available (Pending)
-        const runningApps = apps.filter(a => a.status === 'running' || a.status === 'collapsed' || a.status === 'closed');
+        const runningApps = apps.filter(a => a.status === 'running' || a.status === 'paused' || a.status === 'collapsed' || a.status === 'closed');
         const pendingApps = apps.filter(a => a.status === 'pending');
 
         let appsMarkup = '';

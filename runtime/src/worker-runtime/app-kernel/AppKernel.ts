@@ -160,7 +160,7 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
 
         // Register render callback
         context.onRender(() => {
-            console.log(`[AppKernel:${this.name}] renderCallback triggered`);
+            // console.log(`[AppKernel:${this.name}] renderCallback triggered`);
             this.renderAllViews();
         });
 
@@ -201,7 +201,17 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
         // Clear ViewRegistry
         this.viewRegistry.clear();
 
-        console.log(`[AppKernel:${this.name}] onClose completed`);
+        // console.log(`[AppKernel:${this.name}] onClose completed`);
+    }
+
+    async onReinitialize(context?: import('../../spi/index.js').AppReinitializeContext): Promise<void> {
+        if (this.config.onReinitialize) {
+            await this.config.onReinitialize({
+                ...this.context,
+                reason: context?.reason ?? (this.config.launchConfig as { __aotuiLifecycle?: { reason?: string } } | undefined)
+                    ?.__aotuiLifecycle?.reason,
+            });
+        }
     }
 
     /**
@@ -212,7 +222,7 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
             try {
                 await this.config.onDelete(this.context);
             } catch (error) {
-                console.error(`[AppKernel:${this.name}] Error in onDelete:`, error);
+                // console.error(`[AppKernel:${this.name}] Error in onDelete:`, error);
                 // Swallow error to ensure cleanup continues
             }
         }
@@ -408,7 +418,7 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
             this.context?.markDirty?.();
 
             if (process.env.NODE_ENV !== 'production') {
-                //console.log(`[AppKernel:${this.name}] Unregistered Type Tool: ${viewType}.${toolName}`);
+                // console.log(`[AppKernel:${this.name}] Unregistered Type Tool: ${viewType}.${toolName}`);
             }
         }
     }
@@ -479,7 +489,7 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
     private componentRenderer?: any; // ComponentRenderer from SDK
 
     private async initializeFromComponent(): Promise<void> {
-        console.log(`[AppKernel:${this.name}] Initializing via Factory Injection Pattern`);
+        // console.log(`[AppKernel:${this.name}] Initializing via Factory Injection Pattern`);
 
         // 1. 创建App容器 (在data-views容器中)
         const viewsContainer = this.container.querySelector('[data-views]');
@@ -520,7 +530,7 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
         // 4. 调用SDK factory初始化组件
         this.componentRenderer = await factory.initializeComponent(appContainer, runtimeContext);
 
-        console.log(`[AppKernel:${this.name}] Factory initialized, Views will self-register`);
+        // console.log(`[AppKernel:${this.name}] Factory initialized, Views will self-register`);
     }
 
     // ─────────────────────────────────────────────────────────────

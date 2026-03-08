@@ -65,7 +65,64 @@ describe('Kernel', () => {
             has: vi.fn().mockReturnValue(false),
             execute: vi.fn().mockResolvedValue({ success: true }),
             register: vi.fn(),
-            get: vi.fn()
+            get: vi.fn(),
+            getToolDefinitions: vi.fn().mockReturnValue([
+                {
+                    type: 'function',
+                    function: {
+                        name: 'system-open_app',
+                        description: 'Open an app',
+                        parameters: {
+                            type: 'object',
+                            properties: {
+                                app_id: {
+                                    type: 'string',
+                                    description: 'Application ID',
+                                },
+                            },
+                            required: ['app_id'],
+                        },
+                    },
+                },
+                {
+                    type: 'function',
+                    function: {
+                        name: 'system-close_app',
+                        description: 'Close an app',
+                        parameters: {
+                            type: 'object',
+                            properties: {
+                                app_id: {
+                                    type: 'string',
+                                    description: 'Application ID',
+                                },
+                            },
+                            required: ['app_id'],
+                        },
+                    },
+                },
+                {
+                    type: 'function',
+                    function: {
+                        name: 'system-dismount_view',
+                        description: 'Hide a view',
+                        parameters: {
+                            type: 'object',
+                            properties: {
+                                app_id: {
+                                    type: 'string',
+                                    description: 'Application ID',
+                                },
+                                view_id: {
+                                    type: 'string',
+                                    description: 'View ID',
+                                },
+                            },
+                            required: ['app_id', 'view_id'],
+                        },
+                    },
+                },
+            ])
         };
 
         // Inject mockDesktopManager
@@ -88,6 +145,32 @@ describe('Kernel', () => {
         it('destroyDesktop delegates to manager', async () => {
             await kernel.destroyDesktop('dt_1');
             expect(mockDesktopManager.destroy).toHaveBeenCalledWith('dt_1');
+        });
+
+        it('reinitializeDesktopApps delegates to desktop and preserves desktop id in result', async () => {
+            const mockDesktop = {
+                reinitializeApps: vi.fn().mockResolvedValue({
+                    desktopId: 'dt_1',
+                    reinitializedAppIds: ['app_0'],
+                    skippedAppIds: ['app_1'],
+                    failedAppIds: [],
+                }),
+            };
+            mockDesktopManager.get.mockReturnValue(mockDesktop);
+
+            const result = await kernel.reinitializeDesktopApps('dt_1', {
+                reason: 'context_compaction',
+            });
+
+            expect(mockDesktop.reinitializeApps).toHaveBeenCalledWith({
+                reason: 'context_compaction',
+            });
+            expect(result).toEqual({
+                desktopId: 'dt_1',
+                reinitializedAppIds: ['app_0'],
+                skippedAppIds: ['app_1'],
+                failedAppIds: [],
+            });
         });
     });
 
@@ -143,6 +226,14 @@ describe('Kernel', () => {
     });
 
     describe('Snapshot', () => {
+        it('only exposes open_app and close_app as external system tools', () => {
+            const tools = kernel.getSystemToolDefinitions();
+            const toolNames = tools.map((tool: any) => tool.function?.name);
+
+            expect(toolNames).toEqual(['system-open_app', 'system-close_app']);
+            expect(toolNames).not.toContain('system-dismount_view');
+        });
+
         it('acquires snapshot via fragments aggregation', async () => {
             const mockDesktop = {
                 getSnapshotFragments: vi.fn().mockReturnValue([{
@@ -173,6 +264,33 @@ describe('Kernel', () => {
                 undefined,
                 expect.objectContaining({ systemInstruction: expect.any(String) })
             );
+
+            const indexMap = mockRegistry.create.mock.calls[0]?.[0] as Record<string, unknown>;
+            expect(indexMap['tool:system-open_app']).toEqual({
+                description: 'Open an app',
+                params: [
+                    {
+                        name: 'app_id',
+                        type: 'string',
+                        required: true,
+                        description: 'Application ID',
+                        options: undefined,
+                    },
+                ],
+            });
+            expect(indexMap['tool:system-close_app']).toEqual({
+                description: 'Close an app',
+                params: [
+                    {
+                        name: 'app_id',
+                        type: 'string',
+                        required: true,
+                        description: 'Application ID',
+                        options: undefined,
+                    },
+                ],
+            });
+            expect(indexMap['tool:system-dismount_view']).toBeUndefined();
         });
 
         it('returns empty snapshot if no fragments available', async () => {

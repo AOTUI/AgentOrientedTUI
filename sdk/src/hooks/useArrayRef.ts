@@ -98,9 +98,9 @@ export function useArrayRef<T extends object>(
       // Runtime 会用 appId:viewId 作为 namespace
       const itemRefId = `${refId}[${idx}]`;
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log(`[useArrayRef] Registering item: ${itemRefId}`);
-      }
+      // if (process.env.NODE_ENV !== "production") {
+      //   console.log(`[useArrayRef] Registering item: ${itemRefId}`);
+      // }
       registerRef(itemRefId, item);
       newIds.add(itemRefId);
     });
@@ -109,7 +109,7 @@ export function useArrayRef<T extends object>(
     for (const oldId of registeredItemsRef.current) {
       if (!newIds.has(oldId)) {
         if (process.env.NODE_ENV !== "production") {
-          console.log(`[useArrayRef] Unregistering stale item: ${oldId}`);
+          // console.log(`[useArrayRef] Unregistering stale item: ${oldId}`);
         }
         unregisterRef(oldId);
       }
@@ -121,9 +121,9 @@ export function useArrayRef<T extends object>(
       // Cleanup all on unmount
       if (process.env.NODE_ENV !== "production") {
 
-        console.log(
-          `[useArrayRef] Unmounting list: ${refId}, cleaning up ${registeredItemsRef.current.size} items`,
-        );
+        // console.log(
+        //   `[useArrayRef] Unmounting list: ${refId}, cleaning up ${registeredItemsRef.current.size} items`,
+        // );
       }
       for (const id of registeredItemsRef.current) {
         unregisterRef(id);

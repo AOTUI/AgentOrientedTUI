@@ -6,6 +6,7 @@ outdated
 backup
 context-compact-migration
 multi-im-migration-report
+openclaw
 
 # Python
 **/__pycache__/

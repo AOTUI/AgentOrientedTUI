@@ -287,6 +287,14 @@ export class AppWorkerHost {
         this.status = 'running';
     }
 
+    async reinitialize(reason?: string): Promise<void> {
+        await this.sendRequest<void>({
+            type: 'APP_REINITIALIZE',
+            requestId: generateRequestId(),
+            reason,
+        });
+    }
+
     async close(): Promise<void> {
         // 发送 APP_SHUTDOWN 信号给SDK，触发持久化flush
         await this.sendRequest<void>({

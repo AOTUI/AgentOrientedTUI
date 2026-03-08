@@ -15,7 +15,7 @@
  * - AppManager 持有 Desktop 引用用于日志和信号
  */
 
-import type { DesktopID, AppID, AppState, IDesktop } from '../../spi/index.js';
+import type { DesktopID, AppID, AppState, IDesktop, ReinitializeDesktopAppsOptions, ReinitializeDesktopAppsResult } from '../../spi/index.js';
 import { createAppId } from '../../spi/index.js';
 import { WorkerSandbox, type SandboxStatus } from './worker-sandbox.js';
 
@@ -36,10 +36,11 @@ export interface InstalledApp {
      * [RFC-014] App 状态
      * - 'pending': 已注册但未启动 (懒加载)
      * - 'running': 正在运行
+     * - 'paused': 已暂停
      * - 'closed': 已关闭
      * - 'collapsed': 已折叠
      */
-    status: 'pending' | 'running' | 'closed' | 'collapsed';
+    status: 'pending' | 'running' | 'paused' | 'closed' | 'collapsed';
     installedAt: number;
 
     /** [RFC-014] 懒加载: 模块路径 */
@@ -108,6 +109,23 @@ export class AppManager {
         this.options = options || {};
     }
 
+    private withLifecycleMetadata(
+        config: import('../../spi/app/app-config.interface.js').AppLaunchConfig | undefined,
+        lifecycle?: {
+            startupKind: 'normal' | 'reinitialize';
+            reason?: string;
+        }
+    ): import('../../spi/app/app-config.interface.js').AppLaunchConfig | undefined {
+        const effectiveLifecycle = lifecycle ?? { startupKind: 'normal' as const };
+        return {
+            ...(config ?? {}),
+            __aotuiLifecycle: {
+                startupKind: effectiveLifecycle.startupKind,
+                reason: effectiveLifecycle.reason,
+            },
+        };
+    }
+
     // ════════════════════════════════════════════════════════════════
     //  安装方法
     // ════════════════════════════════════════════════════════════════
@@ -136,10 +154,23 @@ export class AppManager {
 
             /** [RFC-014] App Role */
             promptRole?: 'user' | 'assistant';
+
+            /** Internal: suppress install callbacks during reinitialize */
+            notifyAppInstalled?: boolean;
+            /** Internal: suppress lifecycle signal during reinitialize */
+            emitLifecycleSignal?: boolean;
+            /** Internal: override lifecycle log message */
+            lifecycleMessage?: string;
+            /** Internal: startup lifecycle metadata for runtime-only injection */
+            lifecycle?: {
+                startupKind: 'normal' | 'reinitialize';
+                reason?: string;
+            };
         }
     ): Promise<AppID> {
         // 分配 ID
         const appId = options?.appId ?? createAppId(this.appIdCounter++);
+        const workerLaunchConfig = this.withLifecycleMetadata(options?.config, options?.lifecycle);
 
         // 创建 WorkerSandbox
         const workerSandbox = new WorkerSandbox({
@@ -148,7 +179,7 @@ export class AppManager {
             name: options?.name,
             appModulePath,
             workerScriptPath: options?.workerScriptPath,
-            config: options?.config, // ✨ 传递配置
+            config: workerLaunchConfig, // ✨ 传递配置
             runtimeConfig: options?.runtimeConfig, // [RFC-005] Pass configuration
         });
 
@@ -183,9 +214,13 @@ export class AppManager {
             promptRole: options?.promptRole,
         });
 
-        this.desktop.logSystem(`Installed Worker app: ${appId}`);
-        this.desktop.emitSignal('app_opened');
-        this.options.onAppInstalled?.(appId);
+        this.desktop.logSystem(options?.lifecycleMessage ?? `Installed Worker app: ${appId}`);
+        if (options?.emitLifecycleSignal ?? true) {
+            this.desktop.emitSignal('app_opened');
+        }
+        if (options?.notifyAppInstalled ?? true) {
+            this.options.onAppInstalled?.(appId);
+        }
 
         return appId;
     }
@@ -233,7 +268,18 @@ export class AppManager {
      * 
      * 将 pending 状态的 App 真正安装并启动 Worker
      */
-    async startPendingApp(appId: AppID): Promise<boolean> {
+    async startPendingApp(
+        appId: AppID,
+        options?: {
+            notifyAppInstalled?: boolean;
+            emitLifecycleSignal?: boolean;
+            lifecycleMessage?: string;
+            lifecycle?: {
+                startupKind: 'normal' | 'reinitialize';
+                reason?: string;
+            };
+        }
+    ): Promise<boolean> {
         const app = this.installedApps.get(appId);
 
         if (!app) {
@@ -262,10 +308,92 @@ export class AppManager {
             config: app.config,
             runtimeConfig: app.runtimeConfig,
             promptRole: app.promptRole,
+            notifyAppInstalled: options?.notifyAppInstalled,
+            emitLifecycleSignal: options?.emitLifecycleSignal,
+            lifecycleMessage: options?.lifecycleMessage,
+            lifecycle: options?.lifecycle,
         });
 
-        this.desktop.logSystem(`Started staged app: ${appId}`);
+        if (!options?.lifecycleMessage) {
+            this.desktop.logSystem(`Started staged app: ${appId}`);
+        }
         return true;
+    }
+
+    async reinitializeAll(
+        options?: ReinitializeDesktopAppsOptions
+    ): Promise<Omit<ReinitializeDesktopAppsResult, 'desktopId'>> {
+        const result: Omit<ReinitializeDesktopAppsResult, 'desktopId'> = {
+            reinitializedAppIds: [],
+            skippedAppIds: [],
+            failedAppIds: [],
+        };
+
+        for (const appId of Array.from(this.installedApps.keys())) {
+            const app = this.installedApps.get(appId);
+            if (!app) continue;
+
+            if (app.status === 'closed' || app.status === 'pending') {
+                result.skippedAppIds.push(appId);
+                continue;
+            }
+
+            try {
+                await this.reinitializeApp(appId, options);
+                result.reinitializedAppIds.push(appId);
+            } catch (error) {
+                const worker = this.workers.get(appId);
+                if (worker) {
+                    worker.dispose();
+                    this.workers.delete(appId);
+                }
+                app.status = 'closed';
+                result.failedAppIds.push(appId);
+                this.desktop.logSystem(
+                    `Failed to reinitialize app ${appId}: ${error instanceof Error ? error.message : String(error)}`,
+                    'error'
+                );
+            }
+        }
+
+        return result;
+    }
+
+    async reinitializeApp(appId: AppID, options?: ReinitializeDesktopAppsOptions): Promise<void> {
+        const app = this.installedApps.get(appId);
+        if (!app) {
+            throw new Error(`App ${appId} not found`);
+        }
+
+        if (app.status === 'closed' || app.status === 'pending') {
+            return;
+        }
+
+        const worker = this.workers.get(appId);
+        if (!worker) {
+            throw new Error(`Worker for ${appId} not found`);
+        }
+
+        await worker.reinitialize(options?.reason);
+        await worker.close();
+        worker.dispose();
+        this.workers.delete(appId);
+
+        app.status = 'closed';
+
+        const restarted = await this.startPendingApp(appId, {
+            notifyAppInstalled: false,
+            emitLifecycleSignal: false,
+            lifecycleMessage: `Reinitialized app: ${appId}${options?.reason ? ` (${options.reason})` : ''}`,
+            lifecycle: {
+                startupKind: 'reinitialize',
+                reason: options?.reason,
+            },
+        });
+
+        if (!restarted) {
+            throw new Error(`Failed to restart ${appId} after reinitialize`);
+        }
     }
 
 
@@ -280,6 +408,8 @@ export class AppManager {
         for (const [appId, worker] of this.workers) {
             if (worker.status === 'running') {
                 await worker.pause();
+                const app = this.installedApps.get(appId);
+                if (app) app.status = 'paused';
             }
         }
     }
@@ -291,6 +421,8 @@ export class AppManager {
         for (const [appId, worker] of this.workers) {
             if (worker.status === 'paused') {
                 await worker.resume();
+                const app = this.installedApps.get(appId);
+                if (app) app.status = 'running';
             }
         }
     }

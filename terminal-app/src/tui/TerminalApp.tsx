@@ -87,7 +87,7 @@ function TerminalRoot() {
         if (!target) {
             return false;
         }
-        updateTerminal(terminalId, (terminal: TerminalSession) => ({ ...terminal, outputTail: normalized }));
+        updateTerminal(terminalId, (terminal: TerminalSession) => ({ ...terminal, outputTail: terminal.outputTail + normalized }));
         return true;
     }, [updateTerminal]);
 

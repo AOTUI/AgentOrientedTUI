@@ -8,6 +8,7 @@
 import type { AppID, OperationID } from '../core/types.js';
 import type { OperationContext, OperationResult } from '../core/operations.js';
 import type { AppContext } from './store.interface.js';
+import type { AppReinitializeContext } from './app-kernel.interface.js';
 
 /**
  * AOTUI App 接口
@@ -54,6 +55,13 @@ export interface IAOTUIApp {
     onClose(): Promise<void>;
 
     /**
+     * App 重新初始化时调用（可选）
+     *
+     * 用于在 Runtime 执行冷重启前，让 App 做最佳努力的瞬时状态清理。
+     */
+    onReinitialize?(context: AppReinitializeContext): Promise<void>;
+
+    /**
      * [RFC-015] App 删除时调用（可选）
      * 
      * 在此方法中进行数据清理工作：
@@ -96,4 +104,3 @@ export interface IAOTUIApp {
      */
     renderViewTree?(): string;
 }
-

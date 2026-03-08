@@ -28,15 +28,15 @@ export class Dispatcher implements IDispatcher {
                 // 例如: "app_0:view_0:pinned_msgs[0]"
                 const fullKey = `${context.appId}:${context.viewId}:${value}`;
 
-                console.log(`[Dispatcher] Attempting to resolve: "${value}" → "${fullKey}"`);
+                //console.log(`[Dispatcher] Attempting to resolve: "${value}" → "${fullKey}"`);
                 const payload = registry.resolve(snapshotId, fullKey);
 
                 if (payload !== undefined) {
-                    console.log(`[Dispatcher] ✓ Resolved "${fullKey}" →`, typeof payload, payload);
+                    //console.log(`[Dispatcher] ✓ Resolved "${fullKey}" →`, typeof payload, payload);
                     resolvedArgs[key] = payload;
                     continue;
                 } else {
-                    console.log(`[Dispatcher] ✗ Failed to resolve "${fullKey}" (not found in registry)`);
+                    //console.log(`[Dispatcher] ✗ Failed to resolve "${fullKey}" (not found in registry)`);
                 }
             }
             resolvedArgs[key] = value;

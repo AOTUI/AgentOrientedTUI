@@ -55,7 +55,7 @@ export * from './adapters/bridge/index.js';
 // Used by Product Layer to load and manage third-party TUI apps
 // ============================================================================
 export { AppRegistry } from './engine/app/index.js';
-export type { LoadedApp, AppRegistryOptions, TUIConfig, AppConfigEntry } from './engine/app/index.js';
+export type { LoadedApp, AppRegistryEntry, AppRegistryOptions, TUIConfig, AppConfigEntry } from './engine/app/index.js';
 
 // ============================================================================
 // 🟢 Public: System Operations (For Agent Driver)

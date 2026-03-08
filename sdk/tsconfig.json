@@ -11,6 +11,18 @@
         "sourceMap": true,
         "outDir": "./dist",
         "rootDir": "./src",
+        "baseUrl": ".",
+        "paths": {
+            "@aotui/runtime": [
+                "../runtime/dist/index.d.ts"
+            ],
+            "@aotui/runtime/spi": [
+                "../runtime/dist/spi/index.d.ts"
+            ],
+            "@aotui/runtime/*": [
+                "../runtime/dist/*"
+            ]
+        },
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,

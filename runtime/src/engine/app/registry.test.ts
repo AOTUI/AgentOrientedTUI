@@ -264,6 +264,84 @@ describe('AppRegistry', () => {
             }));
             expect(mockDesktop.installDynamicWorkerApp).not.toHaveBeenCalled();
         });
+
+        it('should install only selected explicit entries without consulting config apps', async () => {
+            const configDrivenFactory = createMockFactory('config-app');
+            const explicitFactory = createMockFactory('explicit-app');
+
+            registry['config'].apps['config-app'] = {
+                source: 'local:/config-app',
+                enabled: true,
+                autoStart: true,
+            };
+            registry['entryConfigs'].set('config-app', { ...registry['config'].apps['config-app'] });
+            registry['apps'].set('config-app', {
+                name: 'config-app',
+                source: 'local:/config-app',
+                factory: configDrivenFactory,
+                manifest: configDrivenFactory.manifest,
+            });
+
+            registry['apps'].clear();
+            registry['entryConfigs'].clear();
+            registry['loadFactory'] = vi.fn().mockResolvedValue(explicitFactory);
+
+            await registry.loadFromEntries([
+                {
+                    name: 'explicit-app',
+                    source: 'local:/explicit-app',
+                    enabled: true,
+                    autoStart: true,
+                }
+            ]);
+
+            expect(registry.has('config-app')).toBe(false);
+            expect(registry.has('explicit-app')).toBe(true);
+
+            await registry.installSelected(mockDesktop, ['explicit-app']);
+
+            expect(mockDesktop.installDynamicWorkerApp).toHaveBeenCalledTimes(1);
+            expect(mockDesktop.installDynamicWorkerApp).toHaveBeenCalledWith(
+                '/mock/module/path',
+                expect.objectContaining({
+                    name: 'explicit-app'
+                })
+            );
+        });
+
+        it('should keep non-selected explicit entries out of installation', async () => {
+            const alphaFactory = createMockFactory('alpha-app');
+            const betaFactory = createMockFactory('beta-app');
+
+            registry['loadFactory'] = vi.fn()
+                .mockResolvedValueOnce(alphaFactory)
+                .mockResolvedValueOnce(betaFactory);
+
+            await registry.loadFromEntries([
+                {
+                    name: 'alpha-app',
+                    source: 'local:/alpha-app',
+                    enabled: true,
+                    autoStart: true,
+                },
+                {
+                    name: 'beta-app',
+                    source: 'local:/beta-app',
+                    enabled: true,
+                    autoStart: true,
+                }
+            ]);
+
+            await registry.installSelected(mockDesktop, ['beta-app']);
+
+            expect(mockDesktop.installDynamicWorkerApp).toHaveBeenCalledTimes(1);
+            expect(mockDesktop.installDynamicWorkerApp).toHaveBeenCalledWith(
+                '/mock/module/path',
+                expect.objectContaining({
+                    name: 'beta-app'
+                })
+            );
+        });
     });
 });
 

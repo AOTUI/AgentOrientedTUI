@@ -54,7 +54,7 @@ export function useDataRef<T extends object>(refId: string, data: T): RefHandle<
   // 注册到 RefRegistry
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
-      console.log(`[useDataRef] Mounting ref: ${refId}`, data);
+      // console.log(`[useDataRef] Mounting ref: ${refId}`, data);
     }
     registerRef(refId, data);
     registeredRef.current = true;
@@ -62,7 +62,7 @@ export function useDataRef<T extends object>(refId: string, data: T): RefHandle<
     return () => {
       if (registeredRef.current) {
         if (process.env.NODE_ENV !== "production") {
-          console.log(`[useDataRef] Unmounting ref: ${refId}`);
+          // console.log(`[useDataRef] Unmounting ref: ${refId}`);
         }
         unregisterRef(refId);
         registeredRef.current = false;

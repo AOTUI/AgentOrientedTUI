@@ -23,6 +23,22 @@ import type { IRuntimeContext } from './context.interface.js'; // New
 
 import type { IAOTUIApp } from '../app/app.interface.js';
 
+export interface ReinitializeDesktopAppsOptions {
+    reason?: string;
+    preserve?: {
+        desktopIdentity?: boolean;
+        installedApps?: boolean;
+        rootSurface?: boolean;
+    };
+}
+
+export interface ReinitializeDesktopAppsResult {
+    desktopId: DesktopID;
+    reinitializedAppIds: AppID[];
+    skippedAppIds: AppID[];
+    failedAppIds: AppID[];
+}
+
 // ============================================================================
 // Desktop Interface
 // ============================================================================
@@ -141,6 +157,11 @@ export interface IDesktop {
     getAppInfo?(appId: AppID): { name?: string } | undefined;
 
     /**
+     * 重新初始化 Desktop 上的所有 App，同时保持 Desktop 身份稳定。
+     */
+    reinitializeApps(options?: ReinitializeDesktopAppsOptions): Promise<ReinitializeDesktopAppsResult>;
+
+    /**
      * 等待所有活动 Worker 结束
      * 
      * 用于 Graceful Shutdown
@@ -234,6 +255,14 @@ export interface IKernel {
     // Snapshot
     acquireSnapshot(desktopId: DesktopID, ttl?: number): Promise<CachedSnapshot>;
     releaseSnapshot(snapshotId: SnapshotID): void;
+
+    /**
+     * 重新初始化 Desktop 上的所有 App，同时保持 Desktop 身份稳定。
+     */
+    reinitializeDesktopApps(
+        desktopId: DesktopID,
+        options?: ReinitializeDesktopAppsOptions
+    ): Promise<ReinitializeDesktopAppsResult>;
 
     // Execution
     /**

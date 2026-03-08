@@ -39,7 +39,9 @@ describe('SnapshotFormatter', () => {
             const formatter = new SnapshotFormatter();
             const result = formatter.format([], mockMetadata);
             expect(result.markup).toContain('# TUI Desktop System Instruction');
-            expect(result.markup).toContain('system-dismount_view');
+            expect(result.markup).toContain('system-open_app');
+            expect(result.markup).toContain('system-close_app');
+            expect(result.markup).not.toContain('system-dismount_view');
         });
 
         it('should show app list with status', () => {

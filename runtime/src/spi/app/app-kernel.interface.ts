@@ -15,6 +15,10 @@ import type { AppLaunchConfig } from './app-config.interface.js';
 import type { AppContext } from './store.interface.js';
 import type { AppID, DesktopID } from '../core/types.js';
 
+export interface AppReinitializeContext extends AppContext {
+    reason?: string;
+}
+
 /**
  * App-level Operation Handler
  *
@@ -143,6 +147,14 @@ export interface AppKernelConfig {
      * 用于清理持久化数据（如 DB、LocalStorage）。
      */
     onDelete?(context: AppContext): Promise<void> | void;
+
+    /**
+     * App 重新初始化回调
+     *
+     * 在 Runtime 触发冷重启前调用，用于最佳努力清理瞬时状态。
+     */
+    onReinitialize?(context: AppReinitializeContext): Promise<void> | void;
+
     /**
      * [RFC-014 Extension] 应用在 Prompt 中的角色
      * 

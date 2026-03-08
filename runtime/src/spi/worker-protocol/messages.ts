@@ -52,8 +52,9 @@ export interface InitMessage {
  * App 生命周期消息
  */
 export interface AppLifecycleMessage {
-    type: 'APP_OPEN' | 'APP_PAUSE' | 'APP_RESUME' | 'APP_CLOSE' | 'APP_DELETE' | 'APP_SHUTDOWN';
+    type: 'APP_OPEN' | 'APP_PAUSE' | 'APP_RESUME' | 'APP_CLOSE' | 'APP_DELETE' | 'APP_SHUTDOWN' | 'APP_REINITIALIZE';
     requestId: RequestID;
+    reason?: string;
 }
 
 /**
