@@ -10,7 +10,7 @@ OpenClaw 如何像 `host` 一样拿到并调用 AOTUI 的 `system-open_app`、`s
 
 - 不要把 `system tools` 的暴露建立在“只扫描 `snapshot.indexMap`”上
 - 想和 `host` 保持一致，应该复用 `AOTUI Runtime -> Agent` 这一层现成的暴露逻辑
-- 如果暂时不想直接接 `AOTUIDrivenSource`，至少也要复刻它的关键行为：`snapshot.indexMap + kernel.getSystemToolDefinitions()`
+- 如果暂时不想直接接 `AOTUIDrivenSource`，至少也要复刻它的关键行为：`app tools from snapshot.indexMap + system tools from kernel.getSystemToolDefinitions()`
 
 ## 背景
 
@@ -27,7 +27,7 @@ OpenClaw 如何像 `host` 一样拿到并调用 AOTUI 的 `system-open_app`、`s
 - [aotui-driven-source.ts](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/adapters/aotui-driven-source.ts#L409)
 - [kernel/index.ts](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/kernel/index.ts#L62)
 
-这就是为什么标准 `host` 能看到 `system-open_app` 等工具，即使某些接入方只看 `snapshot` 时会漏掉它们。
+这就是为什么标准 `host` 能看到 `system-open_app` 等工具。这里的语义边界是明确的：`snapshot.indexMap` 负责 app/view/tool 的快照数据，system tools 走 `kernel.getSystemToolDefinitions()`，不承诺出现在 snapshot 里。
 
 ## 推荐方案
 
@@ -86,9 +86,10 @@ const unsubscribe = aotuiSource.onUpdate(() => {
 
 如果 OpenClaw 当前架构不方便直接吃 `AOTUIDrivenSource`，那最小正确接法是：
 
-1. 继续读取 `snapshot.indexMap`
-2. 额外读取 `kernel.getSystemToolDefinitions()`
-3. 把两者合并成最终 tool schema
+1. 继续读取 `snapshot.indexMap` 里的 app tools
+2. 单独读取 `kernel.getSystemToolDefinitions()` 里的 system tools
+3. 如果需要消息排序，使用 `snapshot.structured.desktopTimestamp` 作为 Desktop State 的最近更新时间
+4. 把两者合并成最终 tool schema
 
 伪代码如下：
 
@@ -148,9 +149,7 @@ OpenClaw 不应该继续依赖下面这些做法：
 
 ## 当前发布版的边界
 
-源码里，`Kernel.acquireSnapshot()` 已经打算把 system tools merge 进 `snapshot.indexMap`，见 [kernel/index.ts](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/kernel/index.ts#L173)。
-
-但 OpenClaw 当前如果消费的是已发布 runtime 构建产物，仍然不应该把希望押在“snapshot 一定带有 system tools”这件事上。原因是历史发布版可能没有完全对齐这条语义。
+当前语义就是：不要把希望押在“snapshot 一定带有 system tools”这件事上。OpenClaw 应该把 snapshot 当作 app 数据面，而把 `kernel.getSystemToolDefinitions()` 当作 system tools 的控制面来源。
 
 所以在 OpenClaw 侧，推荐按下面的优先级接入：
 

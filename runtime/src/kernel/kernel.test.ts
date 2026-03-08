@@ -234,7 +234,7 @@ describe('Kernel', () => {
             expect(toolNames).not.toContain('system-dismount_view');
         });
 
-        it('acquires snapshot via fragments aggregation', async () => {
+        it('acquires snapshot via fragments aggregation without exposing system tools in snapshot indexMap', async () => {
             const mockDesktop = {
                 getSnapshotFragments: vi.fn().mockReturnValue([{
                     appId: 'app1',
@@ -266,30 +266,8 @@ describe('Kernel', () => {
             );
 
             const indexMap = mockRegistry.create.mock.calls[0]?.[0] as Record<string, unknown>;
-            expect(indexMap['tool:system-open_app']).toEqual({
-                description: 'Open an app',
-                params: [
-                    {
-                        name: 'app_id',
-                        type: 'string',
-                        required: true,
-                        description: 'Application ID',
-                        options: undefined,
-                    },
-                ],
-            });
-            expect(indexMap['tool:system-close_app']).toEqual({
-                description: 'Close an app',
-                params: [
-                    {
-                        name: 'app_id',
-                        type: 'string',
-                        required: true,
-                        description: 'Application ID',
-                        options: undefined,
-                    },
-                ],
-            });
+            expect(indexMap['tool:system-open_app']).toBeUndefined();
+            expect(indexMap['tool:system-close_app']).toBeUndefined();
             expect(indexMap['tool:system-dismount_view']).toBeUndefined();
         });
 

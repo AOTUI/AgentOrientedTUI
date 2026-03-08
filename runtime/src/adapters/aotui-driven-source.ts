@@ -279,7 +279,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
         try {
             const baseTimestamp = snapshot.createdAt || Date.now();
 
-            const desktopTimestamp = 2;
+            const desktopTimestamp = snapshot.structured?.desktopTimestamp ?? 2;
 
             // 3. 优先使用结构化 Snapshot (RFC-014)
             if (snapshot.structured?.appStates) {

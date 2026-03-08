@@ -131,6 +131,46 @@ describe('SnapshotFormatter', () => {
             expect(result.structured.appStates[0]?.timestamp).toBe(1705305602000);
         });
 
+        it('should expose desktopTimestamp from the latest system log only', () => {
+            const metadataWithLogs: IDesktopMetadata = {
+                getInstalledApps: () => [{
+                    appId: 'app_0',
+                    name: 'IDE',
+                    status: 'running',
+                }],
+                getSystemLogs: () => [
+                    {
+                        timestamp: 1705305601000,
+                        message: 'Desktop created',
+                    },
+                    {
+                        timestamp: 1705305605000,
+                        message: 'App opened',
+                    },
+                ],
+                getAppOperationLogs: () => [],
+            };
+
+            const fragment: ISnapshotFragment = {
+                appId: 'app_0',
+                markup: '',
+                indexMap: {},
+                views: [
+                    {
+                        viewId: 'workspace',
+                        viewType: 'Workspace',
+                        markup: '<view>Workspace</view>',
+                        timestamp: 1705305609000,
+                    },
+                ],
+            };
+
+            const formatter = new SnapshotFormatter();
+            const result = formatter.format([fragment], metadataWithLogs);
+
+            expect(result.structured.desktopTimestamp).toBe(1705305605000);
+        });
+
         it('should export view-level fragments into structured viewStates', () => {
             const metadataWithRole: IDesktopMetadata = {
                 getInstalledApps: () => [{

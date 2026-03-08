@@ -52,6 +52,9 @@ export interface StructuredSnapshot {
     /** Where - Desktop 状态 (Apps 列表, System Logs) */
     desktopState: string;
 
+    /** Where - Desktop 状态最近一次可观测更新时间 */
+    desktopTimestamp?: number;
+
     /** When - 各 App 的当前状态 */
     appStates: AppStateFragment[];
 
