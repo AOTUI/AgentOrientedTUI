@@ -86,6 +86,7 @@ export const ERROR_CODES = {
     // ─────────────────────────────────────────────────────────────
     //  Generic
     // ─────────────────────────────────────────────────────────────
+    RUNTIME_SHUTDOWN: 'RUNTIME_SHUTDOWN',
     INTERNAL_ERROR: 'INTERNAL_ERROR',
     NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
     EXECUTION_FAILED: 'EXECUTION_FAILED',
@@ -155,6 +156,7 @@ const ERROR_MESSAGES: Record<ErrorCode, MessageFormatter> = {
     CONTEXT_NOT_FOUND: (c) => `${c.contextName ?? 'Context'} not found. Ensure component is wrapped in proper Provider.`,
 
     // Generic
+    RUNTIME_SHUTDOWN: (c) => `Runtime has been shut down${c.reason ? `: ${c.reason}` : ''}`,
     INTERNAL_ERROR: (c) => `Internal error: ${c.message ?? 'unknown'}`,
     NOT_IMPLEMENTED: (c) => `Not implemented: ${c.feature ?? 'unknown'}`,
     EXECUTION_FAILED: (c) => `Execution failed: ${c.message ?? 'unknown'}`,

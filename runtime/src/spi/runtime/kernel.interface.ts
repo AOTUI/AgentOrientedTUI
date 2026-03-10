@@ -200,6 +200,7 @@ export interface IRegistry {
     retain(id: SnapshotID): void;
     release(id: SnapshotID): void;
     resolve(id: SnapshotID, path: string): DataPayload | undefined;
+    shutdown?(): void;
 }
 
 // ============================================================================
@@ -303,6 +304,14 @@ export interface IKernel {
      * 会触发 App 的 onDelete 生命周期钩子。
      */
     deleteDesktop(desktopId: DesktopID): Promise<void>;
+
+    /**
+     * 关闭 Runtime 本体并释放进程级资源。
+     *
+     * - 幂等
+     * - shutdown 后 Kernel 不再可用于创建/管理 Desktop
+     */
+    shutdown(reason?: string): Promise<void>;
 }
 
 /**

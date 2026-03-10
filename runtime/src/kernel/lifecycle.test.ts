@@ -30,7 +30,8 @@ describe('Kernel Lifecycle Management', () => {
             }),
             retain: vi.fn(),
             release: vi.fn(),
-            resolve: vi.fn()
+            resolve: vi.fn(),
+            shutdown: vi.fn()
         };
         mockTransformer = {
             transform: vi.fn().mockReturnValue({ markup: '# Test', indexMap: {} })
@@ -94,4 +95,23 @@ describe('Kernel Lifecycle Management', () => {
     // [Worker-Only Migration] 'integration: full lifecycle' test removed
     // The old lifecycle (install static HTML -> serialize -> restore) is no longer supported.
     // Worker-Only apps have different lifecycle patterns.
+
+    describe('runtime shutdown', () => {
+        it('shutdown is idempotent and rejects further runtime operations', async () => {
+            const id1 = await kernel.createDesktop();
+            const id2 = await kernel.createDesktop();
+
+            expect(desktopManager.has(id1)).toBe(true);
+            expect(desktopManager.has(id2)).toBe(true);
+
+            await kernel.shutdown('service_stop');
+            await kernel.shutdown('service_stop');
+
+            expect(desktopManager.has(id1)).toBe(false);
+            expect(desktopManager.has(id2)).toBe(false);
+            expect(mockRegistry.shutdown).toHaveBeenCalledTimes(1);
+
+            await expect(kernel.createDesktop()).rejects.toThrow(/Runtime has been shut down|RUNTIME_SHUTDOWN/);
+        });
+    });
 });

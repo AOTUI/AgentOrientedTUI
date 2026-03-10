@@ -55,6 +55,9 @@ export class Kernel implements IKernel {
         'system-open_app',
         'system-close_app',
     ]);
+    private shutdownReason?: string;
+    private shutdownPromise: Promise<void> | null = null;
+    private isShutdownComplete = false;
 
     constructor(
         private desktopManager: IDesktopManager,
@@ -63,6 +66,15 @@ export class Kernel implements IKernel {
         private dispatcher: IDispatcher,
         private systemOps: ISystemOperationRegistry
     ) { }
+
+    private assertRuntimeAvailable(): void {
+        if (!this.isShutdownComplete) {
+            return;
+        }
+        throw new AOTUIError('RUNTIME_SHUTDOWN', {
+            reason: this.shutdownReason,
+        });
+    }
 
     getSystemToolDefinitions() {
         return this.systemOps.getToolDefinitions().filter((tool) => {
@@ -84,6 +96,7 @@ export class Kernel implements IKernel {
      * @returns The unique identifier of the created Desktop
      */
     async createDesktop(desktopId?: DesktopID, context?: IRuntimeContext): Promise<DesktopID> {
+        this.assertRuntimeAvailable();
         return this.desktopManager.create(desktopId, context);
     }
 
@@ -94,6 +107,7 @@ export class Kernel implements IKernel {
      * @param desktopId - The ID of the Desktop to destroy
      */
     async destroyDesktop(desktopId: DesktopID): Promise<void> {
+        this.assertRuntimeAvailable();
         await this.desktopManager.destroy(desktopId);
     }
 
@@ -102,6 +116,7 @@ export class Kernel implements IKernel {
      * @throws {Error} E_NOT_FOUND if Desktop doesn't exist
      */
     getDesktop(desktopId: DesktopID): IDesktop {
+        this.assertRuntimeAvailable();
         const desktop = this.desktopManager.get(desktopId);
         if (!desktop) {
             throw new AOTUIError('DESKTOP_NOT_FOUND', { desktopId });
@@ -127,6 +142,7 @@ export class Kernel implements IKernel {
             promptRole?: 'user' | 'assistant';
         }
     ): Promise<string> {
+        this.assertRuntimeAvailable();
         const desktop = this.desktopManager.get(desktopId);
         if (!desktop) {
             throw new AOTUIError('DESKTOP_NOT_FOUND', { desktopId });
@@ -144,6 +160,7 @@ export class Kernel implements IKernel {
      * [C1 FIX] Lock management delegated to IDesktopManager
      */
     acquireLock(desktopId: DesktopID, ownerId: string): void {
+        this.assertRuntimeAvailable();
         this.desktopManager.acquireLock(desktopId, ownerId);
     }
 
@@ -152,6 +169,7 @@ export class Kernel implements IKernel {
     }
 
     async acquireSnapshot(desktopId: DesktopID, ttl?: number): Promise<CachedSnapshot> {
+        this.assertRuntimeAvailable();
         const desktop = this.desktopManager.get(desktopId);
         if (!desktop) {
             throw new AOTUIError('DESKTOP_NOT_FOUND', { desktopId });
@@ -185,6 +203,7 @@ export class Kernel implements IKernel {
         desktopId: DesktopID,
         options?: ReinitializeDesktopAppsOptions
     ): Promise<ReinitializeDesktopAppsResult> {
+        this.assertRuntimeAvailable();
         const desktop = this.desktopManager.get(desktopId);
         if (!desktop) {
             throw new AOTUIError('DESKTOP_NOT_FOUND', { desktopId });
@@ -194,6 +213,7 @@ export class Kernel implements IKernel {
     }
 
     async execute(desktopId: DesktopID, operation: Operation, ownerId: string): Promise<OperationResult> {
+        this.assertRuntimeAvailable();
         const startTime = Date.now();
 
         try {
@@ -376,6 +396,7 @@ export class Kernel implements IKernel {
      * [C1 FIX] Now type-safe via IDesktopManager
      */
     async suspend(desktopId: DesktopID): Promise<void> {
+        this.assertRuntimeAvailable();
         await this.desktopManager.suspend(desktopId);
     }
 
@@ -383,10 +404,12 @@ export class Kernel implements IKernel {
      * [C1 FIX] Now type-safe via IDesktopManager
      */
     async resume(desktopId: DesktopID): Promise<void> {
+        this.assertRuntimeAvailable();
         await this.desktopManager.resume(desktopId);
     }
 
     serialize(desktopId: DesktopID): DesktopState {
+        this.assertRuntimeAvailable();
         const info = this.desktopManager.getDesktopInfo(desktopId);
         if (!info) {
             throw new AOTUIError('DESKTOP_NOT_FOUND', { desktopId });
@@ -415,6 +438,7 @@ export class Kernel implements IKernel {
         desktopId: DesktopID,
         options?: import('../spi/index.js').ShutdownOptions
     ): Promise<void> {
+        this.assertRuntimeAvailable();
         const timeout = options?.timeoutMs ?? 30000;
 
         const desktop = this.desktopManager.get(desktopId);
@@ -455,6 +479,7 @@ export class Kernel implements IKernel {
      * [RFC-015] 删除 Desktop (清理数据)
      */
     async deleteDesktop(desktopId: DesktopID): Promise<void> {
+        this.assertRuntimeAvailable();
         const desktop = this.desktopManager.get(desktopId);
         if (!desktop) {
             console.log(`[Kernel] deleteDesktop: Desktop ${desktopId} not found, skipping`);
@@ -470,6 +495,37 @@ export class Kernel implements IKernel {
         this.desktopManager.destroy(desktopId);
 
         console.log(`[Kernel] Desktop ${desktopId} deleted.`);
+    }
+
+    async shutdown(reason?: string): Promise<void> {
+        if (this.isShutdownComplete) {
+            return;
+        }
+
+        if (this.shutdownPromise) {
+            return this.shutdownPromise;
+        }
+
+        this.shutdownReason = reason;
+        this.shutdownPromise = (async () => {
+            const desktopIds = this.desktopManager.listDesktopIds();
+            for (const desktopId of desktopIds) {
+                try {
+                    await this.desktopManager.destroy(desktopId);
+                } catch (error) {
+                    console.warn(`[Kernel] Failed to destroy Desktop during runtime shutdown: ${desktopId}`, error);
+                }
+            }
+
+            try {
+                await this.desktopManager.shutdown?.();
+            } finally {
+                this.snapshotRegistry.shutdown?.();
+                this.isShutdownComplete = true;
+            }
+        })();
+
+        return this.shutdownPromise;
     }
 
 }

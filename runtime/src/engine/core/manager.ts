@@ -83,6 +83,10 @@ export class DesktopManager implements IDesktopManager {
         return this.desktops.get(desktopId);
     }
 
+    listDesktopIds(): DesktopID[] {
+        return Array.from(this.desktops.keys());
+    }
+
     // ─────────────────────────────────────────────────────────────
     //  IDesktopLockService 实现 (Delegate)
     // ─────────────────────────────────────────────────────────────
@@ -159,6 +163,14 @@ export class DesktopManager implements IDesktopManager {
     async resume(desktopId: DesktopID): Promise<void> {
         const desktop = this.getDesktopOrThrow(desktopId);
         await desktop.resume();
+    }
+
+    async shutdown(): Promise<void> {
+        const desktopIds = this.listDesktopIds();
+        for (const desktopId of desktopIds) {
+            await this.destroy(desktopId);
+        }
+        this.lockService.clearAll();
     }
 
     // ─────────────────────────────────────────────────────────────

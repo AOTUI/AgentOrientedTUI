@@ -29,6 +29,15 @@ export interface IDesktopManager extends
     IDesktopLifecycleController {
     // Override create to include context
     create(desktopId?: DesktopID, context?: IRuntimeContext): Promise<DesktopID>;
-}
 
+    /**
+     * 列出当前仍由 runtime 托管的所有 Desktop。
+     */
+    listDesktopIds(): DesktopID[];
+
+    /**
+     * 关闭 DesktopManager 自身持有的 runtime 级资源。
+     */
+    shutdown?(): Promise<void>;
+}
 

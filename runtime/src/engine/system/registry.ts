@@ -119,4 +119,11 @@ export class SnapshotRegistry implements IRegistry {
     private forceDestroy(id: SnapshotID): void {
         this.destroy(id);
     }
+
+    shutdown(): void {
+        for (const snapshot of this.snapshots.values()) {
+            clearTimeout(snapshot.timer);
+        }
+        this.snapshots.clear();
+    }
 }

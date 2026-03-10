@@ -107,6 +107,14 @@ export class InMemoryLockService implements IDesktopLockService {
         this.locks.delete(desktopId);
     }
 
+    /**
+     * [Internal] 清理所有锁
+     * 用于 Runtime shutdown。
+     */
+    clearAll(): void {
+        this.locks.clear();
+    }
+
     private isLockValid(lock: LockState): boolean {
         return Date.now() - lock.timestamp < this.ttlMs;
     }

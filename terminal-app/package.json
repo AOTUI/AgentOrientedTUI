@@ -1,6 +1,6 @@
 {
-    "name": "@aotui/terminal",
-    "version": "1.0.0",
+    "name": "@agentina/aotui-terminal",
+    "version": "1.0.1",
     "description": "AOTUI Terminal Application - Multi-terminal command execution for LLM workflows",
     "type": "module",
     "main": "dist/index.js",
@@ -11,16 +11,23 @@
         "test:run": "vitest run"
     },
     "dependencies": {
-        "@aotui/sdk": "0.1.3",
+        "@aotui/sdk": "^0.1.6",
         "preact": "^10.25.4"
     },
     "devDependencies": {
-        "@aotui/runtime": "file:../runtime",
+        "@aotui/runtime": "^1.0.10",
         "@types/node": "^22.15.21",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4"
     },
     "peerDependencies": {
-        "@aotui/runtime": "^1.0.0"
-    }
+        "@aotui/runtime": "^1.0.10"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist",
+        "aoapp.json"
+    ]
 }
