@@ -14,6 +14,7 @@ import { WorkspaceContent } from './WorkspaceContent.js';
 import { FileDetailView } from './FileDetailContent.js';
 import { SearchResultView } from './SearchResultView.js';
 import { RootView } from './RootView.js';
+import { mergeWorkspaceFolders } from './workspace-folders.js';
 import { lspService } from '../core/index.js';
 import { persistenceService } from '../core/persistence-service.js';
 import type { FileInfo, AppEvents } from '../types.js';
@@ -61,18 +62,8 @@ function SystemIDEApp() {
 
   // workspaceFolders: 统一使用 multi-folder 模式
   // 若 projectPath 存在则作为初始 folder，否则空数组
-  const [workspaceFolders, setWorkspaceFolders] = usePersistentState<string[]>(
-    'workspaceFolders',
-    envProjectPath ? [envProjectPath] : [],
-    {
-      deserialize: (value) => Array.isArray(value)
-        ? value.filter((item): item is string => typeof item === 'string')
-        : (envProjectPath ? [envProjectPath] : []),
-      serialize: (value) => Array.isArray(value)
-        ? value.filter((item): item is string => typeof item === 'string')
-        : [],
-    }
-  );
+  const [workspaceFolders, setWorkspaceFolders] = useState<string[]>(envProjectPath ? [envProjectPath] : []);
+  const [workspaceFoldersReady, setWorkspaceFoldersReady] = useState(false);
 
   // 目录树展开状态管理 (State Lifting)
   const [expandedDirList, setExpandedDirList] = usePersistentState<string[]>('expandedDirs', [...workspaceFolders], {
@@ -110,10 +101,38 @@ function SystemIDEApp() {
   }, []);
 
   useEffect(() => {
-    persistenceService.initDatabase().catch((error: Error) => {
-      console.error('[SystemIDEApp] Persistence init failed:', error);
+    let cancelled = false;
+
+    const initPersistence = async () => {
+      await persistenceService.initDatabase();
+      const persistedFolders = await persistenceService.getWorkspaceFolders();
+      if (cancelled) {
+        return;
+      }
+      setWorkspaceFolders(mergeWorkspaceFolders(persistedFolders, envProjectPath));
+      setWorkspaceFoldersReady(true);
+    };
+
+    initPersistence().catch((error: Error) => {
+      if (!cancelled) {
+        console.error('[SystemIDEApp] Persistence init failed:', error);
+        setWorkspaceFoldersReady(true);
+      }
     });
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [envProjectPath]);
+
+  useEffect(() => {
+    if (!workspaceFoldersReady) {
+      return;
+    }
+    persistenceService.setWorkspaceFolders(workspaceFolders).catch((error: Error) => {
+      console.error('[SystemIDEApp] Workspace folder persistence failed:', error);
+    });
+  }, [workspaceFolders, workspaceFoldersReady]);
 
   // ─────────────────────────────────────────────────────────────
   //  Lifecycle Callbacks

@@ -1,6 +1,6 @@
 {
     "name": "@agentina/aotui-ide",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "AOTUI IDE app for agent-oriented code browsing, search, editing, and LSP-assisted analysis.",
     "type": "module",
     "main": "./dist/index.js",

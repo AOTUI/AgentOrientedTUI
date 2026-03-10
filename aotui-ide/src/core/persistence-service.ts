@@ -4,16 +4,28 @@ import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
 import type { FileInfo } from '../types.js';
+import {
+    normalizePersistenceSchema,
+    normalizeWorkspaceFolders,
+    type PersistenceSchema,
+    type WorkspacePersistenceState,
+} from './persistence-schema.js';
 
-interface Schema {
-    workspaces: {
-        [workspacePath: string]: {
-            openFiles: FileInfo[];
-        };
-    };
+let db: Low<PersistenceSchema> | null = null;
+
+function ensureWorkspace(workspacePath: string): WorkspacePersistenceState {
+    if (!db) {
+        throw new Error('Database not initialized');
+    }
+    if (!db.data.workspaces[workspacePath]) {
+        db.data.workspaces[workspacePath] = { openFiles: [] };
+    }
+    return db.data.workspaces[workspacePath];
 }
 
-let db: Low<Schema> | null = null;
+export function resetPersistenceServiceForTests(): void {
+    db = null;
+}
 
 /**
  * 持久化服务
@@ -29,11 +41,27 @@ export const persistenceService = {
         const dbDir = path.join(os.homedir(), '.aotui');
         const dbPath = path.join(dbDir, 'aotui-ide-db.json');
         await fs.mkdir(dbDir, { recursive: true });
-        const adapter = new JSONFile<Schema>(dbPath);
-        db = new Low(adapter, { workspaces: {} });
+        const adapter = new JSONFile<PersistenceSchema>(dbPath);
+        db = new Low(adapter, { workspaceFolders: [], workspaces: {} });
 
         await db.read();
-        db.data ||= { workspaces: {} };
+        db.data = normalizePersistenceSchema(db.data);
+        await db.write();
+    },
+
+    async getWorkspaceFolders(): Promise<string[]> {
+        if (!db) throw new Error('Database not initialized');
+
+        await db.read();
+        db.data.workspaceFolders = normalizeWorkspaceFolders(db.data.workspaceFolders);
+        return [...db.data.workspaceFolders];
+    },
+
+    async setWorkspaceFolders(workspaceFolders: string[]): Promise<void> {
+        if (!db) throw new Error('Database not initialized');
+
+        await db.read();
+        db.data.workspaceFolders = normalizeWorkspaceFolders(workspaceFolders);
         await db.write();
     },
 
@@ -57,11 +85,7 @@ export const persistenceService = {
         await db.read();
 
         // 初始化 workspace（如果不存在）
-        if (!db.data.workspaces[workspacePath]) {
-            db.data.workspaces[workspacePath] = { openFiles: [] };
-        }
-
-        const openFiles = db.data.workspaces[workspacePath].openFiles;
+        const openFiles = ensureWorkspace(workspacePath).openFiles;
 
         // 去重：移除相同 path 的旧记录
         const filtered = openFiles.filter((f: FileInfo) => f.path !== fileInfo.path);
@@ -74,7 +98,7 @@ export const persistenceService = {
             filtered.length = 10;
         }
 
-        db.data.workspaces[workspacePath].openFiles = filtered;
+        ensureWorkspace(workspacePath).openFiles = filtered;
         await db.write();
     },
 
