@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@aotui/sdk':
-        specifier: file:../sdk
-        version: file:../sdk(preact@10.28.4)
+        specifier: ^0.2.0
+        version: 0.2.0(preact@10.28.4)
       preact:
         specifier: ^10.25.4
         version: 10.28.4
@@ -19,8 +19,8 @@ importers:
         version: 1.14.0
     devDependencies:
       '@aotui/runtime':
-        specifier: file:../runtime
-        version: file:../runtime
+        specifier: ^2.0.0
+        version: 2.0.0
       '@types/node':
         specifier: ^22.15.21
         version: 22.19.13
@@ -98,15 +98,15 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@aotui/agent-driver-v2@file:../agent-driver-v2':
-    resolution: {directory: ../agent-driver-v2, type: directory}
+  '@aotui/agent-driver-v2@0.2.2':
+    resolution: {integrity: sha512-Amk2SRJfu11CpUsWM41+FcRmyX4rOGSrIznjiKPQnLAyUl2hag9uQeJRgeQ8lA3DbDqBGGht6p6c1LwMnkneWQ==}
 
-  '@aotui/runtime@file:../runtime':
-    resolution: {directory: ../runtime, type: directory}
+  '@aotui/runtime@2.0.0':
+    resolution: {integrity: sha512-II4xkyyCadEFlTdQLFjEbSTg+sw/CefcY9F/H87AZkAIOwfQeEu6mNEFLEFjfPOVr80+orpq351MLyjdW1VHMA==}
     hasBin: true
 
-  '@aotui/sdk@file:../sdk':
-    resolution: {directory: ../sdk, type: directory}
+  '@aotui/sdk@0.2.0':
+    resolution: {integrity: sha512-ibADio5XWByq+28lgVn5iWOFIl+nGjw3BjWxBo7ZMtokc9J5sjprg4rE8o1CnONY5l++qUoqF4AHJg6JiMRHoA==}
     peerDependencies:
       preact: ^10.0.0
 
@@ -870,7 +870,7 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.16(zod@4.3.6)
       zod: 4.3.6
 
-  '@aotui/agent-driver-v2@file:../agent-driver-v2(zod@4.3.6)':
+  '@aotui/agent-driver-v2@0.2.2(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.50(zod@4.3.6)
       '@ai-sdk/deepseek': 1.0.34(zod@4.3.6)
@@ -884,9 +884,9 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@aotui/runtime@file:../runtime':
+  '@aotui/runtime@2.0.0':
     dependencies:
-      '@aotui/agent-driver-v2': file:../agent-driver-v2(zod@4.3.6)
+      '@aotui/agent-driver-v2': 0.2.2(zod@4.3.6)
       ai: 6.0.105(zod@4.3.6)
       happy-dom: 20.7.0
       linkedom: 0.18.12
@@ -898,9 +898,9 @@ snapshots:
       - canvas
       - utf-8-validate
 
-  '@aotui/sdk@file:../sdk(preact@10.28.4)':
+  '@aotui/sdk@0.2.0(preact@10.28.4)':
     dependencies:
-      '@aotui/runtime': file:../runtime
+      '@aotui/runtime': 2.0.0
       '@preact/signals': 2.8.1(preact@10.28.4)
       linkedom: 0.18.12
       preact: 10.28.4
