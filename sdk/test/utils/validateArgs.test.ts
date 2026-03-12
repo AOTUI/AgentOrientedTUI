@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { validateArgs, formatValidationErrors } from '../../src/utils/validateArgs.js';
-import type { ParamSchema } from '../../src/components/Operation.js';
+import type { ParamSchema } from '../../src/operation/types.js';
 
 describe('validateArgs', () => {
     describe('required parameters', () => {
@@ -250,4 +250,3 @@ describe('validateArgs - constraints', () => {
         });
     });
 });
-

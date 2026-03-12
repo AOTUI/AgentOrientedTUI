@@ -4,7 +4,7 @@
  * 仅保留必要的类型定义，所有 V1 接口已删除
  */
 
-import type { IDesktop, Bridge } from '@aotui/runtime';
+import type { IDesktop } from '@aotui/runtime';
 // ✅ AI SDK v6 types (CoreMessage 在 ai 包中)
 
 // ═══════════════════════════════════════════════════════════════

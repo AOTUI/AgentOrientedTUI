@@ -11,8 +11,6 @@
  * @module @aotui/sdk/operation/types
  */
 
-import type { ComponentChildren } from "preact";
-
 // ═══════════════════════════════════════════════════════════════
 // 1. 基础类型 (Primitives)
 // ═══════════════════════════════════════════════════════════════
@@ -181,30 +179,9 @@ export type InferArgs<T extends ParamSchema> = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 4. Handler 类型 (Handler Types)
+// 4. Runtime Result Types
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Operation Handler 执行上下文
- *
- * @description 提供给 handler 函数的运行时上下文信息
- */
-export interface OperationHandlerContext {
-  /** 当前 View 的 ID */
-  viewId: string;
-  /** 当前 App 的 ID */
-  appId: string;
-  /** 当前 Desktop 的 ID */
-  desktopId: string;
-  /** 标记当前 View 需要重新渲染 */
-  markDirty: () => void;
-}
-
-/**
- * Operation 错误
- *
- * @description Operation 执行失败时返回的错误结构
- */
 export interface OperationError {
   /** 错误码 */
   code: string;
@@ -234,62 +211,6 @@ export interface OperationResult {
   data?: Record<string, unknown>;
   /** 失败时的错误信息 */
   error?: OperationError;
-}
-
-/**
- * Operation Handler 函数签名
- *
- * @description 处理 Agent 调用 Operation 时的业务逻辑
- *
- * @param args - 经过验证的参数，类型由 ParamSchema 推断
- * @param context - 运行时上下文
- * @returns Promise<OperationResult> - 执行结果
- *
- * @example
- * const sendMessageHandler: OperationHandler<{ content: string }> = async (args, ctx) => {
- *     await db.insert({ content: args.content, viewId: ctx.viewId });
- *     return { success: true };
- * };
- */
-export type OperationHandler<TArgs = Record<string, unknown>> = (
-  args: TArgs,
-  context: OperationHandlerContext,
-) => Promise<OperationResult>;
-
-// ═══════════════════════════════════════════════════════════════
-// 5. 组件 Props (Component Props)
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Operation 组件 Props
- *
- * @description Operation 组件的属性定义
- *
- * @example
- * <Operation
- *     name="send_message"
- *     description="发送消息"
- *     params={{ content: { type: 'string', required: true } }}
- *     onExecute={async (args) => ({ success: true })}
- * >
- *     发送
- * </Operation>
- */
-export interface OperationProps<T extends ParamSchema = ParamSchema> {
-  /** Operation 名称（snake_case，如 send_message） */
-  name: string;
-  /** 描述（显示给 Agent） */
-  description: string;
-  /** 参数定义 */
-  params?: T;
-  /** 执行处理函数，args 类型由 params 推断 */
-  onExecute: OperationHandler<InferArgs<T>>;
-  /** 按钮文字 */
-  children?: ComponentChildren;
-  /** 额外的 CSS 类名 */
-  className?: string;
-  /** 禁用状态 */
-  disabled?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════

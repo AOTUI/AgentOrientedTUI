@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@aotui/sdk':
-        specifier: ^0.1.0
-        version: 0.1.1(preact@10.28.4)
+        specifier: file:../sdk
+        version: file:../sdk(preact@10.28.4)
       emittery:
         specifier: ^1.2.1
         version: 1.2.1
@@ -126,15 +126,15 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@aotui/agent-driver-v2@0.2.1':
-    resolution: {integrity: sha512-4F+wpjQg43qj1Mb4m3YrszMQymxr8t/krhkVP9dWih4Z8O1P0aBeVnjchCM2I6UQJaGVVyWJ/C5YoaAppmrt1Q==}
+  '@aotui/agent-driver-v2@file:../agent-driver-v2':
+    resolution: {directory: ../agent-driver-v2, type: directory}
 
-  '@aotui/runtime@1.0.3':
-    resolution: {integrity: sha512-jh2uKK7646shG+U2oO6akZjAEmvRWGTv8O+uSAv4UlxXAAG09p6L+iWu27HwOQuVC13NYDdGlEk8Q3XP1ZAYQA==}
+  '@aotui/runtime@file:../runtime':
+    resolution: {directory: ../runtime, type: directory}
     hasBin: true
 
-  '@aotui/sdk@0.1.1':
-    resolution: {integrity: sha512-FanpgpvZ/xRobezMcVdzUti/GRPoFR0UztRQuHmlOtsjtPerrA4x2vQZh9NC+mS4IFj8Ubn6nU3LKEzZDKi2Zg==}
+  '@aotui/sdk@file:../sdk':
+    resolution: {directory: ../sdk, type: directory}
     peerDependencies:
       preact: ^10.0.0
 
@@ -1842,7 +1842,7 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.16(zod@4.3.6)
       zod: 4.3.6
 
-  '@aotui/agent-driver-v2@0.2.1(zod@4.3.6)':
+  '@aotui/agent-driver-v2@file:../agent-driver-v2(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.50(zod@4.3.6)
       '@ai-sdk/deepseek': 1.0.34(zod@4.3.6)
@@ -1856,9 +1856,9 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@aotui/runtime@1.0.3':
+  '@aotui/runtime@file:../runtime':
     dependencies:
-      '@aotui/agent-driver-v2': 0.2.1(zod@4.3.6)
+      '@aotui/agent-driver-v2': file:../agent-driver-v2(zod@4.3.6)
       ai: 6.0.105(zod@4.3.6)
       happy-dom: 20.7.0
       linkedom: 0.18.12
@@ -1870,9 +1870,9 @@ snapshots:
       - canvas
       - utf-8-validate
 
-  '@aotui/sdk@0.1.1(preact@10.28.4)':
+  '@aotui/sdk@file:../sdk(preact@10.28.4)':
     dependencies:
-      '@aotui/runtime': 1.0.3
+      '@aotui/runtime': file:../runtime
       '@preact/signals': 2.8.1(preact@10.28.4)
       linkedom: 0.18.12
       preact: 10.28.4

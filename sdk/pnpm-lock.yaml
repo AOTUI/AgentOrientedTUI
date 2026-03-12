@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@aotui/runtime':
-        specifier: ^1.0.9
-        version: 1.0.9
+        specifier: ^2.0.0
+        version: 2.0.0
       '@preact/signals':
         specifier: ^2.5.1
         version: 2.8.1(preact@10.28.4)
@@ -135,8 +135,8 @@ packages:
   '@aotui/agent-driver-v2@0.2.1':
     resolution: {integrity: sha512-4F+wpjQg43qj1Mb4m3YrszMQymxr8t/krhkVP9dWih4Z8O1P0aBeVnjchCM2I6UQJaGVVyWJ/C5YoaAppmrt1Q==}
 
-  '@aotui/runtime@1.0.9':
-    resolution: {integrity: sha512-0BjarKwJLZ21thW0ydEYjtTgqP/e/TR+/zHERdG7MYJ7OymVNFq/iLqGZzd6yVbNRsoieWRadkYGqxq088I7kw==}
+  '@aotui/runtime@2.0.0':
+    resolution: {integrity: sha512-II4xkyyCadEFlTdQLFjEbSTg+sw/CefcY9F/H87AZkAIOwfQeEu6mNEFLEFjfPOVr80+orpq351MLyjdW1VHMA==}
     hasBin: true
 
   '@asamuzakjp/css-color@4.1.2':
@@ -1971,7 +1971,7 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@aotui/runtime@1.0.9':
+  '@aotui/runtime@2.0.0':
     dependencies:
       '@aotui/agent-driver-v2': 0.2.1(zod@4.3.6)
       ai: 6.0.105(zod@4.3.6)

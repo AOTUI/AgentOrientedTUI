@@ -48,65 +48,7 @@ import type {
 export type IViewForContext = IView;
 
 // ═══════════════════════════════════════════════════════════════
-//  1. ViewMetaContext - 公共元数据
-//  这是唯一对外暴露给应用开发者的 Context
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * View 元数据 Context
- *
- * 这是应用开发者的主要入口点。
- */
-export const ViewMetaContext = createContext<IViewMeta | null>(null);
-ViewMetaContext.displayName = "AOTUI.ViewMeta";
-
-// ═══════════════════════════════════════════════════════════════
-//  2. OperationRegistryContext - Operation 注册
-//  由 <Operation> 组件专用
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Operation 注册表 Context
- */
-export const OperationRegistryContext =
-  createContext<IOperationRegistry | null>(null);
-OperationRegistryContext.displayName = "AOTUI.OperationRegistry";
-
-// ═══════════════════════════════════════════════════════════════
-//  3. MountableViewRegistryContext - ViewLink 专用
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * 可挂载视图注册表 Context
- */
-export const MountableViewRegistryContext =
-  createContext<IMountableViewRegistry | null>(null);
-MountableViewRegistryContext.displayName = "AOTUI.MountableViewRegistry";
-
-// ═══════════════════════════════════════════════════════════════
-//  4. DynamicViewRegistryContext - ChildView 专用
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * 动态子视图注册表 Context
- */
-export const DynamicViewRegistryContext =
-  createContext<IDynamicViewRegistry | null>(null);
-DynamicViewRegistryContext.displayName = "AOTUI.DynamicViewRegistry";
-
-// ═══════════════════════════════════════════════════════════════
-//  5. RefRegistryContext - Ref 绑定
-//  由 useArrayRef 等 Hooks 专用
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Ref 注册表 Context
- */
-export const RefRegistryContext = createContext<IRefRegistry | null>(null);
-RefRegistryContext.displayName = "AOTUI.RefRegistry";
-
-// ═══════════════════════════════════════════════════════════════
-//  6. AppConfigContext - 应用配置 (内部)
+//  AppConfigContext - 应用配置 (内部)
 //  不对外暴露，通过 useAppEnv Hook 访问
 // ═══════════════════════════════════════════════════════════════
 
@@ -124,4 +66,3 @@ export {
   ViewRuntimeContext,
   type ViewRuntimeContextValue,
 } from "./view-runtime-context.js";
-

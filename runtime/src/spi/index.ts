@@ -45,7 +45,7 @@ export * from './runtime/index.js';
 // Bridge Layer - Agent I/O Boundary (Public for AgentDriver)
 // ============================================================================
 // IBridge is the only interface Agents should interact with.
-// Product Layer creates Bridge instances and passes to AgentDriver.
+// Product Layer provides an IBridge implementation and passes it to AgentDriver.
 export * from './bridge/index.js';
 
 // ============================================================================

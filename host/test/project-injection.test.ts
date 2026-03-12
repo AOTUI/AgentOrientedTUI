@@ -49,9 +49,8 @@ vi.mock('@aotui/agent-driver', () => ({
     })
 }));
 
-// Mock Runtime Bridge
+// Mock runtime helpers
 vi.mock('@aotui/runtime', () => ({
-    Bridge: class {},
     createDesktopId: (id: string) => `dt_${id}`,
 }));
 

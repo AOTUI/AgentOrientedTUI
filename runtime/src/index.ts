@@ -17,7 +17,7 @@
  * 
  * ### For Integration (Adapters Layer)
  * ```typescript
- * import { Bridge, SYSTEM_TOOLS, generateToolsFromIndexMap } from '@aotui/runtime';
+ * import { AOTUIDrivenSource, DEFAULT_AOTUI_SYSTEM_INSTRUCTION } from '@aotui/runtime/adapters';
  * ```
  * 
  * ## ⚠️ Internal APIs
@@ -45,12 +45,6 @@ export * from './spi/index.js';
 export * from './kernel/index.js';
 
 // ============================================================================
-// 🟢 Public: Adapters Layer (Integration Points)
-// ============================================================================
-export * from './adapters/bridge/index.js';
-
-
-// ============================================================================
 // 🟢 Public: App Registry (Third-Party App Management)
 // Used by Product Layer to load and manage third-party TUI apps
 // ============================================================================
@@ -58,48 +52,23 @@ export { AppRegistry } from './engine/app/index.js';
 export type { LoadedApp, AppRegistryEntry, AppRegistryOptions, TUIConfig, AppConfigEntry } from './engine/app/index.js';
 
 // ============================================================================
-// 🟢 Public: System Operations (For Agent Driver)
-// ============================================================================
-export { createSystemOperationRegistry } from './engine/system/operations/index.js';
-
-// ============================================================================
 // 🟢 Public: App Distribution Helpers
 // Used by Product Layer / CLI for discovery and installation workflows
 // ============================================================================
 export {
-    DEFAULT_APP_CATALOG,
-    type CatalogAppEntry,
-    type CatalogData
-} from './cli/default-catalog.js';
-export {
     searchCatalog,
-    isCatalogData,
     type CatalogSearchResult
 } from './cli/catalog.js';
 export {
     resolveCatalog,
     resolveCatalogOptionsFromConfig,
-    fetchRemoteCatalog,
-    verifyCatalogSignature,
-    stableStringify,
-    type CatalogSignature,
-    type CatalogResolverOptions,
-    type ResolvedCatalog,
-    type TrustedCatalogKey,
-    type RemoteCatalogEnvelope
+    type ResolvedCatalog
 } from './cli/catalog-resolver.js';
 export {
     parseInstallSource,
-    parseNpmSpecifier,
-    type ParsedInstallSource,
-    type ParsedLocalSource,
-    type ParsedNpmSource,
-    type NpmSpecifier
 } from './cli/sources.js';
 export {
     installNpmPackage,
-    type NpmInstallOptions,
-    type NpmInstallResult
 } from './cli/npm-installer.js';
 
 // ============================================================================

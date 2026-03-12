@@ -1,6 +1,6 @@
 {
     "name": "@aotui/agent-driver-v2",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "AOTUI Agent Driver V2 - Multi-source message aggregator for LLM",
     "type": "module",
     "main": "./dist/index.js",
