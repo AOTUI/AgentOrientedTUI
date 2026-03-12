@@ -15,7 +15,6 @@ import { useViewSelector } from "./use-view-selector.js";
 import {
   // 类型
   type IViewMeta,
-  type IOperationRegistry,
   type IMountableViewRegistry,
   type IDynamicViewRegistry,
   type IRefRegistry,
@@ -82,17 +81,6 @@ export function useViewContext(): IViewMeta {
 //  专用 Registry Hooks (ISP - Interface Segregation Principle)
 //  [RFC-004] 每个 Hook 只从统一 Context 中选择需要的部分
 // ═══════════════════════════════════════════════════════════════
-
-/**
- * 获取 Operation 注册表 (内部 API)
- *
- * [RFC-004] 使用 Selector 只订阅 operations 字段
- *
- * @internal 仅供 `<Operation>` 使用
- */
-export function useOperationRegistry(): IOperationRegistry {
-  return useViewSelector((ctx) => ctx.operations);
-}
 
 /**
  * 获取可挂载视图注册表 (内部 API)

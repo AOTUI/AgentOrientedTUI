@@ -3,15 +3,26 @@
  *
  * Build Agent-Oriented TUI Apps with Preact
  *
- * @example Type-Safe Operation API
- * @example Type-Safe Operation API
+ * @example Type-Safe Tool API
+ * @example Type-Safe Tool API
  * ```tsx
- * import { View, useArrayRef, Operation, createTUIApp, useState } from '@aotui/sdk'
+ * import { View, useArrayRef, defineParams, useViewTypeTool, createTUIApp, useState } from '@aotui/sdk'
  *
  * function HelpCenter() {
  *     const [articles, setArticles] = useState([])
  *     // Use useArrayRef for semantic lists
  *     const [listRef, itemRef] = useArrayRef('articles', articles, { itemType: 'article' })
+ *     const [SearchTool] = useViewTypeTool(
+ *         'HelpCenter',
+ *         'search',
+ *         {
+ *             description: '搜索文章',
+ *             params: defineParams({
+ *                 keyword: { type: 'string', required: true, desc: '搜索关键词' }
+ *             })
+ *         },
+ *         async (args) => ({ success: true, data: { keyword: args.keyword } })
+ *     )
  *
  *     return (
  *         <View id="help_center" name="HelpCenter">
@@ -24,20 +35,7 @@
  *                     </li>
  *                 ))}
  *             </ul>
- *             <Operation
- *                 name="search"
- *                 description="搜索文章"
- *                 params={{
- *                     keyword: { type: 'string', required: true, desc: '搜索关键词' }
- *                 }}
- *                 onExecute={async (args) => {
- *                     // args.keyword 自动推断为 string
- *                     console.log('Searching:', args.keyword)
- *                     return { success: true }
- *                 }}
- *             >
- *                 搜索
- *             </Operation>
+ *             <SearchTool>搜索</SearchTool>
  *         </View>
  *     )
  * }
@@ -56,25 +54,11 @@
 export { View } from "./components/index.js";
 export type { ViewProps } from "./components/index.js";
 
-// [Phase 2] Reactive Router
-export { Router, Route, useRouter, useNavigate, useLocation, useParams } from "./router/index.js";
-export type { RouterProps, RouteProps, Location, Navigator } from "./router/index.js";
-
-// [Phase 2] Layout Kit
-export { SplitPane, Box } from "./components/layout/index.js";
-export type { SplitPaneProps, BoxProps } from "./components/layout/index.js";
-
-// Operation Component (v3 - Type Safe)
-// [SSOT] Types are now defined in operation/types.ts
-/** @deprecated Use `useViewTypeTool` instead */
-export { Operation, defineParams } from "./components/index.js";
+// Tool Params (SSOT in operation/)
+export { defineParams } from "./operation/defineParams.js";
 export type {
-  OperationProps,
-  OperationHandler,
   OperationResult,
   OperationError,
-  // [P0 FIX] New name for handler context
-  OperationHandlerContext,
   ParamDef,
   ParamSchema,
   ParamType,
@@ -97,17 +81,9 @@ export {
   useReducer,
   // AOTUI hooks
   useViewContext,
-  // [RFC-003] Specialized Registry Hooks
-  useOperationRegistry,
   useMountableViewRegistry,
   useRefRegistry,
   useDynamicViewRegistry,
-  // [RFC-003] Independent Contexts
-  ViewMetaContext,
-  OperationRegistryContext,
-  MountableViewRegistryContext,
-  RefRegistryContext,
-  AppConfigContext,
   // [C2] Reactive Store
   useSignalStore,
   // [Configuration Injection] App Config Hooks
@@ -122,24 +98,16 @@ export {
   useArrayRef,
   // [RFC-003] Operation Hooks
   useViewTypeTool,  // View Type Tool Aggregation
-  useAppOperation,
-  TUIAppContext,
   // [RFC-011] LLM Output Channel
   useLLMOutputChannel,
   useLLMOutputHistory,
-  // [Milestone 1] System Event Hook
-  /** @deprecated Not currently used or validated */
-  useExternalEvent,
 } from "./hooks/index.js";
 export type {
   // [RFC-003] Context Types
   IViewMeta,
-  IOperationRegistry,
   IMountableViewRegistry,
   IRefRegistry,
   IAppConfig,
-  // [P1 FIX] SimpleOperationHandler is internal, not exported at top level
-  // Use OperationHandler from components for public API
   // [C2] Reactive Store
   SignalStore,
   // [RFC-002] Ref Types
@@ -151,12 +119,6 @@ export type {
   UseViewTypeToolResult,  // View Type Tool Aggregation
   TypeToolOptions,  // View Type Tool Aggregation
   TypeToolHandler,  // View Type Tool Aggregation
-  AppOperationOptions,
-  AppOperationUI,
-  AppOperationUIProps,
-  UseAppOperationResult,
-  AppContextValue,
-  IAppOperationRegistry,
   // [RFC-011]
   ILLMOutputChannelContext,
   LLMOutputChannelOptions,

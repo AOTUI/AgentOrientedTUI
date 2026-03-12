@@ -67,7 +67,7 @@ export interface BridgeSnapshot {
  * 3. 订阅更新信号
  * 
  * 实现者：
- * - Bridge（标准实现，依赖 IKernel）
+ * - ProductBridge（产品层自定义实现）
  * - MockBridge（测试用）
  * - HttpBridge（远程调用，未来扩展）
  */
@@ -108,7 +108,7 @@ export interface IBridge {
      * 
      * [RFC-020] 支持结构化格式，包含 reasoning 和 content
      * 用于将 LLM 的思考过程或回复文本实时推送到 Desktop。
-     * 可选方法 - 老版本 Bridge 实现不受影响。
+     * 可选方法 - 现有 IBridge 实现可按需支持。
      * 
      * @param payload - 结构化内容 { reasoning?: 思考过程, content?: 最终回复 }
      * @param type - 事件类型 (complete=完整消息, chunk=流式片段预留)

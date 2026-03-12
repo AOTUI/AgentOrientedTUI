@@ -1,6 +1,6 @@
 {
   "name": "@aotui/runtime",
-  "version": "1.0.11",
+  "version": "2.0.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,7 +26,6 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "build:browser": "esbuild src/browser.ts --bundle --format=esm --outfile=../dev-tools/lib/aotui-runtime.browser.js --external:happy-dom",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

@@ -11,16 +11,16 @@
         "test:run": "vitest run"
     },
     "dependencies": {
-        "@aotui/sdk": "file:../sdk",
+        "@aotui/sdk": "^0.2.0",
         "preact": "^10.25.4"
     },
     "devDependencies": {
-        "@aotui/runtime": "file:../runtime",
+        "@aotui/runtime": "^2.0.0",
         "@types/node": "^22.15.21",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4"
     },
     "peerDependencies": {
-        "@aotui/runtime": "^1.0.0"
+        "@aotui/runtime": "^2.0.0"
     }
 }

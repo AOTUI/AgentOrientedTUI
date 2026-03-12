@@ -20,19 +20,8 @@ export {
   useReducer,
 } from "preact/hooks";
 
-// AOTUI Context - [RFC-003] 从 contexts 模块重导出
 export {
-  type SimpleOperationHandler,
-} from "./context.js";
-
-export {
-  ViewMetaContext,
-  OperationRegistryContext,
-  MountableViewRegistryContext,
-  RefRegistryContext,
-  AppConfigContext,
   type IViewMeta,
-  type IOperationRegistry,
   type IMountableViewRegistry,
   type IRefRegistry,
   type IAppConfig,
@@ -48,7 +37,6 @@ export { useViewSelector, useViewRuntimeContext } from "./use-view-selector.js";
 // AOTUI Hooks
 export {
   useViewContext,
-  useOperationRegistry,
   useMountableViewRegistry,
   useRefRegistry,
   useDynamicViewRegistry,
@@ -77,22 +65,6 @@ export {
 // Also export RegisterLinkOptions from contexts
 export { type RegisterLinkOptions } from "../contexts/index.js";
 
-export {
-  useAppOperation,
-  type AppOperationOptions,
-  type AppOperationUI,
-  type AppOperationUIProps,
-  type UseAppOperationResult,
-} from "./useAppOperation.js";
-
-// [RFC-003] App Context
-export {
-  TUIAppContext,
-  type AppContextValue,
-  type IAppOperationRegistry,
-  type AppOperationHandler,
-} from "./app-context.js";
-
 // [RFC-011] LLM Output Channel Hooks
 export {
   useLLMOutputChannel,
@@ -102,9 +74,6 @@ export {
 
 // [RFC-011] LLM Output Channel Context Type
 export { type ILLMOutputChannelContext } from "../contexts/view-runtime-context.js";
-
-// [Milestone 1] System Event Hook
-export { useExternalEvent } from "./useExternalEvent.js";
 
 // [View Type Aggregation] Type-level Tool Hook
 export {
