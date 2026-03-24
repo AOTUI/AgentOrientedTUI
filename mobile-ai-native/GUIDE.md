@@ -55,6 +55,8 @@ The TUI snapshot is another projection of state.
 The LLM should never guess ids from the screen.
 It should receive semantic refs from the current `SnapshotBundle`.
 
+In the hardened runtime, the React / React Native host uses `createReactAppRuntime()` plus `AppRuntimeProvider` to wire state, actions, traces, snapshots, and tool execution together. GUI components should subscribe with `useRuntimeState(selector)` and `useRuntimeTrace(selector)` instead of reading the store once.
+
 ## 3. The Core Mental Model
 
 Your calendar app should follow this loop:
@@ -70,6 +72,7 @@ That means:
 - TUI does not own business logic
 - tools do not own business logic
 - `Action` is the one real business entry
+- effects are framework-managed side effects, but the app still owns what they mean
 
 ## 4. Calendar App State
 
@@ -95,6 +98,7 @@ Good rule:
 
 - if it affects GUI, TUI, tool visibility, or trace, it belongs in framework state
 - if it is only a tiny render helper, keep it local
+- if it must be read by the host through a selector, keep it in the runtime store so `useRuntimeState()` can subscribe to it
 
 ## 5. Calendar Actions
 
@@ -113,6 +117,8 @@ The important rule is:
 
 - actions should be domain actions
 - not UI actions like `tapButton` or `scrollList`
+
+Each action should define a Zod `schema` and optional `meta` so the runtime can expose real tool input shapes to the model and the host can attach extra hints without baking them into framework behavior.
 
 ## 6. Why Refs Matter in Calendar Apps
 
@@ -177,6 +183,8 @@ It is the difference between:
 - a reliable system
 - and a haunted house
 
+In the hardened runtime, the snapshot registry distinguishes `SNAPSHOT_NOT_FOUND` from `SNAPSHOT_STALE`. A tool execution that mutates state marks its originating snapshot stale, even if the action returns a recoverable failure result. That forces the next reasoning turn to fetch a fresh snapshot.
+
 ## 8. How To Build the iOS App
 
 ### Step 1: Keep this package as the core
@@ -196,6 +204,7 @@ The React Native app should do only host work:
 - host the agent session
 - ask the framework for `SnapshotBundle`
 - pass tool calls into `executeTool`
+- subscribe to state and trace through the runtime hooks instead of copying framework state into local component state
 
 ### Step 3: Build GUI and TUI as separate projections
 
@@ -223,6 +232,7 @@ Only after that is stable, add:
 - move
 - delete
 - recurring events
+- trace UI for recent AI actions
 
 ## 9. Suggested First Calendar TUI
 
@@ -254,18 +264,21 @@ Before you call the app "good", verify these:
 
 - GUI and TUI always reflect the same event state
 - tool calls only act on snapshot-scoped refs
+- React Native views re-render from store subscriptions, not manual refreshes
 
 ### Tool correctness
 
 - invisible tools are not callable
 - stale `snapshotId` fails cleanly
 - missing refs fail with explicit errors
+- tool payloads include both schema and metadata so the model sees the real contract
 
 ### UX correctness
 
 - human sees the result of AI actions
 - recent AI action summary is visible
 - event openings, searches, and edits are understandable
+- trace summaries should distinguish started, updated, succeeded, and failed actions
 
 ### Product correctness
 
@@ -277,7 +290,7 @@ Before you call the app "good", verify these:
 
 Be honest with yourself:
 
-this package is still an alpha core.
+this package is now a hardened core, but it is still not the whole product.
 
 It does not yet give you:
 
@@ -286,6 +299,7 @@ It does not yet give you:
 - production persistence
 - production networking
 - voice or background agent integration
+- app-specific calendar domain modeling
 
 That is okay.
 
@@ -305,6 +319,8 @@ If your friend is building the calendar app, this is the order I recommend:
 6. add trace banner for recent AI action
 7. add create/edit flows
 8. only then add advanced calendar features
+
+If you are integrating against the hardened runtime, the framework-side pieces should already exist. Your job is to keep the app-specific state, actions, and effect behavior cleanly separated from the runtime core.
 
 ## 13. The One Sentence To Remember
 
