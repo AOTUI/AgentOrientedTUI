@@ -26,15 +26,29 @@ const AppContext = createContext<LegacyAppContextValue | null>(null);
 function createCompatibilityRuntime(
   value: LegacyAppContextValue,
 ): AppRuntime<unknown, unknown> {
+  let nextTraceId = 1;
+
   return {
     store: value.store,
     actionRuntime: value.actionRuntime,
     traceStore: {
       getState() {
-        return { entries: [] };
+        return {
+          entries: [],
+          recent: null,
+        };
       },
       subscribe() {
         return () => {};
+      },
+      record(entry) {
+        return {
+          id: `compat_trace_${nextTraceId++}`,
+          actionName: entry.actionName,
+          status: entry.status,
+          summary: entry.summary,
+          recordedAt: Date.now(),
+        };
       },
     },
     snapshotRegistry: {

@@ -266,6 +266,11 @@ describe("react runtime host adapter", () => {
 
     const runtime = runtimes[0] as ReturnType<typeof useAppRuntime>;
 
+    expect(runtime.traceStore.getState()).toEqual({
+      entries: [],
+      recent: null,
+    });
+    expect(runtime.traceStore.record).toBeTypeOf("function");
     expect(() => runtime.toolBridge.getSnapshotBundle()).toThrow(
       "Snapshot rendering is not available through AppProvider",
     );
