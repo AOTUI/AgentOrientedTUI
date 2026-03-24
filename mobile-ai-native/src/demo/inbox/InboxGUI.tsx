@@ -1,15 +1,21 @@
 /** @jsxImportSource preact */
-import { useAppState } from "../../projection/gui/hooks";
+import { useRuntimeState } from "../../projection/react/hooks";
 import type { InboxState } from "./state";
 
 export function InboxGUI() {
-  const { state } = useAppState<InboxState>();
+  const recentTrace = useRuntimeState(
+    (state: InboxState) => state.shell.recentTrace ?? "",
+  );
+  const openedMessageId = useRuntimeState(
+    (state: InboxState) => state.inbox.openedMessageId ?? "",
+  );
+  const items = useRuntimeState((state: InboxState) => state.inbox.items);
 
   return (
     <gui-screen>
-      <gui-trace>{state.shell.recentTrace ?? ""}</gui-trace>
-      <gui-opened>{state.inbox.openedMessageId ?? ""}</gui-opened>
-      {state.inbox.items.map((item) => (
+      <gui-trace>{recentTrace}</gui-trace>
+      <gui-opened>{openedMessageId}</gui-opened>
+      {items.map((item) => (
         <gui-item key={item.id}>{item.subject}</gui-item>
       ))}
     </gui-screen>

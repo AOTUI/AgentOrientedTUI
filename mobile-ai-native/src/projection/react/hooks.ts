@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useSyncExternalStore } from "preact/compat";
 import { useAppRuntimeContext } from "./AppRuntimeProvider";
 
 export function useAppRuntime() {
@@ -9,15 +9,9 @@ export function useRuntimeState<State, Selected>(
   selector: (state: State) => Selected,
 ): Selected {
   const runtime = useAppRuntimeContext();
-  const [, setVersion] = useState(0);
+  const getSnapshot = () => selector(runtime.store.getState() as State);
 
-  useEffect(() => {
-    return runtime.store.subscribe(() => {
-      setVersion((version) => version + 1);
-    });
-  }, [runtime]);
-
-  return selector(runtime.store.getState() as State);
+  return useSyncExternalStore(runtime.store.subscribe, getSnapshot, getSnapshot);
 }
 
 export function useRuntimeActions() {

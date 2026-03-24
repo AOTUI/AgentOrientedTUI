@@ -15,13 +15,22 @@ import { useAppRuntime, useRuntimeState } from "../src/projection/react/hooks";
 type TestState = {
   shell: {
     currentTab: "home" | "settings";
+    recentTrace: string | null;
+  };
+  inbox: {
+    query: string;
   };
 };
 
-type TestEvent = {
-  type: "TabChanged";
-  tab: TestState["shell"]["currentTab"];
-};
+type TestEvent =
+  | {
+      type: "TabChanged";
+      tab: TestState["shell"]["currentTab"];
+    }
+  | {
+      type: "TraceUpdated";
+      summary: string;
+    };
 
 function createTestApp() {
   const changeTab = defineAction<TestState, TestEvent, { tab: TestState["shell"]["currentTab"] }>({
@@ -38,11 +47,29 @@ function createTestApp() {
       return { success: true };
     },
   });
+  const updateTrace = defineAction<TestState, TestEvent, { summary: string }>({
+    name: "updateTrace",
+    description: "Update the recent trace summary.",
+    schema: z.object({
+      summary: z.string(),
+    }),
+    visibility() {
+      return true;
+    },
+    handler(ctx, input) {
+      ctx.emit({ type: "TraceUpdated", summary: input.summary });
+      return { success: true };
+    },
+  });
 
   return {
     initialState: {
       shell: {
         currentTab: "home",
+        recentTrace: null,
+      },
+      inbox: {
+        query: "",
       },
     } satisfies TestState,
     reduce(state: TestState, event: TestEvent): TestState {
@@ -56,9 +83,19 @@ function createTestApp() {
         };
       }
 
+      if (event.type === "TraceUpdated") {
+        return {
+          ...state,
+          shell: {
+            ...state.shell,
+            recentTrace: event.summary,
+          },
+        };
+      }
+
       return state;
     },
-    actions: [changeTab],
+    actions: [changeTab, updateTrace],
   };
 }
 
@@ -129,11 +166,43 @@ describe("react runtime host adapter", () => {
     expect(seen).toEqual(["home", "tab:home"]);
   });
 
+  it("only updates the selected slice when state changes", async () => {
+    const runtime = createReactAppRuntime(createTestApp());
+    const selected: string[] = [];
+    const root = document.createElement("div");
+    document.body.append(root);
+
+    function Probe() {
+      const value = useRuntimeState((state: TestState) => state.shell.currentTab);
+      selected.push(value);
+      return <text>{value}</text>;
+    }
+
+    await act(async () => {
+      render(
+        <AppRuntimeProvider runtime={runtime}>
+          <Probe />
+        </AppRuntimeProvider>,
+        root,
+      );
+    });
+
+    await act(async () => {
+      await runtime.actions.callAction("updateTrace", { summary: "synced" });
+    });
+
+    expect(selected).toEqual(["home"]);
+  });
+
   it("keeps the legacy compatibility runtime stable and fails unsupported snapshot tool execution", async () => {
     const store = createStore({
       initialState: {
         shell: {
           currentTab: "home" as const,
+          recentTrace: null,
+        },
+        inbox: {
+          query: "",
         },
       },
       reduce(state: TestState) {

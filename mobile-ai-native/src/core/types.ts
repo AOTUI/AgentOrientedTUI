@@ -1,9 +1,12 @@
 export type StateReducer<State, Event> = (state: State, event: Event) => State;
 
+export type StoreListener = () => void;
+export type StoreUnsubscribe = () => void;
+
 export type Store<State, Event> = {
   getState(): State;
   emit(event: Event): void;
-  subscribe(listener: () => void): () => void;
+  subscribe(listener: StoreListener): StoreUnsubscribe;
 };
 
 export type RefIndexEntry = {

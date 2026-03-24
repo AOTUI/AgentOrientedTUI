@@ -43,6 +43,7 @@ describe("inbox vertical slice", () => {
     expect(result.success).toBe(true);
     expect(app.gui.getVisibleSubjects()).toEqual(["Invoice ready"]);
     expect(app.gui.getRecentTrace()).toContain("Started search");
+    expect(app.gui.render()).toContain("<gui-item>Invoice ready</gui-item>");
 
     const nextSnapshot = app.bridge.getSnapshotBundle();
     expect(nextSnapshot.tui).toContain("Query: Invoice");
