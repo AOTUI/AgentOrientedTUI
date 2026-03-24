@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import { createContext } from "preact";
-import { useContext } from "preact/hooks";
+import { useContext, useMemo } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import type { ActionResult, Store, ToolDefinition } from "../../core/types";
 import { AppRuntimeProvider, type AppRuntime } from "../react/AppRuntimeProvider";
@@ -47,11 +47,15 @@ function createCompatibilityRuntime(
         throw new Error("Snapshot rendering is not available through AppProvider");
       },
       executeTool(
-        name: string,
-        input: Record<string, unknown>,
+        _name: string,
+        _input: Record<string, unknown>,
         _snapshotId: string,
       ) {
-        return value.actionRuntime.executeAction(name, input);
+        return Promise.reject(
+          new Error(
+            "Snapshot-scoped tool execution is not available through AppProvider",
+          ),
+        );
       },
     },
     actions: {
@@ -70,11 +74,15 @@ export function AppProvider(props: {
   actionRuntime: LegacyAppContextValue["actionRuntime"];
   children: ComponentChildren;
 }) {
-  const value = { store: props.store, actionRuntime: props.actionRuntime };
+  const value = useMemo(
+    () => ({ store: props.store, actionRuntime: props.actionRuntime }),
+    [props.store, props.actionRuntime],
+  );
+  const runtime = useMemo(() => createCompatibilityRuntime(value), [value]);
 
   return (
     <AppContext.Provider value={value}>
-      <AppRuntimeProvider runtime={createCompatibilityRuntime(value)}>
+      <AppRuntimeProvider runtime={runtime}>
         {props.children}
       </AppRuntimeProvider>
     </AppContext.Provider>

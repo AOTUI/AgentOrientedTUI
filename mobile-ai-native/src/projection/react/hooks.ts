@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { useAppRuntimeContext } from "./AppRuntimeProvider";
 
 export function useAppRuntime() {
@@ -9,22 +9,15 @@ export function useRuntimeState<State, Selected>(
   selector: (state: State) => Selected,
 ): Selected {
   const runtime = useAppRuntimeContext();
-  const selectorRef = useRef(selector);
-  selectorRef.current = selector;
-  const [selected, setSelected] = useState(() =>
-    selector(runtime.store.getState() as State),
-  );
+  const [, setVersion] = useState(0);
 
   useEffect(() => {
-    function updateSelected() {
-      setSelected(selectorRef.current(runtime.store.getState() as State));
-    }
-
-    updateSelected();
-    return runtime.store.subscribe(updateSelected);
+    return runtime.store.subscribe(() => {
+      setVersion((version) => version + 1);
+    });
   }, [runtime]);
 
-  return selected;
+  return selector(runtime.store.getState() as State);
 }
 
 export function useRuntimeActions() {

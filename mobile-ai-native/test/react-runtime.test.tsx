@@ -1,13 +1,16 @@
 /** @jsxImportSource preact */
 // @vitest-environment happy-dom
 import { render } from "preact";
+import { createStore } from "../src/core/state/createStore";
 import { act } from "preact/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
+import { createActionRuntime } from "../src/core/action/createActionRuntime";
 import { defineAction } from "../src/core/action/defineAction";
+import { AppProvider } from "../src/projection/gui/AppProvider";
 import { createReactAppRuntime } from "../src/projection/react/createReactAppRuntime";
 import { AppRuntimeProvider } from "../src/projection/react/AppRuntimeProvider";
-import { useRuntimeState } from "../src/projection/react/hooks";
+import { useAppRuntime, useRuntimeState } from "../src/projection/react/hooks";
 
 type TestState = {
   shell: {
@@ -91,5 +94,95 @@ describe("react runtime host adapter", () => {
     });
 
     expect(seen).toEqual(["home", "settings"]);
+  });
+
+  it("updates the selected slice when the selector changes", async () => {
+    const runtime = createReactAppRuntime(createTestApp());
+    const seen: string[] = [];
+    const root = document.createElement("div");
+    document.body.append(root);
+
+    function Probe(props: { selector: (state: TestState) => string }) {
+      const value = useRuntimeState(props.selector);
+      seen.push(value);
+      return <text>{value}</text>;
+    }
+
+    await act(async () => {
+      render(
+        <AppRuntimeProvider runtime={runtime}>
+          <Probe selector={(state) => state.shell.currentTab} />
+        </AppRuntimeProvider>,
+        root,
+      );
+    });
+
+    await act(async () => {
+      render(
+        <AppRuntimeProvider runtime={runtime}>
+          <Probe selector={(state) => `tab:${state.shell.currentTab}`} />
+        </AppRuntimeProvider>,
+        root,
+      );
+    });
+
+    expect(seen).toEqual(["home", "tab:home"]);
+  });
+
+  it("keeps the legacy compatibility runtime stable and fails unsupported snapshot tool execution", async () => {
+    const store = createStore({
+      initialState: {
+        shell: {
+          currentTab: "home" as const,
+        },
+      },
+      reduce(state: TestState) {
+        return state;
+      },
+    });
+    const actionRuntime = createActionRuntime({
+      store,
+      actions: createTestApp().actions,
+    });
+    const runtimes: unknown[] = [];
+    const root = document.createElement("div");
+    document.body.append(root);
+
+    function Probe() {
+      runtimes.push(useAppRuntime());
+      return <text>probe</text>;
+    }
+
+    await act(async () => {
+      render(
+        <AppProvider store={store} actionRuntime={actionRuntime}>
+          <Probe />
+        </AppProvider>,
+        root,
+      );
+    });
+
+    await act(async () => {
+      render(
+        <AppProvider store={store} actionRuntime={actionRuntime}>
+          <Probe />
+        </AppProvider>,
+        root,
+      );
+    });
+
+    expect(runtimes).toHaveLength(2);
+    expect(runtimes[0]).toBe(runtimes[1]);
+
+    const runtime = runtimes[0] as ReturnType<typeof useAppRuntime>;
+
+    expect(() => runtime.toolBridge.getSnapshotBundle()).toThrow(
+      "Snapshot rendering is not available through AppProvider",
+    );
+    await expect(
+      runtime.toolBridge.executeTool("changeTab", { tab: "settings" }, "snap_123"),
+    ).rejects.toThrow(
+      "Snapshot-scoped tool execution is not available through AppProvider",
+    );
   });
 });
