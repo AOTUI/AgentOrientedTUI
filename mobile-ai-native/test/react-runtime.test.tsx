@@ -275,4 +275,43 @@ describe("react runtime host adapter", () => {
       "Snapshot-scoped tool execution is not available through AppProvider",
     );
   });
+
+  it("shares stale snapshot semantics on the public React runtime path", async () => {
+    const runtime = createReactAppRuntime({
+      ...createTestApp(),
+      renderCurrentSnapshot() {
+        return {
+          snapshotId: "snap_runtime_1",
+          generatedAt: Date.now(),
+          tui: "<screen>home</screen>",
+          refIndex: {},
+          visibleTools: runtime.actions.getVisibleTools(),
+        };
+      },
+    });
+
+    const snapshot = runtime.toolBridge.getSnapshotBundle();
+
+    expect(runtime.snapshotRegistry.lookup(snapshot.snapshotId)).toEqual(
+      expect.objectContaining({
+        status: "active",
+        snapshot: expect.objectContaining({
+          snapshotId: snapshot.snapshotId,
+        }),
+      }),
+    );
+
+    const result = await runtime.toolBridge.executeTool(
+      "changeTab",
+      { tab: "settings" },
+      snapshot.snapshotId,
+    );
+
+    expect(result.success).toBe(true);
+    expect(runtime.snapshotRegistry.lookup(snapshot.snapshotId)).toEqual(
+      expect.objectContaining({
+        status: "stale",
+      }),
+    );
+  });
 });

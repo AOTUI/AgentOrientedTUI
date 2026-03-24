@@ -2,6 +2,7 @@ import type {
   SnapshotBundle,
   ActionResult,
   RefIndexEntry,
+  SnapshotRegistry,
   ToolDefinition,
 } from "../core/types";
 import { createSnapshotRegistry } from "../core/snapshot/createSnapshotRegistry";
@@ -48,10 +49,13 @@ export function createToolBridge(config: {
     ): Promise<ActionResult>;
   };
   renderCurrentSnapshot(): SnapshotBundle;
+  snapshotRegistry?: SnapshotRegistry;
 }) {
-  const snapshots = createSnapshotRegistry({
-    maxEntries: 2,
-  });
+  const snapshots =
+    config.snapshotRegistry ??
+    createSnapshotRegistry({
+      maxEntries: 2,
+    });
 
   return {
     listTools() {

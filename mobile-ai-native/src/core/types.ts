@@ -30,7 +30,7 @@ export type SnapshotBundle = {
   readonly generatedAt: number;
   readonly tui: string;
   readonly refIndex: Record<string, RefIndexEntry>;
-  readonly visibleTools: ToolDefinition[];
+  readonly visibleTools: readonly ToolDefinition[];
 };
 
 export type SnapshotStatus = "active" | "stale";

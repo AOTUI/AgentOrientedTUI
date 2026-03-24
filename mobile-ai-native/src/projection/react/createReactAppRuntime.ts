@@ -1,10 +1,12 @@
 import { createActionRuntime } from "../../core/action/createActionRuntime";
 import type { ActionDefinition } from "../../core/action/defineAction";
 import { createSnapshotBundle } from "../../core/snapshot/createSnapshotBundle";
+import { createSnapshotRegistry } from "../../core/snapshot/createSnapshotRegistry";
 import { createStore } from "../../core/state/createStore";
 import type {
   ActionResult,
   SnapshotBundle,
+  SnapshotRegistry,
   StateReducer,
   Store,
   ToolDefinition,
@@ -34,11 +36,7 @@ export type ReactAppRuntime<State, Event> = {
     getState(): { entries: string[] };
     subscribe(listener: () => void): () => void;
   };
-  snapshotRegistry: {
-    get(snapshotId: string): SnapshotBundle | undefined;
-    set(snapshot: SnapshotBundle): void;
-    clear(): void;
-  };
+  snapshotRegistry: SnapshotRegistry;
   toolBridge: ReturnType<typeof createToolBridge>;
   actions: {
     callAction(
@@ -60,22 +58,6 @@ function createTraceStore() {
   };
 }
 
-function createSnapshotRegistry() {
-  const snapshots = new Map<string, SnapshotBundle>();
-
-  return {
-    get(snapshotId: string) {
-      return snapshots.get(snapshotId);
-    },
-    set(snapshot: SnapshotBundle) {
-      snapshots.set(snapshot.snapshotId, snapshot);
-    },
-    clear() {
-      snapshots.clear();
-    },
-  };
-}
-
 export function createReactAppRuntime<State, Event>(
   app: ReactAppDefinition<State, Event>,
 ): ReactAppRuntime<State, Event> {
@@ -90,7 +72,7 @@ export function createReactAppRuntime<State, Event>(
     effects: app.effects,
   });
   const traceStore = createTraceStore();
-  const snapshotRegistry = createSnapshotRegistry();
+  const snapshotRegistry = createSnapshotRegistry({ maxEntries: 2 });
   const renderCurrentSnapshot =
     app.renderCurrentSnapshot ??
     (() =>
@@ -102,11 +84,8 @@ export function createReactAppRuntime<State, Event>(
 
   const toolBridge = createToolBridge({
     actionRuntime,
-    renderCurrentSnapshot() {
-      const snapshot = renderCurrentSnapshot();
-      snapshotRegistry.set(snapshot);
-      return snapshot;
-    },
+    snapshotRegistry,
+    renderCurrentSnapshot,
   });
 
   return {

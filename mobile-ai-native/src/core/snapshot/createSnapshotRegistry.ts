@@ -3,6 +3,7 @@ import type {
   SnapshotRegistry,
   SnapshotRegistryEntry,
 } from "../types";
+import { hardenSnapshotBundle } from "./createSnapshotBundle";
 
 function evictOldSnapshots(
   snapshots: Map<string, SnapshotRegistryEntry>,
@@ -27,14 +28,25 @@ export function createSnapshotRegistry(config?: {
   const maxEntries = Math.max(1, config?.maxEntries ?? 2);
   const snapshots = new Map<string, SnapshotRegistryEntry>();
 
+  function createEntry(
+    snapshot: SnapshotBundle,
+    status: SnapshotRegistryEntry["status"],
+  ): SnapshotRegistryEntry {
+    return Object.freeze({
+      snapshot,
+      status,
+    });
+  }
+
   return {
     create(snapshot: SnapshotBundle) {
-      snapshots.set(snapshot.snapshotId, {
-        snapshot,
-        status: "active",
-      });
+      const hardenedSnapshot = hardenSnapshotBundle(snapshot);
+      snapshots.set(
+        hardenedSnapshot.snapshotId,
+        createEntry(hardenedSnapshot, "active"),
+      );
       evictOldSnapshots(snapshots, maxEntries);
-      return snapshot;
+      return hardenedSnapshot;
     },
     lookup(snapshotId: string) {
       return snapshots.get(snapshotId);
@@ -45,10 +57,7 @@ export function createSnapshotRegistry(config?: {
         return;
       }
 
-      snapshots.set(snapshotId, {
-        ...entry,
-        status: "stale",
-      });
+      snapshots.set(snapshotId, createEntry(entry.snapshot, "stale"));
     },
   };
 }

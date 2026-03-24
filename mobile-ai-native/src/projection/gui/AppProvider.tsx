@@ -2,7 +2,12 @@
 import { createContext } from "preact";
 import { useContext, useMemo } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import type { ActionResult, Store, ToolDefinition } from "../../core/types";
+import type {
+  ActionResult,
+  SnapshotBundle,
+  Store,
+  ToolDefinition,
+} from "../../core/types";
 import { AppRuntimeProvider, type AppRuntime } from "../react/AppRuntimeProvider";
 
 type LegacyAppContextValue = {
@@ -33,11 +38,13 @@ function createCompatibilityRuntime(
       },
     },
     snapshotRegistry: {
-      get() {
+      create(snapshot: SnapshotBundle) {
+        return snapshot;
+      },
+      lookup() {
         return undefined;
       },
-      set() {},
-      clear() {},
+      markStale() {},
     },
     toolBridge: {
       listTools() {
