@@ -120,4 +120,27 @@ describe("createToolBridge", () => {
     expect(result.success).toBe(false);
     expect(result.error?.code).toBe("SNAPSHOT_NOT_FOUND");
   });
+
+  it("rejects ref ids missing from the snapshot bundle", async () => {
+    const bridge = createTestBridge();
+    const snapshot = bridge.getSnapshotBundle();
+
+    const result = await bridge.executeTool(
+      "openMessage",
+      { message: "messages[99]" },
+      snapshot.snapshotId,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error?.code).toBe("REF_NOT_FOUND");
+  });
+
+  it("hides tools when state says invisible", () => {
+    const bridge = createTestBridge({
+      currentTab: "settings",
+      messages: [{ id: "m1", subject: "Welcome back" }],
+    });
+
+    expect(bridge.listTools()).toEqual([]);
+  });
 });
