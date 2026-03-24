@@ -4,6 +4,10 @@ import type { ActionResult, Store, ToolDefinition } from "../types";
 export function createActionRuntime<State, Event>(config: {
   store: Store<State, Event>;
   actions: Array<ActionDefinition<State, Event, any>>;
+  effects?: Record<
+    string,
+    (ctx: { getState(): State; emit(event: Event): void }, input: any) => Promise<void> | void
+  >;
 }) {
   const actionsByName = new Map(
     config.actions.map((action) => [action.name, action]),
@@ -55,7 +59,20 @@ export function createActionRuntime<State, Event>(config: {
     const ctx: ActionContext<State, Event> = {
       getState: () => config.store.getState(),
       emit: (event) => config.store.emit(event),
-      runEffect: async () => {},
+      runEffect: async (name, input) => {
+        const effect = config.effects?.[name];
+        if (!effect) {
+          return;
+        }
+
+        await effect(
+          {
+            getState: () => config.store.getState(),
+            emit: (event) => config.store.emit(event),
+          },
+          input,
+        );
+      },
       trace,
     };
 
