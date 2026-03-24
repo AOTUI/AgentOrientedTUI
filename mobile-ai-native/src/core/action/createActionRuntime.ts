@@ -1,4 +1,5 @@
 import type { ActionDefinition, ActionContext } from "./defineAction";
+import type { EffectMap } from "../effect/types";
 import type { ActionResult, Store, ToolDefinition, TraceStore } from "../types";
 import { createTraceStore } from "../trace/createTraceStore";
 
@@ -6,10 +7,7 @@ export function createActionRuntime<State, Event>(config: {
   store: Store<State, Event>;
   actions: Array<ActionDefinition<State, Event, any>>;
   traceStore?: TraceStore;
-  effects?: Record<
-    string,
-    (ctx: { getState(): State; emit(event: Event): void }, input: any) => Promise<void> | void
-  >;
+  effects?: EffectMap<State, Event>;
 }) {
   const actionsByName = new Map(
     config.actions.map((action) => [action.name, action]),
@@ -77,18 +75,21 @@ export function createActionRuntime<State, Event>(config: {
     const ctx: ActionContext<State, Event> = {
       getState: () => config.store.getState(),
       emit: (event) => config.store.emit(event),
-      runEffect: async (name, input) => {
+      runEffect: (name, input) => {
         const effect = config.effects?.[name];
         if (!effect) {
-          return;
+          return Promise.resolve(undefined);
         }
 
-        await effect(
+        return Promise.resolve(
+          effect(
           {
             getState: () => config.store.getState(),
             emit: (event) => config.store.emit(event),
+            trace,
           },
           input,
+        ),
         );
       },
       trace,
@@ -96,7 +97,6 @@ export function createActionRuntime<State, Event>(config: {
 
     try {
       const result = await action.handler(ctx, parsed.data);
-
       if (result.success) {
         latestSummary = result.message ?? latestSummary;
         recordTrace(name, "succeeded", latestSummary);

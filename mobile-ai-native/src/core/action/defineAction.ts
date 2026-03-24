@@ -1,10 +1,11 @@
 import type { ZodType } from "zod";
+import type { EffectResult } from "../effect/types";
 import type { ActionResult, ToolMetadata } from "../types";
 
 export type ActionContext<State, Event> = {
   getState(): State;
   emit(event: Event): void;
-  runEffect(name: string, input: unknown): Promise<void>;
+  runEffect(name: string, input: unknown): Promise<EffectResult>;
   trace: {
     update(summary: string): void;
   };

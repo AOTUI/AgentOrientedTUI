@@ -4,6 +4,7 @@ import { createSnapshotBundle } from "../../core/snapshot/createSnapshotBundle";
 import { createSnapshotRegistry } from "../../core/snapshot/createSnapshotRegistry";
 import { createStore } from "../../core/state/createStore";
 import { createTraceStore } from "../../core/trace/createTraceStore";
+import type { EffectMap } from "../../core/effect/types";
 import type {
   ActionResult,
   SnapshotBundle,
@@ -16,14 +17,6 @@ import type {
   TraceStore,
 } from "../../core/types";
 import { createToolBridge } from "../../tool/createToolBridge";
-
-type EffectMap<State, Event> = Record<
-  string,
-  (
-    ctx: { getState(): State; emit(event: Event): void },
-    input: unknown,
-  ) => Promise<void> | void
->;
 
 export type ReactAppDefinition<State, Event> = {
   initialState: State;

@@ -3,6 +3,7 @@
 import { render } from "preact";
 import { act } from "preact/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
+import { createToolBridge } from "../src/tool/createToolBridge";
 import { createReactAppRuntime } from "../src/projection/react/createReactAppRuntime";
 import { AppRuntimeProvider } from "../src/projection/react/AppRuntimeProvider";
 import { createInboxApp } from "../src/demo/inbox/createInboxApp";
@@ -142,5 +143,58 @@ describe("inbox vertical slice", () => {
     );
     expect(root.textContent).toContain("Invoice ready");
     expect(root.textContent).not.toContain("Welcome back");
+  });
+
+  it("marks a snapshot stale when a mutating execution returns a failure", async () => {
+    const bridge = createToolBridge({
+      actionRuntime: {
+        listVisibleTools() {
+          return [];
+        },
+        async executeAction() {
+          return {
+            success: false,
+            mutated: true,
+            error: {
+              code: "NO_MATCH",
+              message: "No matching data",
+            },
+          };
+        },
+      },
+      renderCurrentSnapshot() {
+        return {
+          snapshotId: "snapshot-1",
+          generatedAt: Date.now(),
+          tui: "demo",
+          refIndex: {},
+          visibleTools: [],
+        };
+      },
+    });
+
+    const snapshot = bridge.getSnapshotBundle();
+    const result = await bridge.executeTool("searchMessages", {}, snapshot.snapshotId);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: false,
+        mutated: true,
+      }),
+    );
+    const staleResult = await bridge.executeTool(
+      "searchMessages",
+      {},
+      snapshot.snapshotId,
+    );
+
+    expect(staleResult).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({
+          code: "SNAPSHOT_STALE",
+        }),
+      }),
+    );
   });
 });

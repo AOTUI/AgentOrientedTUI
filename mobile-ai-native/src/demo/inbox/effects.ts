@@ -1,11 +1,14 @@
 import type { InboxEvent, InboxMessage, InboxState } from "./state";
+import type { EffectContext, EffectResult } from "../../core/effect/types";
 
 export function createInboxEffects(allMessages: InboxMessage[]) {
   return {
     async searchMessages(
-      ctx: { getState(): InboxState; emit(event: InboxEvent): void },
+      ctx: EffectContext<InboxState, InboxEvent>,
       input: { query: string },
-    ) {
+    ): Promise<EffectResult> {
+      ctx.trace.update(`Searching ${input.query}`);
+
       const items = allMessages.filter((item) =>
         item.subject.toLowerCase().includes(input.query.toLowerCase()),
       );
@@ -15,6 +18,12 @@ export function createInboxEffects(allMessages: InboxMessage[]) {
         query: input.query,
         items,
       });
+
+      ctx.trace.update(`Found ${items.length} matching messages`);
+
+      return {
+        success: true,
+      };
     },
   };
 }
