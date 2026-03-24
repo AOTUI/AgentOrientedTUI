@@ -51,6 +51,16 @@ describe("inbox vertical slice", () => {
 
     const firstSnapshot = app.bridge.getSnapshotBundle();
     expect(firstSnapshot.tui).toContain("(Welcome back)[message:messages[0]]");
+    expect(firstSnapshot.visibleTools).toContainEqual(
+      expect.objectContaining({
+        name: "openMessage",
+        description: expect.any(String),
+        inputSchema: expect.any(Object),
+        meta: expect.objectContaining({
+          supportsRefs: true,
+        }),
+      }),
+    );
     expect(app.gui.getVisibleSubjects()).toEqual(["Welcome back"]);
 
     const result = await app.bridge.executeTool(

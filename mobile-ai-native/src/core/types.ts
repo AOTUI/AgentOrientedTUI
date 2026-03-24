@@ -1,3 +1,5 @@
+import type { ZodTypeAny } from "zod";
+
 export type StateReducer<State, Event> = (state: State, event: Event) => State;
 
 export type StoreListener = () => void;
@@ -19,7 +21,7 @@ export type ToolMetadata = Record<string, unknown>;
 export type ToolDefinition = {
   name: string;
   description: string;
-  inputSchema: unknown;
+  inputSchema: ZodTypeAny;
   meta: ToolMetadata;
 };
 
