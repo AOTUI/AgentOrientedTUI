@@ -18,6 +18,7 @@ import {
   useAppRuntime as useAppRuntimeFromRoot,
   useRuntimeTrace as useRuntimeTraceFromRoot,
 } from "../src/index";
+import * as rootApi from "../src/index";
 
 type TestState = {
   shell: {
@@ -226,6 +227,8 @@ describe("react runtime host adapter", () => {
     const seen: string[] = [];
     const root = document.createElement("div");
     document.body.append(root);
+
+    expect(rootApi.useRuntimeTrace).toBeTypeOf("function");
 
     function Probe() {
       const appRuntime = useAppRuntimeFromRoot();

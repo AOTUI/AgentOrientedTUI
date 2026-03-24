@@ -2,12 +2,14 @@
 import { createContext } from "preact";
 import type { ComponentChildren } from "preact";
 import { useContext } from "preact/hooks";
-import type { ReactAppRuntime } from "./createReactAppRuntime";
+import type { ReactAppRuntime, RuntimeTrace } from "./createReactAppRuntime";
 
 export type AppRuntime<State = unknown, Event = unknown> = ReactAppRuntime<
   State,
   Event
->;
+> & {
+  trace: RuntimeTrace;
+};
 
 const AppRuntimeContext = createContext<AppRuntime | null>(null);
 
