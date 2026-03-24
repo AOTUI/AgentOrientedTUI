@@ -5,6 +5,7 @@ import { createActionRuntime } from "../src/core/action/createActionRuntime";
 import { createSnapshotBundle } from "../src/core/snapshot/createSnapshotBundle";
 import { createStore } from "../src/core/state/createStore";
 import { createToolBridge } from "../src/tool/createToolBridge";
+import type { SnapshotRegistry } from "../src/core/types";
 
 type TestState = {
   currentTab: "inbox" | "settings";
@@ -240,5 +241,75 @@ describe("createToolBridge", () => {
     });
 
     expect(bridge.listTools()).toEqual([]);
+  });
+
+  it("falls back to markStale when a custom snapshot registry does not implement markAllStale", async () => {
+    const entries = new Map<string, {
+      snapshot: ReturnType<typeof createSnapshotBundle>;
+      status: "active" | "stale";
+    }>();
+    const customRegistry: SnapshotRegistry = {
+      create(snapshot) {
+        entries.set(snapshot.snapshotId, {
+          snapshot,
+          status: "active",
+        });
+        return snapshot;
+      },
+      lookup(snapshotId) {
+        return entries.get(snapshotId);
+      },
+      markStale(snapshotId) {
+        const entry = entries.get(snapshotId);
+        if (!entry) {
+          return;
+        }
+
+        entries.set(snapshotId, {
+          snapshot: entry.snapshot,
+          status: "stale",
+        });
+      },
+    };
+    const customBridge = createToolBridge({
+      snapshotRegistry: customRegistry,
+      actionRuntime: {
+        listVisibleTools() {
+          return [];
+        },
+        async executeAction() {
+          return {
+            success: true,
+            mutated: true,
+          };
+        },
+      },
+      renderCurrentSnapshot() {
+        return createSnapshotBundle({
+          tui: "<screen>custom</screen>",
+          refIndex: {},
+          visibleTools: [],
+        });
+      },
+    });
+    const runtimeSnapshot = customBridge.getSnapshotBundle();
+
+    const result = await customBridge.executeTool(
+      "changeTab",
+      { tab: "settings" },
+      runtimeSnapshot.snapshotId,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        mutated: true,
+      }),
+    );
+    expect(customRegistry.lookup(runtimeSnapshot.snapshotId)).toEqual(
+      expect.objectContaining({
+        status: "stale",
+      }),
+    );
   });
 });

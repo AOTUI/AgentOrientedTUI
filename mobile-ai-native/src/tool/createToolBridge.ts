@@ -105,7 +105,11 @@ export function createToolBridge(config: {
       const result = await config.actionRuntime.executeAction(name, resolved.data);
 
       if (result.mutated) {
-        snapshots.markAllStale?.();
+        if (snapshots.markAllStale) {
+          snapshots.markAllStale();
+        } else {
+          snapshots.markStale(snapshotId);
+        }
       }
 
       return result;
