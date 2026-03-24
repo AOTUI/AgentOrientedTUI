@@ -12,6 +12,12 @@ import { createReactAppRuntime } from "../src/projection/react/createReactAppRun
 import { AppRuntimeProvider } from "../src/projection/react/AppRuntimeProvider";
 import { useAppRuntime, useRuntimeState } from "../src/projection/react/hooks";
 import type { ToolDefinition } from "../src/core/types";
+import {
+  AppRuntimeProvider as RootAppRuntimeProvider,
+  createReactAppRuntime as createReactAppRuntimeFromRoot,
+  useAppRuntime as useAppRuntimeFromRoot,
+  useRuntimeTrace as useRuntimeTraceFromRoot,
+} from "../src/index";
 
 type TestState = {
   shell: {
@@ -59,7 +65,7 @@ function createTestApp() {
     },
     handler(ctx, input) {
       ctx.emit({ type: "TraceUpdated", summary: input.summary });
-      return { success: true, mutated: true };
+      return { success: true, mutated: true, message: input.summary };
     },
   });
 
@@ -213,6 +219,38 @@ describe("react runtime host adapter", () => {
     });
 
     expect(selected).toEqual(["home"]);
+  });
+
+  it("exposes trace through the public root runtime API", async () => {
+    const runtime = createReactAppRuntimeFromRoot(createTestApp());
+    const seen: string[] = [];
+    const root = document.createElement("div");
+    document.body.append(root);
+
+    function Probe() {
+      const appRuntime = useAppRuntimeFromRoot();
+      const status = appRuntime.trace.getRecent()?.status ?? "idle";
+      const summary = useRuntimeTraceFromRoot(
+        (trace) => trace.recent?.summary ?? "idle",
+      );
+      seen.push(`${status}:${summary}`);
+      return <text>{summary}</text>;
+    }
+
+    await act(async () => {
+      render(
+        <RootAppRuntimeProvider runtime={runtime}>
+          <Probe />
+        </RootAppRuntimeProvider>,
+        root,
+      );
+    });
+
+    await act(async () => {
+      await runtime.actions.callAction("updateTrace", { summary: "synced" });
+    });
+
+    expect(seen.at(-1)).toBe("succeeded:synced");
   });
 
   it("keeps the legacy compatibility runtime stable and fails unsupported snapshot tool execution", async () => {

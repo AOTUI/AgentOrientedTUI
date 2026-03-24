@@ -37,6 +37,7 @@ export type ReactAppRuntime<State, Event> = {
   store: Store<State, Event>;
   actionRuntime: ReturnType<typeof createActionRuntime<State, Event>>;
   traceStore: TraceStore;
+  trace: RuntimeTrace;
   snapshotRegistry: SnapshotRegistry;
   toolBridge: ReturnType<typeof createToolBridge>;
   actions: {
@@ -57,7 +58,7 @@ export type RuntimeTrace = {
 
 export function createReactAppRuntime<State, Event>(
   app: ReactAppDefinition<State, Event>,
-): ReactAppRuntime<State, Event> & { trace: RuntimeTrace } {
+): ReactAppRuntime<State, Event> {
   const store = createStore({
     initialState: app.initialState,
     reduce: app.reduce,

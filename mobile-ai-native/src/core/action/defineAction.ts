@@ -6,10 +6,7 @@ export type ActionContext<State, Event> = {
   emit(event: Event): void;
   runEffect(name: string, input: unknown): Promise<void>;
   trace: {
-    start(summary: string): void;
     update(summary: string): void;
-    success(summary?: string): void;
-    fail(summary: string): void;
   };
 };
 

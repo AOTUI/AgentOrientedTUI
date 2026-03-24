@@ -16,6 +16,18 @@ export function createActionRuntime<State, Event>(config: {
   );
   const traceStore = config.traceStore ?? createTraceStore();
 
+  function recordTrace(
+    actionName: string,
+    status: "started" | "updated" | "succeeded" | "failed",
+    summary: string,
+  ) {
+    traceStore.record({
+      actionName,
+      status,
+      summary,
+    });
+  }
+
   async function executeAction(
     name: string,
     input: Record<string, unknown>,
@@ -53,44 +65,12 @@ export function createActionRuntime<State, Event>(config: {
     }
 
     let latestSummary = `Started action ${name}`;
-    traceStore.record({
-      actionName: name,
-      status: "started",
-      summary: latestSummary,
-    });
+    recordTrace(name, "started", latestSummary);
 
     const trace = {
-      start(summary: string) {
-        latestSummary = summary;
-        traceStore.record({
-          actionName: name,
-          status: "started",
-          summary,
-        });
-      },
       update(summary: string) {
         latestSummary = summary;
-        traceStore.record({
-          actionName: name,
-          status: "updated",
-          summary,
-        });
-      },
-      success(summary?: string) {
-        latestSummary = summary ?? latestSummary;
-        traceStore.record({
-          actionName: name,
-          status: "succeeded",
-          summary: latestSummary,
-        });
-      },
-      fail(summary: string) {
-        latestSummary = summary;
-        traceStore.record({
-          actionName: name,
-          status: "failed",
-          summary,
-        });
+        recordTrace(name, "updated", summary);
       },
     };
 
@@ -118,18 +98,23 @@ export function createActionRuntime<State, Event>(config: {
       const result = await action.handler(ctx, parsed.data);
 
       if (result.success) {
-        trace.success(result.message);
+        latestSummary = result.message ?? latestSummary;
+        recordTrace(name, "succeeded", latestSummary);
       } else {
-        trace.fail(
-          result.error?.message ?? result.message ?? `Action ${name} failed`,
+        latestSummary =
+          result.error?.message ?? result.message ?? `Action ${name} failed`;
+        recordTrace(
+          name,
+          "failed",
+          latestSummary,
         );
       }
 
       return result;
     } catch (error) {
-      trace.fail(
-        error instanceof Error ? error.message : `Action ${name} failed`,
-      );
+      latestSummary =
+        error instanceof Error ? error.message : `Action ${name} failed`;
+      recordTrace(name, "failed", latestSummary);
       throw error;
     }
   }

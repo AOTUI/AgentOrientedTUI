@@ -2,6 +2,8 @@
 import { h, render } from "preact";
 import { act } from "preact/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
+import { z } from "zod";
+import { defineAction } from "../src/core/action/defineAction";
 import { createInboxActions } from "../src/demo/inbox/actions";
 import { createInboxEffects } from "../src/demo/inbox/effects";
 import {
@@ -90,6 +92,76 @@ describe("runtime trace stream", () => {
       expect.objectContaining({
         status: "succeeded",
         actionName: "searchMessages",
+      }),
+    );
+  });
+
+  it("records failed lifecycle when an action returns success false", async () => {
+    const failAction = defineAction({
+      name: "failAction",
+      description: "Return a failed action result.",
+      schema: z.object({}),
+      visibility() {
+        return true;
+      },
+      handler() {
+        return {
+          success: false,
+          error: {
+            code: "FAILED",
+            message: "Failed to complete action",
+          },
+        };
+      },
+    });
+    const runtime = createReactAppRuntime({
+      initialState: createInitialInboxState([]),
+      reduce: reduceInboxState,
+      actions: [failAction],
+    });
+
+    const result = await runtime.actions.callAction("failAction", {});
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: false,
+      }),
+    );
+    expect(runtime.trace.getRecent()).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        actionName: "failAction",
+        summary: "Failed to complete action",
+      }),
+    );
+  });
+
+  it("records failed lifecycle when an action throws", async () => {
+    const explodeAction = defineAction({
+      name: "explodeAction",
+      description: "Throw from the action handler.",
+      schema: z.object({}),
+      visibility() {
+        return true;
+      },
+      handler() {
+        throw new Error("Boom");
+      },
+    });
+    const runtime = createReactAppRuntime({
+      initialState: createInitialInboxState([]),
+      reduce: reduceInboxState,
+      actions: [explodeAction],
+    });
+
+    await expect(runtime.actions.callAction("explodeAction", {})).rejects.toThrow(
+      "Boom",
+    );
+    expect(runtime.trace.getRecent()).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        actionName: "explodeAction",
+        summary: "Boom",
       }),
     );
   });

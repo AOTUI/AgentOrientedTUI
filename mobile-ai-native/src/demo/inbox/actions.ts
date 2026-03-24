@@ -31,6 +31,7 @@ export function createInboxActions() {
       return {
         success: true,
         mutated: true,
+        message: `Opened message ${input.message.subject}`,
         data: { openedMessageId: input.message.id },
       };
     },
@@ -51,7 +52,7 @@ export function createInboxActions() {
         type: "TraceUpdated",
         summary: `Started search for ${input.query}`,
       });
-      ctx.trace.update(`Searching inbox for ${input.query}`);
+      ctx.trace.update(`Started search for ${input.query}`);
       await ctx.runEffect("searchMessages", input);
 
       return {

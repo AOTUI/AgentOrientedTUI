@@ -51,6 +51,23 @@ function createCompatibilityRuntime(
         };
       },
     },
+    trace: {
+      getState() {
+        return {
+          entries: [],
+          recent: null,
+        };
+      },
+      getEntries() {
+        return [];
+      },
+      getRecent() {
+        return undefined;
+      },
+      subscribe() {
+        return () => {};
+      },
+    },
     snapshotRegistry: {
       create(snapshot: SnapshotBundle) {
         return snapshot;
