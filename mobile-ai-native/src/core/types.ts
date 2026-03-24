@@ -50,6 +50,7 @@ export type SnapshotRegistry = {
   create(snapshot: SnapshotBundle): SnapshotBundle;
   lookup(snapshotId: string): SnapshotRegistryEntry | undefined;
   markStale(snapshotId: string): void;
+  markAllStale?(): void;
 };
 
 export type ActionResult<T = unknown> = {

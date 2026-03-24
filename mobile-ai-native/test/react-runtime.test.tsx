@@ -360,4 +360,35 @@ describe("react runtime host adapter", () => {
       }),
     );
   });
+
+  it("stales an existing snapshot after a mutating runtime action", async () => {
+    const runtime = createReactAppRuntime(createTestApp());
+    const snapshot = runtime.toolBridge.getSnapshotBundle();
+
+    const result = await runtime.actions.callAction("changeTab", {
+      tab: "settings",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        mutated: true,
+      }),
+    );
+
+    const staleResult = await runtime.toolBridge.executeTool(
+      "changeTab",
+      { tab: "home" },
+      snapshot.snapshotId,
+    );
+
+    expect(staleResult).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({
+          code: "SNAPSHOT_STALE",
+        }),
+      }),
+    );
+  });
 });

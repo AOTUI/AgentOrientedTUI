@@ -37,7 +37,8 @@ Then it calls a tool with:
 await bridge.executeTool("openMessage", { message: "messages[0]" }, snapshotId);
 ```
 
-The runtime resolves that `ref_id` from the `SnapshotBundle.refIndex` for the same `snapshotId`.
+The current bridge resolves top-level string `ref_id` values by exact key lookup in that snapshot's `refIndex`.
+It does not infer nested field refs or field-level ref metadata.
 
 The React host adapter path is:
 
@@ -104,7 +105,7 @@ Screens can change after the LLM reads them.
 Live object references may already be gone.
 
 So `refIndex` stores serializable snapshot payloads.
-When the LLM later calls a tool, the framework reconstructs the action input from the payload attached to that `snapshotId`.
+When the LLM later calls a tool, the bridge resolves the top-level ref string against the payload stored in that snapshot's `refIndex`.
 
 ## Current Status
 

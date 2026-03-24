@@ -54,6 +54,7 @@ The TUI snapshot is another projection of state.
 
 The LLM should never guess ids from the screen.
 It should receive semantic refs from the current `SnapshotBundle`.
+Today those refs are resolved by exact `refIndex` key lookup; the runtime does not infer nested field-level ref metadata.
 
 In the hardened runtime, the React / React Native host uses `createReactAppRuntime()` plus `AppRuntimeProvider` to wire state, actions, traces, snapshots, and tool execution together. GUI components should subscribe with `useRuntimeState(selector)` and `useRuntimeTrace(selector)` instead of reading the store once.
 

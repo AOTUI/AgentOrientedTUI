@@ -2,6 +2,15 @@ export const VERSION = "0.0.0";
 
 export { createStore } from "./core/state/createStore";
 export { createSnapshotBundle } from "./core/snapshot/createSnapshotBundle";
+export type {
+  EffectContext,
+  EffectFailure,
+  EffectHandler,
+  EffectMap,
+  EffectResult,
+  EffectSuccess,
+  EffectTrace,
+} from "./core/effect/types";
 export { defineAction } from "./core/action/defineAction";
 export { createActionRuntime } from "./core/action/createActionRuntime";
 export { createToolBridge } from "./tool/createToolBridge";

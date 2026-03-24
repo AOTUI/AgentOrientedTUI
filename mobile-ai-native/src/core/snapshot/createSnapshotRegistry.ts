@@ -67,5 +67,15 @@ export function createSnapshotRegistry(config?: {
 
       snapshots.set(snapshotId, createEntry(entry.snapshot, "stale"));
     },
+    markAllStale() {
+      for (const snapshotId of snapshots.keys()) {
+        const entry = snapshots.get(snapshotId);
+        if (!entry || entry.status === "stale") {
+          continue;
+        }
+
+        snapshots.set(snapshotId, createEntry(entry.snapshot, "stale"));
+      }
+    },
   };
 }

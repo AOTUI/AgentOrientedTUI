@@ -101,8 +101,13 @@ export function createReactAppRuntime<State, Event>(
     snapshotRegistry,
     toolBridge,
     actions: {
-      callAction(name, input) {
-        return actionRuntime.executeAction(name, input);
+      async callAction(name, input) {
+        const result = await actionRuntime.executeAction(name, input);
+        if (result.mutated) {
+          snapshotRegistry.markAllStale?.();
+        }
+
+        return result;
       },
       getVisibleTools() {
         return actionRuntime.listVisibleTools();
