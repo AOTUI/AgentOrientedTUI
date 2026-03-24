@@ -1,5 +1,5 @@
 import type { ZodType } from "zod";
-import type { ActionResult, Store } from "../types";
+import type { ActionResult, ToolMetadata } from "../types";
 
 export type ActionContext<State, Event> = {
   getState(): State;
@@ -17,6 +17,7 @@ export type ActionDefinition<State, Event, Input> = {
   name: string;
   description: string;
   schema: ZodType<Input>;
+  meta?: ToolMetadata;
   visibility(state: State): boolean;
   handler(
     ctx: ActionContext<State, Event>,

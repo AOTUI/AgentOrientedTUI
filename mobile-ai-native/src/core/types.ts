@@ -14,9 +14,13 @@ export type RefIndexEntry = {
   value: unknown;
 };
 
+export type ToolMetadata = Record<string, unknown>;
+
 export type ToolDefinition = {
   name: string;
   description: string;
+  inputSchema: unknown;
+  meta: ToolMetadata;
 };
 
 export type SnapshotBundle = {

@@ -15,6 +15,9 @@ export function createInboxActions() {
     schema: z.object({
       message: inboxMessageSchema,
     }),
+    meta: {
+      supportsRefs: true,
+    },
     visibility(state) {
       return state.shell.currentTab === "inbox";
     },

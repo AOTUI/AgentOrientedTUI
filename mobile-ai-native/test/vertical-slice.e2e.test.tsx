@@ -19,6 +19,31 @@ afterEach(() => {
 });
 
 describe("inbox vertical slice", () => {
+  it("exposes visible tool schemas and metadata through the runtime", () => {
+    const actions = createInboxActions();
+    const runtime = createReactAppRuntime({
+      initialState: createInitialInboxState([
+        { id: "m1", subject: "Welcome back", opened: false },
+      ]),
+      reduce: reduceInboxState,
+      actions: [actions.openMessage, actions.searchMessages],
+      effects: createInboxEffects([
+        { id: "m1", subject: "Welcome back", opened: false },
+      ]),
+    });
+
+    expect(runtime.actions.getVisibleTools()).toContainEqual(
+      expect.objectContaining({
+        name: "openMessage",
+        description: expect.any(String),
+        inputSchema: expect.any(Object),
+        meta: expect.objectContaining({
+          supportsRefs: true,
+        }),
+      }),
+    );
+  });
+
   it("keeps GUI and TUI in sync after a tool call", async () => {
     const app = createInboxApp({
       initialMessages: [{ id: "m1", subject: "Welcome back", opened: false }],

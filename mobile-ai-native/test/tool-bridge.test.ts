@@ -33,6 +33,9 @@ function createTestBridge(
         subject: z.string(),
       }),
     }),
+    meta: {
+      supportsRefs: true,
+    },
     visibility(state: TestState) {
       return state.currentTab === "inbox";
     },
@@ -92,6 +95,21 @@ describe("createToolBridge", () => {
       "openMessage",
       "searchMessages",
     ]);
+  });
+
+  it("lists visible tools with schema and metadata", () => {
+    const bridge = createTestBridge();
+
+    expect(bridge.listTools()).toContainEqual(
+      expect.objectContaining({
+        name: "openMessage",
+        description: expect.any(String),
+        inputSchema: expect.any(Object),
+        meta: expect.objectContaining({
+          supportsRefs: true,
+        }),
+      }),
+    );
   });
 
   it("resolves ref args from the originating snapshot", async () => {

@@ -87,6 +87,8 @@ export function createActionRuntime<State, Event>(config: {
       .map((action) => ({
         name: action.name,
         description: action.description,
+        inputSchema: action.schema,
+        meta: action.meta ?? {},
       }));
   }
 

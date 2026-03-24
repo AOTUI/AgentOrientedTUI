@@ -1,4 +1,9 @@
-import type { SnapshotBundle, ActionResult, RefIndexEntry } from "../core/types";
+import type {
+  SnapshotBundle,
+  ActionResult,
+  RefIndexEntry,
+  ToolDefinition,
+} from "../core/types";
 
 function resolveRefArgs(
   input: Record<string, unknown>,
@@ -35,7 +40,7 @@ function resolveRefArgs(
 
 export function createToolBridge(config: {
   actionRuntime: {
-    listVisibleTools(): Array<{ name: string; description: string }>;
+    listVisibleTools(): ToolDefinition[];
     executeAction(
       name: string,
       input: Record<string, unknown>,
