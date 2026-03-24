@@ -3,6 +3,7 @@ import type { ActionDefinition } from "../../core/action/defineAction";
 import { createSnapshotBundle } from "../../core/snapshot/createSnapshotBundle";
 import { createSnapshotRegistry } from "../../core/snapshot/createSnapshotRegistry";
 import { createStore } from "../../core/state/createStore";
+import { createTraceStore } from "../../core/trace/createTraceStore";
 import type {
   ActionResult,
   SnapshotBundle,
@@ -10,6 +11,9 @@ import type {
   StateReducer,
   Store,
   ToolDefinition,
+  TraceRecord,
+  TraceState,
+  TraceStore,
 } from "../../core/types";
 import { createToolBridge } from "../../tool/createToolBridge";
 
@@ -32,10 +36,7 @@ export type ReactAppDefinition<State, Event> = {
 export type ReactAppRuntime<State, Event> = {
   store: Store<State, Event>;
   actionRuntime: ReturnType<typeof createActionRuntime<State, Event>>;
-  traceStore: {
-    getState(): { entries: string[] };
-    subscribe(listener: () => void): () => void;
-  };
+  traceStore: TraceStore;
   snapshotRegistry: SnapshotRegistry;
   toolBridge: ReturnType<typeof createToolBridge>;
   actions: {
@@ -47,31 +48,28 @@ export type ReactAppRuntime<State, Event> = {
   };
 };
 
-function createTraceStore() {
-  return {
-    getState() {
-      return { entries: [] };
-    },
-    subscribe() {
-      return () => {};
-    },
-  };
-}
+export type RuntimeTrace = {
+  getState(): TraceState;
+  getEntries(): TraceRecord[];
+  getRecent(): TraceRecord | undefined;
+  subscribe(listener: () => void): () => void;
+};
 
 export function createReactAppRuntime<State, Event>(
   app: ReactAppDefinition<State, Event>,
-): ReactAppRuntime<State, Event> {
+): ReactAppRuntime<State, Event> & { trace: RuntimeTrace } {
   const store = createStore({
     initialState: app.initialState,
     reduce: app.reduce,
   });
+  const traceStore = createTraceStore();
 
   const actionRuntime = createActionRuntime({
     store,
     actions: app.actions,
+    traceStore,
     effects: app.effects,
   });
-  const traceStore = createTraceStore();
   const snapshotRegistry = createSnapshotRegistry({ maxEntries: 2 });
   const renderCurrentSnapshot =
     app.renderCurrentSnapshot ??
@@ -92,6 +90,20 @@ export function createReactAppRuntime<State, Event>(
     store,
     actionRuntime,
     traceStore,
+    trace: {
+      getState() {
+        return traceStore.getState();
+      },
+      getEntries() {
+        return traceStore.getState().entries;
+      },
+      getRecent() {
+        return traceStore.getState().recent ?? undefined;
+      },
+      subscribe(listener) {
+        return traceStore.subscribe(listener);
+      },
+    },
     snapshotRegistry,
     toolBridge,
     actions: {

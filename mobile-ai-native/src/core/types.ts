@@ -1,4 +1,10 @@
 import type { ZodTypeAny } from "zod";
+export type {
+  TraceRecord,
+  TraceState,
+  TraceStatus,
+  TraceStore,
+} from "./trace/types";
 
 export type StateReducer<State, Event> = (state: State, event: Event) => State;
 

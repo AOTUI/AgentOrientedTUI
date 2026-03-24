@@ -51,6 +51,7 @@ export function createInboxActions() {
         type: "TraceUpdated",
         summary: `Started search for ${input.query}`,
       });
+      ctx.trace.update(`Searching inbox for ${input.query}`);
       await ctx.runEffect("searchMessages", input);
 
       return {

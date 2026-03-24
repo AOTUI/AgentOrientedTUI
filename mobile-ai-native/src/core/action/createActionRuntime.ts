@@ -1,9 +1,11 @@
 import type { ActionDefinition, ActionContext } from "./defineAction";
-import type { ActionResult, Store, ToolDefinition } from "../types";
+import type { ActionResult, Store, ToolDefinition, TraceStore } from "../types";
+import { createTraceStore } from "../trace/createTraceStore";
 
 export function createActionRuntime<State, Event>(config: {
   store: Store<State, Event>;
   actions: Array<ActionDefinition<State, Event, any>>;
+  traceStore?: TraceStore;
   effects?: Record<
     string,
     (ctx: { getState(): State; emit(event: Event): void }, input: any) => Promise<void> | void
@@ -12,13 +14,7 @@ export function createActionRuntime<State, Event>(config: {
   const actionsByName = new Map(
     config.actions.map((action) => [action.name, action]),
   );
-
-  const trace = {
-    start(_summary: string) {},
-    update(_summary: string) {},
-    success(_summary?: string) {},
-    fail(_summary: string) {},
-  };
+  const traceStore = config.traceStore ?? createTraceStore();
 
   async function executeAction(
     name: string,
@@ -56,6 +52,48 @@ export function createActionRuntime<State, Event>(config: {
       };
     }
 
+    let latestSummary = `Started action ${name}`;
+    traceStore.record({
+      actionName: name,
+      status: "started",
+      summary: latestSummary,
+    });
+
+    const trace = {
+      start(summary: string) {
+        latestSummary = summary;
+        traceStore.record({
+          actionName: name,
+          status: "started",
+          summary,
+        });
+      },
+      update(summary: string) {
+        latestSummary = summary;
+        traceStore.record({
+          actionName: name,
+          status: "updated",
+          summary,
+        });
+      },
+      success(summary?: string) {
+        latestSummary = summary ?? latestSummary;
+        traceStore.record({
+          actionName: name,
+          status: "succeeded",
+          summary: latestSummary,
+        });
+      },
+      fail(summary: string) {
+        latestSummary = summary;
+        traceStore.record({
+          actionName: name,
+          status: "failed",
+          summary,
+        });
+      },
+    };
+
     const ctx: ActionContext<State, Event> = {
       getState: () => config.store.getState(),
       emit: (event) => config.store.emit(event),
@@ -76,7 +114,24 @@ export function createActionRuntime<State, Event>(config: {
       trace,
     };
 
-    return await action.handler(ctx, parsed.data);
+    try {
+      const result = await action.handler(ctx, parsed.data);
+
+      if (result.success) {
+        trace.success(result.message);
+      } else {
+        trace.fail(
+          result.error?.message ?? result.message ?? `Action ${name} failed`,
+        );
+      }
+
+      return result;
+    } catch (error) {
+      trace.fail(
+        error instanceof Error ? error.message : `Action ${name} failed`,
+      );
+      throw error;
+    }
   }
 
   function listVisibleTools(): ToolDefinition[] {

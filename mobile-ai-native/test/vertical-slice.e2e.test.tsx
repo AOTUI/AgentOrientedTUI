@@ -134,6 +134,12 @@ describe("inbox vertical slice", () => {
     });
 
     expect(root.textContent).toContain("Started search for Invoice");
+    expect(runtime.trace.getRecent()).toEqual(
+      expect.objectContaining({
+        status: "succeeded",
+        actionName: "searchMessages",
+      }),
+    );
     expect(root.textContent).toContain("Invoice ready");
     expect(root.textContent).not.toContain("Welcome back");
   });
