@@ -23,3 +23,13 @@ export type SnapshotBundle = {
   refIndex: Record<string, RefIndexEntry>;
   visibleTools: ToolDefinition[];
 };
+
+export type ActionResult<T = unknown> = {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+};
