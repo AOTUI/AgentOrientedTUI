@@ -126,6 +126,32 @@ describe("createToolBridge", () => {
     expect(result.data).toEqual({ openedMessageId: "m1" });
   });
 
+  it("marks a consumed snapshot as stale after a successful tool execution", async () => {
+    const bridge = createTestBridge();
+    const snapshot = bridge.getSnapshotBundle();
+
+    const result = await bridge.executeTool(
+      "openMessage",
+      { message: "messages[0]" },
+      snapshot.snapshotId,
+    );
+
+    expect(result.success).toBe(true);
+
+    const staleResult = await bridge.executeTool(
+      "openMessage",
+      { message: "messages[0]" },
+      snapshot.snapshotId,
+    );
+
+    expect(staleResult).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({ code: "SNAPSHOT_STALE" }),
+      }),
+    );
+  });
+
   it("rejects stale snapshot ids", async () => {
     const bridge = createTestBridge();
 

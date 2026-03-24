@@ -4,6 +4,7 @@ import type {
   RefIndexEntry,
   ToolDefinition,
 } from "../core/types";
+import { createSnapshotRegistry } from "../core/snapshot/createSnapshotRegistry";
 
 function resolveRefArgs(
   input: Record<string, unknown>,
@@ -48,7 +49,9 @@ export function createToolBridge(config: {
   };
   renderCurrentSnapshot(): SnapshotBundle;
 }) {
-  const snapshots = new Map<string, SnapshotBundle>();
+  const snapshots = createSnapshotRegistry({
+    maxEntries: 2,
+  });
 
   return {
     listTools() {
@@ -56,16 +59,15 @@ export function createToolBridge(config: {
     },
     getSnapshotBundle() {
       const snapshot = config.renderCurrentSnapshot();
-      snapshots.set(snapshot.snapshotId, snapshot);
-      return snapshot;
+      return snapshots.create(snapshot);
     },
     async executeTool(
       name: string,
       input: Record<string, unknown>,
       snapshotId: string,
     ) {
-      const snapshot = snapshots.get(snapshotId);
-      if (!snapshot) {
+      const snapshotEntry = snapshots.lookup(snapshotId);
+      if (!snapshotEntry) {
         return {
           success: false,
           error: {
@@ -75,7 +77,17 @@ export function createToolBridge(config: {
         };
       }
 
-      const resolved = resolveRefArgs(input, snapshot.refIndex);
+      if (snapshotEntry.status === "stale") {
+        return {
+          success: false,
+          error: {
+            code: "SNAPSHOT_STALE",
+            message: `Snapshot ${snapshotId} is stale`,
+          },
+        };
+      }
+
+      const resolved = resolveRefArgs(input, snapshotEntry.snapshot.refIndex);
       if (!resolved.success) {
         return {
           success: false,
@@ -86,7 +98,13 @@ export function createToolBridge(config: {
         };
       }
 
-      return config.actionRuntime.executeAction(name, resolved.data);
+      const result = await config.actionRuntime.executeAction(name, resolved.data);
+
+      if (result.success) {
+        snapshots.markStale(snapshotId);
+      }
+
+      return result;
     },
   };
 }

@@ -10,11 +10,11 @@ export function createSnapshotBundle(input: {
   const generatedAt = Date.now();
   snapshotCounter += 1;
 
-  return {
+  return Object.freeze({
     snapshotId: `snap_${generatedAt}_${snapshotCounter}`,
     generatedAt,
     tui: input.tui,
-    refIndex: input.refIndex,
-    visibleTools: input.visibleTools,
-  };
+    refIndex: { ...input.refIndex },
+    visibleTools: [...input.visibleTools],
+  });
 }

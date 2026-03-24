@@ -26,11 +26,24 @@ export type ToolDefinition = {
 };
 
 export type SnapshotBundle = {
-  snapshotId: string;
-  generatedAt: number;
-  tui: string;
-  refIndex: Record<string, RefIndexEntry>;
-  visibleTools: ToolDefinition[];
+  readonly snapshotId: string;
+  readonly generatedAt: number;
+  readonly tui: string;
+  readonly refIndex: Record<string, RefIndexEntry>;
+  readonly visibleTools: ToolDefinition[];
+};
+
+export type SnapshotStatus = "active" | "stale";
+
+export type SnapshotRegistryEntry = {
+  snapshot: SnapshotBundle;
+  status: SnapshotStatus;
+};
+
+export type SnapshotRegistry = {
+  create(snapshot: SnapshotBundle): SnapshotBundle;
+  lookup(snapshotId: string): SnapshotRegistryEntry | undefined;
+  markStale(snapshotId: string): void;
 };
 
 export type ActionResult<T = unknown> = {
