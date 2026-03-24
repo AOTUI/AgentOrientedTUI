@@ -1,8 +1,12 @@
-# Mobile AI-Native Vertical Slice
+# @aotui/mobile-ai-native
 
-This package proves the smallest end-to-end loop of the mobile AI-native framework:
+This package is an alpha host-agnostic core for building Agent Native mobile apps.
+
+It currently proves the smallest end-to-end loop of the framework:
 
 `State -> SnapshotBundle -> Tool Call(ref_id + snapshotId) -> Action -> Event/Effect -> State -> GUI/TUI refresh`
+
+If you want a practical build guide for a real iOS app, read [GUIDE.md](./GUIDE.md).
 
 ## What This Slice Proves
 
@@ -80,6 +84,25 @@ Live object references may already be gone.
 
 So `refIndex` stores serializable snapshot payloads.
 When the LLM later calls a tool, the framework reconstructs the action input from the payload attached to that `snapshotId`.
+
+## Current Status
+
+This is not yet a full React Native runtime or iOS shell.
+
+What it gives you today:
+
+- shared state core
+- semantic refs with `useDataRef` and `useArrayRef`
+- atomic `SnapshotBundle`
+- snapshot-scoped tool execution
+- a working inbox vertical slice
+
+What you still need for a production iOS app:
+
+- a thin React Native host adapter
+- real GUI components
+- model orchestration and networking
+- product-level trace UI and persistence
 
 ## Current Demo
 

@@ -1,12 +1,23 @@
 {
   "name": "@aotui/mobile-ai-native",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
+  "description": "Alpha host-agnostic core for building Agent Native mobile apps with shared GUI/TUI state and snapshot-scoped tool execution.",
+  "license": "Apache-2.0",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && tsc -p tsconfig.json",
     "test": "vitest",
-    "test:run": "vitest --run"
+    "test:run": "vitest --run",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "preact": "^10.28.1",
@@ -17,5 +28,22 @@
     "happy-dom": "^20.5.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "GUIDE.md"
+  ],
+  "keywords": [
+    "agent-native",
+    "ios",
+    "mobile",
+    "llm",
+    "tui",
+    "state-machine",
+    "preact"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

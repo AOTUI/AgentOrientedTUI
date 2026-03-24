@@ -8,7 +8,9 @@
     "jsxImportSource": "preact",
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "declaration": true,
     "noEmit": false,
+    "rootDir": "src",
     "outDir": "dist"
   },
   "include": ["src"]
