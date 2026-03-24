@@ -11,7 +11,7 @@ export function useRuntimeState<State, Selected>(
   const runtime = useAppRuntimeContext();
   const getSnapshot = () => selector(runtime.store.getState() as State);
 
-  return useSyncExternalStore(runtime.store.subscribe, getSnapshot, getSnapshot);
+  return useSyncExternalStore(runtime.store.subscribe, getSnapshot);
 }
 
 export function useRuntimeActions() {

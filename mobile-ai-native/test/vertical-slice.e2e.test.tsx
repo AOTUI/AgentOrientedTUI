@@ -1,5 +1,22 @@
-import { describe, expect, it } from "vitest";
+/** @jsxImportSource preact */
+// @vitest-environment happy-dom
+import { render } from "preact";
+import { act } from "preact/test-utils";
+import { afterEach, describe, expect, it } from "vitest";
+import { createReactAppRuntime } from "../src/projection/react/createReactAppRuntime";
+import { AppRuntimeProvider } from "../src/projection/react/AppRuntimeProvider";
 import { createInboxApp } from "../src/demo/inbox/createInboxApp";
+import { InboxGUI } from "../src/demo/inbox/InboxGUI";
+import { createInboxActions } from "../src/demo/inbox/actions";
+import { createInboxEffects } from "../src/demo/inbox/effects";
+import {
+  createInitialInboxState,
+  reduceInboxState,
+} from "../src/demo/inbox/state";
+
+afterEach(() => {
+  document.body.innerHTML = "";
+});
 
 describe("inbox vertical slice", () => {
   it("keeps GUI and TUI in sync after a tool call", async () => {
@@ -48,5 +65,41 @@ describe("inbox vertical slice", () => {
     const nextSnapshot = app.bridge.getSnapshotBundle();
     expect(nextSnapshot.tui).toContain("Query: Invoice");
     expect(nextSnapshot.tui).toContain("(Invoice ready)[message:messages[0]]");
+  });
+
+  it("updates a mounted inbox GUI through runtime subscriptions", async () => {
+    const initialMessages = [
+      { id: "m1", subject: "Welcome back", opened: false },
+      { id: "m2", subject: "Invoice ready", opened: false },
+    ];
+    const actions = createInboxActions();
+    const runtime = createReactAppRuntime({
+      initialState: createInitialInboxState(initialMessages),
+      reduce: reduceInboxState,
+      actions: [actions.openMessage, actions.searchMessages],
+      effects: createInboxEffects(initialMessages),
+    });
+    const root = document.createElement("div");
+    document.body.append(root);
+
+    await act(async () => {
+      render(
+        <AppRuntimeProvider runtime={runtime}>
+          <InboxGUI />
+        </AppRuntimeProvider>,
+        root,
+      );
+    });
+
+    expect(root.textContent).toContain("Welcome back");
+    expect(root.textContent).toContain("Invoice ready");
+
+    await act(async () => {
+      await runtime.actions.callAction("searchMessages", { query: "Invoice" });
+    });
+
+    expect(root.textContent).toContain("Started search for Invoice");
+    expect(root.textContent).toContain("Invoice ready");
+    expect(root.textContent).not.toContain("Welcome back");
   });
 });
