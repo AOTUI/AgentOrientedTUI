@@ -5,3 +5,21 @@ export type Store<State, Event> = {
   emit(event: Event): void;
   subscribe(listener: () => void): () => void;
 };
+
+export type RefIndexEntry = {
+  type: string;
+  value: unknown;
+};
+
+export type ToolDefinition = {
+  name: string;
+  description: string;
+};
+
+export type SnapshotBundle = {
+  snapshotId: string;
+  generatedAt: number;
+  tui: string;
+  refIndex: Record<string, RefIndexEntry>;
+  visibleTools: ToolDefinition[];
+};
