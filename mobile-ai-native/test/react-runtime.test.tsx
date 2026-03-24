@@ -11,6 +11,7 @@ import { AppProvider } from "../src/projection/gui/AppProvider";
 import { createReactAppRuntime } from "../src/projection/react/createReactAppRuntime";
 import { AppRuntimeProvider } from "../src/projection/react/AppRuntimeProvider";
 import { useAppRuntime, useRuntimeState } from "../src/projection/react/hooks";
+import type { ToolDefinition } from "../src/core/types";
 
 type TestState = {
   shell: {
@@ -104,6 +105,26 @@ afterEach(() => {
 });
 
 describe("react runtime host adapter", () => {
+  it("types visible tools on the public runtime actions surface", () => {
+    const runtime = createReactAppRuntime(createTestApp());
+    const visibleTools: ToolDefinition[] = runtime.actions.getVisibleTools();
+
+    expect(visibleTools).toEqual([
+      expect.objectContaining({
+        name: "changeTab",
+        description: "Change the current tab.",
+        inputSchema: expect.any(Object),
+        meta: {},
+      }),
+      expect.objectContaining({
+        name: "updateTrace",
+        description: "Update the recent trace summary.",
+        inputSchema: expect.any(Object),
+        meta: {},
+      }),
+    ]);
+  });
+
   it("re-renders a consumer when store state changes", async () => {
     const runtime = createReactAppRuntime(createTestApp());
     const seen: string[] = [];

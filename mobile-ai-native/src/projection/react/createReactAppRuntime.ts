@@ -7,6 +7,7 @@ import type {
   SnapshotBundle,
   StateReducer,
   Store,
+  ToolDefinition,
 } from "../../core/types";
 import { createToolBridge } from "../../tool/createToolBridge";
 
@@ -44,7 +45,7 @@ export type ReactAppRuntime<State, Event> = {
       name: string,
       input: Record<string, unknown>,
     ): Promise<ActionResult>;
-    getVisibleTools(): Array<{ name: string; description: string }>;
+    getVisibleTools(): ToolDefinition[];
   };
 };
 
