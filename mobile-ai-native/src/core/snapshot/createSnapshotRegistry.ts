@@ -27,6 +27,7 @@ export function createSnapshotRegistry(config?: {
 }): SnapshotRegistry {
   const maxEntries = Math.max(1, config?.maxEntries ?? 2);
   const snapshots = new Map<string, SnapshotRegistryEntry>();
+  const seenSnapshotIds = new Set<string>();
 
   function createEntry(
     snapshot: SnapshotBundle,
@@ -41,11 +42,13 @@ export function createSnapshotRegistry(config?: {
   return {
     create(snapshot: SnapshotBundle) {
       const hardenedSnapshot = hardenSnapshotBundle(snapshot);
-      if (snapshots.has(hardenedSnapshot.snapshotId)) {
+      if (seenSnapshotIds.has(hardenedSnapshot.snapshotId)) {
         throw new Error(
           `Snapshot ${hardenedSnapshot.snapshotId} is already registered`,
         );
       }
+
+      seenSnapshotIds.add(hardenedSnapshot.snapshotId);
       snapshots.set(
         hardenedSnapshot.snapshotId,
         createEntry(hardenedSnapshot, "active"),

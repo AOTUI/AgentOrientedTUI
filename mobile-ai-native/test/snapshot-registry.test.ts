@@ -141,4 +141,40 @@ describe("createSnapshotRegistry", () => {
       }),
     );
   });
+
+  it("rejects reusing a snapshot id after the original entry has been evicted", () => {
+    const registry = createSnapshotRegistry({ maxEntries: 1 });
+    const original = registry.create({
+      snapshotId: "snap_reused_after_eviction",
+      generatedAt: 1,
+      tui: "<screen>first</screen>",
+      refIndex: {},
+      visibleTools: [],
+    });
+
+    const replacement = registry.create({
+      snapshotId: "snap_other",
+      generatedAt: 2,
+      tui: "<screen>second</screen>",
+      refIndex: {},
+      visibleTools: [],
+    });
+
+    expect(registry.lookup(original.snapshotId)).toBeUndefined();
+    expect(registry.lookup(replacement.snapshotId)).toEqual(
+      expect.objectContaining({
+        status: "active",
+      }),
+    );
+
+    expect(() =>
+      registry.create({
+        snapshotId: "snap_reused_after_eviction",
+        generatedAt: 3,
+        tui: "<screen>third</screen>",
+        refIndex: {},
+        visibleTools: [],
+      }),
+    ).toThrow(/snap_reused_after_eviction/);
+  });
 });
