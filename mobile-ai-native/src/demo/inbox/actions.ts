@@ -30,6 +30,7 @@ export function createInboxActions() {
 
       return {
         success: true,
+        mutated: true,
         data: { openedMessageId: input.message.id },
       };
     },
@@ -54,6 +55,7 @@ export function createInboxActions() {
 
       return {
         success: true,
+        mutated: true,
         message: `Started search for ${input.query}`,
       };
     },

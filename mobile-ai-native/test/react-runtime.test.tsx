@@ -45,7 +45,7 @@ function createTestApp() {
     },
     handler(ctx, input) {
       ctx.emit({ type: "TabChanged", tab: input.tab });
-      return { success: true };
+      return { success: true, mutated: true };
     },
   });
   const updateTrace = defineAction<TestState, TestEvent, { summary: string }>({
@@ -59,7 +59,7 @@ function createTestApp() {
     },
     handler(ctx, input) {
       ctx.emit({ type: "TraceUpdated", summary: input.summary });
-      return { success: true };
+      return { success: true, mutated: true };
     },
   });
 

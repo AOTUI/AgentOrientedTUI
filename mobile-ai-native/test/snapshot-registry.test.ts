@@ -109,4 +109,36 @@ describe("createSnapshotRegistry", () => {
     }).toThrow();
     expect(entry?.status).toBe("active");
   });
+
+  it("rejects duplicate snapshot ids instead of replacing existing credentials", () => {
+    const registry = createSnapshotRegistry({ maxEntries: 2 });
+    const original = registry.create({
+      snapshotId: "snap_duplicate",
+      generatedAt: 1,
+      tui: "<screen>first</screen>",
+      refIndex: {},
+      visibleTools: [],
+    });
+
+    registry.markStale(original.snapshotId);
+
+    expect(() =>
+      registry.create({
+        snapshotId: "snap_duplicate",
+        generatedAt: 2,
+        tui: "<screen>second</screen>",
+        refIndex: {},
+        visibleTools: [],
+      }),
+    ).toThrow(/snap_duplicate/);
+
+    expect(registry.lookup(original.snapshotId)).toEqual(
+      expect.objectContaining({
+        status: "stale",
+        snapshot: expect.objectContaining({
+          tui: "<screen>first</screen>",
+        }),
+      }),
+    );
+  });
 });

@@ -41,6 +41,11 @@ export function createSnapshotRegistry(config?: {
   return {
     create(snapshot: SnapshotBundle) {
       const hardenedSnapshot = hardenSnapshotBundle(snapshot);
+      if (snapshots.has(hardenedSnapshot.snapshotId)) {
+        throw new Error(
+          `Snapshot ${hardenedSnapshot.snapshotId} is already registered`,
+        );
+      }
       snapshots.set(
         hardenedSnapshot.snapshotId,
         createEntry(hardenedSnapshot, "active"),

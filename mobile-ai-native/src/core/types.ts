@@ -48,6 +48,7 @@ export type SnapshotRegistry = {
 
 export type ActionResult<T = unknown> = {
   success: boolean;
+  mutated?: boolean;
   message?: string;
   data?: T;
   error?: {

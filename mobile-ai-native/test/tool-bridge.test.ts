@@ -11,6 +11,8 @@ type TestState = {
   messages: Array<{ id: string; subject: string }>;
 };
 
+type TestEvent = { type: "TabChanged"; tab: TestState["currentTab"] };
+
 function createTestBridge(
   initialState: TestState = {
     currentTab: "inbox",
@@ -19,7 +21,14 @@ function createTestBridge(
 ) {
   const store = createStore({
     initialState,
-    reduce(state: TestState, _event: { type: "Noop" }) {
+    reduce(state: TestState, event: TestEvent) {
+      if (event.type === "TabChanged") {
+        return {
+          ...state,
+          currentTab: event.tab,
+        };
+      }
+
       return state;
     },
   });
@@ -63,9 +72,27 @@ function createTestBridge(
     },
   });
 
+  const changeTab = defineAction({
+    name: "changeTab",
+    description: "Change the current tab.",
+    schema: z.object({
+      tab: z.union([z.literal("inbox"), z.literal("settings")]),
+    }),
+    visibility(state: TestState) {
+      return state.currentTab === "inbox";
+    },
+    handler(ctx, input) {
+      ctx.emit({ type: "TabChanged", tab: input.tab });
+      return {
+        success: true,
+        mutated: true,
+      };
+    },
+  });
+
   const actionRuntime = createActionRuntime({
     store,
-    actions: [openMessage, searchMessages],
+    actions: [openMessage, searchMessages, changeTab],
   });
 
   return createToolBridge({
@@ -94,6 +121,7 @@ describe("createToolBridge", () => {
     expect(bridge.listTools().map((tool) => tool.name)).toEqual([
       "openMessage",
       "searchMessages",
+      "changeTab",
     ]);
   });
 
@@ -126,21 +154,21 @@ describe("createToolBridge", () => {
     expect(result.data).toEqual({ openedMessageId: "m1" });
   });
 
-  it("marks a consumed snapshot as stale after a successful tool execution", async () => {
+  it("marks a consumed snapshot as stale after a successful state-changing tool execution", async () => {
     const bridge = createTestBridge();
     const snapshot = bridge.getSnapshotBundle();
 
     const result = await bridge.executeTool(
-      "openMessage",
-      { message: "messages[0]" },
+      "changeTab",
+      { tab: "settings" },
       snapshot.snapshotId,
     );
 
     expect(result.success).toBe(true);
 
     const staleResult = await bridge.executeTool(
-      "openMessage",
-      { message: "messages[0]" },
+      "changeTab",
+      { tab: "inbox" },
       snapshot.snapshotId,
     );
 
@@ -148,6 +176,32 @@ describe("createToolBridge", () => {
       expect.objectContaining({
         success: false,
         error: expect.objectContaining({ code: "SNAPSHOT_STALE" }),
+      }),
+    );
+  });
+
+  it("keeps a snapshot active after a successful read-only tool execution", async () => {
+    const bridge = createTestBridge();
+    const snapshot = bridge.getSnapshotBundle();
+
+    const firstResult = await bridge.executeTool(
+      "openMessage",
+      { message: "messages[0]" },
+      snapshot.snapshotId,
+    );
+
+    expect(firstResult.success).toBe(true);
+
+    const secondResult = await bridge.executeTool(
+      "openMessage",
+      { message: "messages[0]" },
+      snapshot.snapshotId,
+    );
+
+    expect(secondResult).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: { openedMessageId: "m1" },
       }),
     );
   });
