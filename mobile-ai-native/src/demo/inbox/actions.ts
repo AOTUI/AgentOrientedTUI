@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { defineAction } from "../../core/action/defineAction";
+import { defineViewTypeTool } from "../../core/action/defineViewTypeTool";
 import type { InboxEvent, InboxState } from "./state";
+import { isInboxSearchActive, isInboxSearchRelevant } from "./state";
 
 const inboxMessageSchema = z.object({
   id: z.string(),
@@ -9,12 +10,17 @@ const inboxMessageSchema = z.object({
 });
 
 export function createInboxActions() {
-  const openMessage = defineAction<InboxState, InboxEvent, { message: z.infer<typeof inboxMessageSchema> }>({
+  const openMessage = defineViewTypeTool<
+    InboxState,
+    InboxEvent,
+    { message: z.infer<typeof inboxMessageSchema> }
+  >({
     name: "openMessage",
     description: "Open a message from the inbox.",
     schema: z.object({
       message: inboxMessageSchema,
     }),
+    viewType: "Inbox",
     meta: {
       supportsRefs: true,
     },
@@ -37,14 +43,22 @@ export function createInboxActions() {
     },
   });
 
-  const searchMessages = defineAction<InboxState, InboxEvent, { query: string }>({
+  const searchMessages = defineViewTypeTool<
+    InboxState,
+    InboxEvent,
+    { query: string }
+  >({
     name: "searchMessages",
     description: "Search inbox messages.",
     schema: z.object({
       query: z.string().min(1),
     }),
+    viewType: "Inbox",
     visibility(state) {
-      return state.shell.currentTab === "inbox";
+      return (
+        state.shell.currentTab === "inbox" &&
+        (isInboxSearchRelevant(state) || isInboxSearchActive(state))
+      );
     },
     async handler(ctx, input) {
       ctx.emit({ type: "SearchStarted", query: input.query });

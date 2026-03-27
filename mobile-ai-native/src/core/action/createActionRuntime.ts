@@ -8,11 +8,25 @@ export function createActionRuntime<State, Event>(config: {
   actions: Array<ActionDefinition<State, Event, any>>;
   traceStore?: TraceStore;
   effects?: EffectMap<State, Event>;
+  getRelevantViewTypes?: () => readonly string[];
 }) {
   const actionsByName = new Map(
     config.actions.map((action) => [action.name, action]),
   );
   const traceStore = config.traceStore ?? createTraceStore();
+
+  function isActionRelevant(action: ActionDefinition<State, Event, any>) {
+    const scopedAction = action as ActionDefinition<State, Event, any> & {
+      viewType?: string;
+    };
+    const relevantViewTypes = config.getRelevantViewTypes?.() ?? [];
+
+    if (!scopedAction.viewType) {
+      return true;
+    }
+
+    return relevantViewTypes.includes(scopedAction.viewType);
+  }
 
   function recordTrace(
     actionName: string,
@@ -41,7 +55,10 @@ export function createActionRuntime<State, Event>(config: {
       };
     }
 
-    if (!action.visibility(config.store.getState())) {
+    if (
+      !isActionRelevant(action) ||
+      !action.visibility(config.store.getState())
+    ) {
       return {
         success: false,
         error: {
@@ -119,17 +136,38 @@ export function createActionRuntime<State, Event>(config: {
     }
   }
 
-  function listVisibleTools(): ToolDefinition[] {
+  function listVisibleTools(
+    relevantViewTypes = config.getRelevantViewTypes?.() ?? [],
+  ): ToolDefinition[] {
     const state = config.store.getState();
+    const relevantViewTypeSet = new Set(relevantViewTypes);
 
     return config.actions
-      .filter((action) => action.visibility(state))
-      .map((action) => ({
-        name: action.name,
-        description: action.description,
-        inputSchema: action.schema,
-        meta: action.meta ?? {},
-      }));
+      .filter((action) => {
+        const scopedAction = action as ActionDefinition<State, Event, any> & {
+          viewType?: string;
+        };
+        const isViewTypeRelevant =
+          !scopedAction.viewType ||
+          relevantViewTypeSet.has(scopedAction.viewType);
+
+        return isViewTypeRelevant && action.visibility(state);
+      })
+      .map((action) => {
+        const scopedAction = action as ActionDefinition<State, Event, any> & {
+          viewType?: string;
+        };
+
+        return {
+          name: action.name,
+          description: action.description,
+          inputSchema: action.schema,
+          meta: action.meta ?? {},
+          ...(scopedAction.viewType
+            ? { viewType: scopedAction.viewType }
+            : {}),
+        };
+      });
   }
 
   return {

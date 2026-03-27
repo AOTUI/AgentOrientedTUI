@@ -2,15 +2,17 @@
 import renderToString from "preact-render-to-string";
 import { createActionRuntime } from "../../core/action/createActionRuntime";
 import { createStore } from "../../core/state/createStore";
-import { renderTUI } from "../../projection/tui/renderTUI";
 import { AppProvider } from "../../projection/gui/AppProvider";
 import { createToolBridge } from "../../tool/createToolBridge";
 import { createInboxActions } from "./actions";
 import { createInboxEffects } from "./effects";
 import { InboxGUI } from "./InboxGUI";
-import { InboxTUI } from "./InboxTUI";
+import {
+  createInboxSnapshotBundle,
+} from "./InboxTUI";
 import {
   createInitialInboxState,
+  getInboxRelevantViewTypes,
   reduceInboxState,
   type InboxMessage,
 } from "./state";
@@ -26,16 +28,15 @@ export function createInboxApp(config: { initialMessages: InboxMessage[] }) {
     store,
     actions: [actions.openMessage, actions.searchMessages],
     effects: createInboxEffects(config.initialMessages),
+    getRelevantViewTypes: () => getInboxRelevantViewTypes(store.getState()),
   });
 
   const bridge = createToolBridge({
     actionRuntime,
     renderCurrentSnapshot() {
-      return renderTUI(
-        <AppProvider store={store} actionRuntime={actionRuntime}>
-          <InboxTUI />
-        </AppProvider>,
-        { visibleTools: actionRuntime.listVisibleTools() },
+      return createInboxSnapshotBundle(
+        store.getState(),
+        actionRuntime.listVisibleTools(),
       );
     },
   });

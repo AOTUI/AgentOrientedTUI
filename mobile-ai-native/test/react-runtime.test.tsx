@@ -11,6 +11,7 @@ import { AppProvider } from "../src/projection/gui/AppProvider";
 import { createReactAppRuntime } from "../src/projection/react/createReactAppRuntime";
 import { AppRuntimeProvider } from "../src/projection/react/AppRuntimeProvider";
 import { useAppRuntime, useRuntimeState } from "../src/projection/react/hooks";
+import { createInboxApp } from "../src/demo/inbox/createInboxApp";
 import type { ToolDefinition } from "../src/core/types";
 import {
   AppRuntimeProvider as RootAppRuntimeProvider,
@@ -329,6 +330,8 @@ describe("react runtime host adapter", () => {
         return {
           snapshotId: "snap_runtime_1",
           generatedAt: Date.now(),
+          markup: "<screen>home</screen>",
+          views: [],
           tui: "<screen>home</screen>",
           refIndex: {},
           visibleTools: runtime.actions.getVisibleTools(),
@@ -389,6 +392,37 @@ describe("react runtime host adapter", () => {
           code: "SNAPSHOT_STALE",
         }),
       }),
+    );
+  });
+
+  it("assembles inbox snapshots from a static root view and mounted business views", () => {
+    const app = createInboxApp({
+      initialMessages: [{ id: "m1", subject: "Welcome back", opened: false }],
+    });
+
+    const snapshot = app.bridge.getSnapshotBundle();
+
+    expect(snapshot.views.map((view) => view.type)).toEqual([
+      "Root",
+      "Inbox",
+    ]);
+    expect(snapshot.markup).toContain("App Navigation");
+    expect(snapshot.markup).toContain("InboxSearch");
+    expect(snapshot.markup).toContain("MessageDetail");
+    expect(snapshot.markup).toContain("Enter MessageDetail: use openMessage from Inbox.");
+    expect(snapshot.visibleTools.map((tool) => tool.name)).toEqual([
+      "openMessage",
+    ]);
+  });
+
+  it("emits a valid root-first snapshot bundle even without a custom snapshot renderer", () => {
+    const runtime = createReactAppRuntime(createTestApp());
+
+    const snapshot = runtime.toolBridge.getSnapshotBundle();
+
+    expect(snapshot.views.map((view) => view.type)).toEqual(["Root"]);
+    expect(snapshot.markup).toContain(
+      '<View id="root" type="Root" name="Navigation">',
     );
   });
 });

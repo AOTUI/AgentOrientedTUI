@@ -85,3 +85,25 @@ export function reduceInboxState(
       return state;
   }
 }
+
+export function isInboxSearchRelevant(state: InboxState) {
+  return state.inbox.items.length > 1;
+}
+
+export function isInboxSearchActive(state: InboxState) {
+  return state.inbox.isLoading || state.inbox.query.trim().length > 0;
+}
+
+export function getInboxRelevantViewTypes(state: InboxState) {
+  const viewTypes = ["Root", "Inbox"];
+
+  if (isInboxSearchActive(state)) {
+    viewTypes.push("InboxSearch");
+  }
+
+  if (state.inbox.openedMessageId) {
+    viewTypes.push("MessageDetail");
+  }
+
+  return viewTypes;
+}

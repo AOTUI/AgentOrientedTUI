@@ -115,6 +115,8 @@ describe("createSnapshotRegistry", () => {
     const original = registry.create({
       snapshotId: "snap_duplicate",
       generatedAt: 1,
+      markup: "<screen>first</screen>",
+      views: [],
       tui: "<screen>first</screen>",
       refIndex: {},
       visibleTools: [],
@@ -126,6 +128,8 @@ describe("createSnapshotRegistry", () => {
       registry.create({
         snapshotId: "snap_duplicate",
         generatedAt: 2,
+        markup: "<screen>second</screen>",
+        views: [],
         tui: "<screen>second</screen>",
         refIndex: {},
         visibleTools: [],
@@ -147,6 +151,8 @@ describe("createSnapshotRegistry", () => {
     const original = registry.create({
       snapshotId: "snap_reused_after_eviction",
       generatedAt: 1,
+      markup: "<screen>first</screen>",
+      views: [],
       tui: "<screen>first</screen>",
       refIndex: {},
       visibleTools: [],
@@ -155,6 +161,8 @@ describe("createSnapshotRegistry", () => {
     const replacement = registry.create({
       snapshotId: "snap_other",
       generatedAt: 2,
+      markup: "<screen>second</screen>",
+      views: [],
       tui: "<screen>second</screen>",
       refIndex: {},
       visibleTools: [],
@@ -171,6 +179,8 @@ describe("createSnapshotRegistry", () => {
       registry.create({
         snapshotId: "snap_reused_after_eviction",
         generatedAt: 3,
+        markup: "<screen>third</screen>",
+        views: [],
         tui: "<screen>third</screen>",
         refIndex: {},
         visibleTools: [],

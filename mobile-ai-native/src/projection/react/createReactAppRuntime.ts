@@ -4,6 +4,8 @@ import { createSnapshotBundle } from "../../core/snapshot/createSnapshotBundle";
 import { createSnapshotRegistry } from "../../core/snapshot/createSnapshotRegistry";
 import { createStore } from "../../core/state/createStore";
 import { createTraceStore } from "../../core/trace/createTraceStore";
+import { createSnapshotAssembler } from "../tui/createSnapshotAssembler";
+import { renderViewFragment } from "../tui/renderViewFragment";
 import type { EffectMap } from "../../core/effect/types";
 import type {
   ActionResult,
@@ -23,6 +25,7 @@ export type ReactAppDefinition<State, Event> = {
   reduce: StateReducer<State, Event>;
   actions: Array<ActionDefinition<State, Event, any>>;
   effects?: EffectMap<State, Event>;
+  getRelevantViewTypes?: (state: State) => readonly string[];
   renderCurrentSnapshot?: () => SnapshotBundle;
 };
 
@@ -57,19 +60,29 @@ export function createReactAppRuntime<State, Event>(
     reduce: app.reduce,
   });
   const traceStore = createTraceStore();
+  const getRelevantViewTypes = app.getRelevantViewTypes;
 
   const actionRuntime = createActionRuntime({
     store,
     actions: app.actions,
     traceStore,
     effects: app.effects,
+    getRelevantViewTypes: getRelevantViewTypes
+      ? () => getRelevantViewTypes(store.getState())
+      : undefined,
   });
   const snapshotRegistry = createSnapshotRegistry({ maxEntries: 2 });
   const renderCurrentSnapshot =
     app.renderCurrentSnapshot ??
     (() =>
-      createSnapshotBundle({
-        tui: "",
+      createSnapshotAssembler({
+        rootView: renderViewFragment({
+          id: "root",
+          type: "Root",
+          name: "Navigation",
+          children: "No custom snapshot renderer configured.",
+        }),
+        mountedViews: [],
         refIndex: {},
         visibleTools: actionRuntime.listVisibleTools(),
       }));

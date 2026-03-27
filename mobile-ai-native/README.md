@@ -1,26 +1,90 @@
 # @aotui/mobile-ai-native
 
-This package is the hardened runtime core for building Agent Native mobile apps.
+This package is the hardened runtime core for building agent-native mobile apps.
 
-It now includes the React / React Native host adapter, reactive runtime hooks, tool metadata, snapshot invalidation, and trace/effect lifecycle contracts needed for a real mobile host.
+It provides the state store, action runtime, trace lifecycle, snapshot registry, and tool bridge needed for a real mobile host.
 
-It proves the framework loop end to end:
+The current snapshot model is view-based:
 
-`State -> SnapshotBundle -> Tool Call(ref_id + snapshotId) -> Action -> Event/Effect -> State -> GUI/TUI refresh`
-
-If you want a practical build guide for a real iOS app, read [GUIDE.md](./GUIDE.md).
+`State -> static Root view + state-derived mounted views -> SnapshotBundle -> Tool Call(ref_id + snapshotId) -> Action -> Event/Effect -> State -> GUI/TUI refresh`
 
 ## What This Slice Proves
 
 - one shared state system drives both GUI and TUI
-- React-family hosts consume state through `createReactAppRuntime`, `AppRuntimeProvider`, `useRuntimeState`, `useRuntimeActions`, and `useRuntimeTrace`
-- TUI is handwritten and can expose semantic refs with `useDataRef` and `useArrayRef`
+- the root view is static navigation knowledge, not runtime state
+- business views are mounted from current state and represent runtime reality
+- tools are scoped by `viewType` and then filtered by `visibility(state)`
 - the framework builds one atomic `SnapshotBundle`
+- snapshot markup is composed from ordered `<View>` fragments
 - tools execute against the exact `snapshotId` the LLM saw
 - `refIndex` stores serializable snapshot payloads, not live object references
-- tool definitions carry `inputSchema` and `meta`
-- mutated tool results stale the originating snapshot, even when the result is a recoverable failure
+- mutated tool results stale the originating snapshot, even when the result is recoverable
 - trace entries record the action lifecycle: `started`, `updated`, `succeeded`, and `failed`
+
+## SnapshotBundle
+
+The LLM-facing read model is:
+
+```ts
+type SnapshotBundle = {
+  snapshotId: string;
+  generatedAt: number;
+  markup: string;
+  views: readonly ViewFragment[];
+  tui: string;
+  refIndex: Record<string, RefIndexEntry>;
+  visibleTools: readonly ToolDefinition[];
+};
+```
+
+Current behavior to keep in mind:
+
+- `markup` is the composed xml+markdown snapshot built from ordered `<View>` fragments
+- `views` preserves the ordered fragment list, with the `Root` fragment first
+- `tui` is retained as a compatibility readout and may differ from `markup`, but it should be produced from the same snapshot generation pass
+- `refIndex` and `visibleTools` are produced and frozen alongside snapshot creation
+
+The bundle is intended to be atomic:
+
+- `markup`
+- `views`
+- `tui`
+- `refIndex`
+- `visibleTools`
+
+Today the runtime hard-validates `markup` against `views`, then freezes the associated `tui`, `refIndex`, and `visibleTools` outputs generated on that same snapshot path.
+
+## RootView And Mounted Views
+
+`RootView` is the conceptual navigation role, and the current runtime emits it as a fragment with `type: "Root"`.
+
+It explains:
+
+- what view types exist
+- how to enter them
+- what each view type is for
+
+It does not try to narrate runtime state.
+
+Mounted business views are the runtime reality.
+
+They are derived from current state and describe:
+
+- which concrete views are mounted right now
+- what state each mounted view is showing
+- what refs and actions are relevant in that state
+
+That means the LLM should read the static root first, then read the mounted business views for the live app state.
+
+## Tool Model
+
+Tools are defined against a semantic `viewType`, then filtered by current state.
+
+That gives the runtime this rule:
+
+`visibleTools = tools for currently relevant viewTypes + visibility(state)`
+
+So a tool can exist in the app, be mounted to a view type, and still be hidden when the current state does not allow it.
 
 ## Core Contract
 
@@ -37,7 +101,7 @@ Then it calls a tool with:
 await bridge.executeTool("openMessage", { message: "messages[0]" }, snapshotId);
 ```
 
-The current bridge resolves top-level string `ref_id` values by exact key lookup in that snapshot's `refIndex`.
+For tools that declare `meta.supportsRefs === true`, the bridge resolves top-level string inputs as either exact `ref_id` values or canonical marker strings from that snapshot's `refIndex`.
 It does not infer nested field refs or field-level ref metadata.
 
 The React host adapter path is:
@@ -70,43 +134,6 @@ const [listRef, itemRef] = useArrayRef("message", messages, "messages");
 <item>{itemRef(0, "Welcome back")}</item>;
 ```
 
-## SnapshotBundle
-
-The LLM-facing read model is:
-
-```ts
-type SnapshotBundle = {
-  snapshotId: string;
-  generatedAt: number;
-  tui: string;
-  refIndex: Record<string, { type: string; value: unknown }>;
-  visibleTools: ToolDefinition[];
-};
-```
-
-This is intentionally atomic:
-
-- `tui`
-- `visibleTools`
-- `refIndex`
-
-must all come from the same render tick.
-
-Tool definitions are part of that same snapshot and now include:
-
-- `name`
-- `description`
-- `inputSchema` as a Zod schema
-- `meta` for host/app-specific hints
-
-## Why `refIndex` Stores Serializable Payloads
-
-Screens can change after the LLM reads them.
-Live object references may already be gone.
-
-So `refIndex` stores serializable snapshot payloads.
-When the LLM later calls a tool, the bridge resolves the top-level ref string against the payload stored in that snapshot's `refIndex`.
-
 ## Current Status
 
 This package is the core, not the full app shell.
@@ -116,10 +143,10 @@ What it gives you today:
 - shared state core
 - semantic refs with `useDataRef` and `useArrayRef`
 - atomic `SnapshotBundle`
+- static root navigation plus state-derived mounted business views
 - snapshot-scoped tool execution
 - a React-family host adapter with reactive hooks
 - structured trace and effect contracts
-- a working inbox vertical slice
 
 What you still need for a production iOS app:
 
@@ -144,3 +171,4 @@ Keep the framework and app responsibilities separated:
 - business apps own state shape, domain actions, handwritten TUI, and app-specific effect behavior
 - actions can read state, emit events, run effects, and update trace summaries
 - effects can read state, emit events, and report structured success or failure, but they do not write state directly
+- snapshot coherence is enforced for the textual view representation, so `markup`, `views`, and `tui` must agree for the same render tick; `refIndex` and `visibleTools` are built and frozen alongside that snapshot path but are not yet cross-validated field-by-field

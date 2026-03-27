@@ -7,27 +7,52 @@ import type {
 } from "../core/types";
 import { createSnapshotRegistry } from "../core/snapshot/createSnapshotRegistry";
 
+const DATA_REF_MARKER_PATTERN = /^\((?:[\s\S]*)\)\[[^:\]]+:(.+)\]$/;
+const REF_ID_PATTERN = /^[A-Za-z0-9_.-]+(?:\[[^\]]+\])*$/;
+
+function getExplicitRefId(value: string): string | undefined {
+  const markerMatch = value.match(DATA_REF_MARKER_PATTERN);
+  if (markerMatch) {
+    return markerMatch[1];
+  }
+
+  if (REF_ID_PATTERN.test(value)) {
+    return value;
+  }
+
+  return undefined;
+}
+
 function resolveRefArgs(
   input: Record<string, unknown>,
   refIndex: Record<string, RefIndexEntry>,
+  supportsRefs: boolean,
 ):
   | { success: true; data: Record<string, unknown> }
   | { success: false; refId: string } {
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(input)) {
+    if (!supportsRefs || typeof value !== "string") {
+      resolved[key] = value;
+      continue;
+    }
+
     if (typeof value === "string" && value in refIndex) {
       resolved[key] = refIndex[value].value;
       continue;
     }
 
-    if (
-      typeof value === "string" &&
-      (value.includes("[") || value.includes("]"))
-    ) {
+    const explicitRefId = getExplicitRefId(value);
+    if (explicitRefId) {
+      if (explicitRefId in refIndex) {
+        resolved[key] = refIndex[explicitRefId].value;
+        continue;
+      }
+
       return {
         success: false,
-        refId: value,
+        refId: explicitRefId,
       };
     }
 
@@ -91,7 +116,16 @@ export function createToolBridge(config: {
         };
       }
 
-      const resolved = resolveRefArgs(input, snapshotEntry.snapshot.refIndex);
+      const toolDefinition =
+        snapshotEntry.snapshot.visibleTools.find((tool) => tool.name === name) ??
+        config.actionRuntime.listVisibleTools().find((tool) => tool.name === name);
+      const supportsRefs = toolDefinition?.meta?.supportsRefs === true;
+
+      const resolved = resolveRefArgs(
+        input,
+        snapshotEntry.snapshot.refIndex,
+        supportsRefs,
+      );
       if (!resolved.success) {
         return {
           success: false,

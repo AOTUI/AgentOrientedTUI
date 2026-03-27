@@ -1,3 +1,4 @@
+import type { ComponentChild } from "preact";
 import type { ZodTypeAny } from "zod";
 export type {
   TraceRecord,
@@ -18,32 +19,68 @@ export type Store<State, Event> = {
 };
 
 export type RefIndexEntry = {
-  type: string;
-  value: unknown;
+  readonly type: string;
+  readonly value: unknown;
 };
 
-export type ToolMetadata = Record<string, unknown>;
+export type ToolMetadata = Readonly<Record<string, unknown>>;
 
 export type ToolDefinition = {
-  name: string;
-  description: string;
-  inputSchema: ZodTypeAny;
-  meta: ToolMetadata;
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: ZodTypeAny;
+  readonly meta: ToolMetadata;
+  readonly viewType?: string;
+};
+
+export type ViewTypeToolDefinition = ToolDefinition & {
+  readonly viewType: string;
+};
+
+export type ViewFragment = {
+  readonly id: string;
+  readonly type: string;
+  readonly name: string;
+  readonly markup: string;
+};
+
+export type StaticViewCatalogEntry = {
+  readonly type: string;
+  readonly description: string;
+  readonly enterFrom?: readonly string[];
+  readonly actions: readonly string[];
+};
+
+export type MountedViewDescriptor<State = unknown> = {
+  readonly id: string;
+  readonly type: string;
+  readonly name: string;
+  readonly render: (state: State) => ComponentChild;
+};
+
+export type SnapshotAssemblerInput<State = unknown> = {
+  readonly rootView: ViewFragment;
+  readonly mountedViews: readonly ViewFragment[];
+  readonly refIndex: Readonly<Record<string, RefIndexEntry>>;
+  readonly visibleTools: readonly ToolDefinition[];
+  readonly tui?: string;
 };
 
 export type SnapshotBundle = {
   readonly snapshotId: string;
   readonly generatedAt: number;
+  readonly markup: string;
+  readonly views: readonly ViewFragment[];
   readonly tui: string;
-  readonly refIndex: Record<string, RefIndexEntry>;
+  readonly refIndex: Readonly<Record<string, RefIndexEntry>>;
   readonly visibleTools: readonly ToolDefinition[];
 };
 
 export type SnapshotStatus = "active" | "stale";
 
 export type SnapshotRegistryEntry = {
-  snapshot: SnapshotBundle;
-  status: SnapshotStatus;
+  readonly snapshot: SnapshotBundle;
+  readonly status: SnapshotStatus;
 };
 
 export type SnapshotRegistry = {

@@ -1,11 +1,11 @@
 # GUIDE: Building an Agent Native iOS Calendar App
 
-This guide is for a developer who wants to build a high-quality Agent Native calendar app on iOS using `@aotui/mobile-ai-native`.
+This guide is for a developer who wants to build a high-quality agent-native calendar app on iOS using `@aotui/mobile-ai-native`.
 
 The goal is simple:
 
 - humans use a normal GUI calendar
-- the LLM uses tools through a TUI snapshot
+- the LLM uses tools through a snapshot
 - both operate on the same app state
 - the human can see the result of the LLM's actions
 
@@ -31,9 +31,26 @@ They must meet in the same place:
 
 That is the whole trick.
 
-## 2. Why This Architecture Matters
+## 2. How The Snapshot Works
 
-If the LLM drives the GUI by fake taps, your system becomes fragile.
+The LLM should not guess ids from pixels.
+It should read the current `SnapshotBundle`.
+
+In the current runtime, the snapshot is assembled from ordered `<View>` fragments:
+
+- the first fragment is the static root navigation fragment with `type: "Root"`
+- later fragments are mounted business views derived from current state
+- `markup` is the composed xml+markdown snapshot
+- `views` preserves the fragment order
+- `refIndex` resolves semantic refs by exact key lookup
+- `visibleTools` is the tool list for that same render tick
+
+`snapshotId` is non-negotiable.
+If the app changes after the LLM reads a snapshot, the tool call must still be tied to the exact snapshot the model saw.
+
+## 3. Why This Architecture Matters
+
+If the LLM drives the GUI by fake taps, the system becomes fragile.
 
 Why?
 
@@ -50,34 +67,31 @@ Instead, this framework makes the LLM act on meaning:
 - `changeCalendarView`
 
 The GUI is one projection of state.
-The TUI snapshot is another projection of state.
+The snapshot is another projection of state.
 
-The LLM should never guess ids from the screen.
+The LLM should never infer refs from the visual layout.
 It should receive semantic refs from the current `SnapshotBundle`.
-Today those refs are resolved by exact `refIndex` key lookup; the runtime does not infer nested field-level ref metadata.
 
-In the hardened runtime, the React / React Native host uses `createReactAppRuntime()` plus `AppRuntimeProvider` to wire state, actions, traces, snapshots, and tool execution together. GUI components should subscribe with `useRuntimeState(selector)` and `useRuntimeTrace(selector)` instead of reading the store once.
-
-## 3. The Core Mental Model
+## 4. The Core Mental Model
 
 Your calendar app should follow this loop:
 
 `State -> GUI`
-`State -> TUI Snapshot`
+`State -> Root view + mounted business views -> SnapshotBundle`
 `Tool -> Action -> Event/Effect -> State`
 `GUI Event -> Action -> Event/Effect -> State`
 
 That means:
 
 - GUI controls do not own business logic
-- TUI does not own business logic
+- snapshot views do not own business logic
 - tools do not own business logic
 - `Action` is the one real business entry
 - effects are framework-managed side effects, but the app still owns what they mean
 
-## 4. Calendar App State
+## 5. Calendar App State
 
-A good Agent Native calendar app should have state shaped more like this:
+A good agent-native calendar app should have state shaped more like this:
 
 ```ts
 type CalendarState = {
@@ -101,27 +115,24 @@ Good rule:
 - if it is only a tiny render helper, keep it local
 - if it must be read by the host through a selector, keep it in the runtime store so `useRuntimeState()` can subscribe to it
 
-## 5. Calendar Actions
+## 6. Calendar Views And Tools
 
-Your first calendar app should expose a very small action set:
+Model the app as a static root plus mounted runtime views:
 
-- `openEvent`
-- `searchEvents`
-- `createEvent`
-- `moveEvent`
-- `changeCalendarView`
+- `RootView` is the navigation map, currently emitted with `type: "Root"`
+- `CalendarView` can be always mounted when the calendar shell is active
+- `EventDetailView` can mount only when an event is selected
+- `SearchResultView` can mount only while search results are present
 
-Start smaller than you want.
-You can always add more later.
+The tool surface should follow the same semantic grouping.
 
-The important rule is:
+- register tools against a `viewType`
+- filter them with `visibility(state)`
+- only expose tools for currently relevant view types
 
-- actions should be domain actions
-- not UI actions like `tapButton` or `scrollList`
+That keeps the calendar agent surface aligned with the current screen reality without pretending the runtime is a desktop tree inspector.
 
-Each action should define a Zod `schema` and optional `meta` so the runtime can expose real tool input shapes to the model and the host can attach extra hints without baking them into framework behavior.
-
-## 6. Why Refs Matter in Calendar Apps
+## 7. Why Refs Matter In Calendar Apps
 
 Calendars are full of structured data:
 
@@ -160,7 +171,7 @@ const [eventsRef, eventRef] = useArrayRef("event", visibleEvents, "events");
 ))}
 ```
 
-## 7. Why `snapshotId` Is Non-Negotiable
+## 8. Why `snapshotId` Is Non-Negotiable
 
 The screen can change after the LLM reads it.
 
@@ -176,17 +187,11 @@ So tool execution must always be tied to the exact snapshot the LLM saw:
 await bridge.executeTool("openEvent", { event: "events[0]" }, snapshotId);
 ```
 
-This prevents the runtime from guessing against the latest UI.
-
-That is a big deal.
-It is the difference between:
-
-- a reliable system
-- and a haunted house
+That prevents the runtime from guessing against the latest UI.
 
 In the hardened runtime, the snapshot registry distinguishes `SNAPSHOT_NOT_FOUND` from `SNAPSHOT_STALE`. A tool execution that mutates state marks its originating snapshot stale, even if the action returns a recoverable failure result. That forces the next reasoning turn to fetch a fresh snapshot.
 
-## 8. How To Build the iOS App
+## 9. How To Build The iOS App
 
 ### Step 1: Keep this package as the core
 
@@ -207,14 +212,14 @@ The React Native app should do only host work:
 - pass tool calls into `executeTool`
 - subscribe to state and trace through the runtime hooks instead of copying framework state into local component state
 
-### Step 3: Build GUI and TUI as separate projections
+### Step 3: Build GUI and snapshot views as separate projections
 
-Do not auto-generate TUI from GUI.
+Do not auto-generate the snapshot from GUI.
 
 For calendar apps this is especially important because:
 
 - GUI cares about touch and spatial layout
-- TUI cares about semantic clarity for the model
+- snapshot views care about semantic clarity for the model
 
 ### Step 4: Start with one vertical slice
 
@@ -235,19 +240,28 @@ Only after that is stable, add:
 - recurring events
 - trace UI for recent AI actions
 
-## 9. Suggested First Calendar TUI
+## 10. Suggested First Calendar Snapshot
 
-Your first TUI should be boring and clear, not clever:
+Your first snapshot should be boring and clear, not clever:
 
 ```tsx
-<screen name="Calendar">
+<View id="root" type="Root" name="Navigation">
+  ## Calendar Navigation
+  - Root
+    - purpose: app navigation and view map
+  - Calendar
+    - enter: mounted by default after launch
+    - actions: open_event, search_events, change_calendar_view
+  - EventDetail
+    - enter: use open_event from Calendar
+    - actions: update_event, close_event
+</View>
+
+<View id="calendar" type="Calendar" name="Week Calendar">
   <text>View: week</text>
   <text>Date: 2026-03-24</text>
   <text>{daysRef("Visible days")}</text>
-  {events.map((event, index) => (
-    <item key={event.id}>{eventRef(index, `${event.title} at ${event.startTime}`)}</item>
-  ))}
-</screen>
+</View>
 ```
 
 The LLM does not need visual beauty.
@@ -257,78 +271,10 @@ It needs:
 - meaningful refs
 - clear tool choices
 
-## 10. Quality Bar for a Good Agent Native Calendar App
+## 11. Quality Bar For A Good Agent Native Calendar App
 
-Before you call the app "good", verify these:
+A good app should feel like one system, not two loosely related interfaces.
 
-### State correctness
-
-- GUI and TUI always reflect the same event state
-- tool calls only act on snapshot-scoped refs
-- React Native views re-render from store subscriptions, not manual refreshes
-
-### Tool correctness
-
-- invisible tools are not callable
-- stale `snapshotId` fails cleanly
-- missing refs fail with explicit errors
-- tool payloads include both schema and metadata so the model sees the real contract
-
-### UX correctness
-
-- human sees the result of AI actions
-- recent AI action summary is visible
-- event openings, searches, and edits are understandable
-- trace summaries should distinguish started, updated, succeeded, and failed actions
-
-### Product correctness
-
-- no tool is named after a button
-- tools match domain intent
-- TUI exposes enough semantic data without dumping noise
-
-## 11. What This Package Does Not Give You Yet
-
-Be honest with yourself:
-
-this package is now a hardened core, but it is still not the whole product.
-
-It does not yet give you:
-
-- a full React Native adapter
-- iOS simulator harness
-- production persistence
-- production networking
-- voice or background agent integration
-- app-specific calendar domain modeling
-
-That is okay.
-
-It gives you the hardest part first:
-
-- the protocol spine
-
-## 12. Recommended Build Order
-
-If your friend is building the calendar app, this is the order I recommend:
-
-1. build one RN screen shell
-2. integrate framework state and tool bridge
-3. implement week view with event refs
-4. implement `openEvent`
-5. implement `searchEvents`
-6. add trace banner for recent AI action
-7. add create/edit flows
-8. only then add advanced calendar features
-
-If you are integrating against the hardened runtime, the framework-side pieces should already exist. Your job is to keep the app-specific state, actions, and effect behavior cleanly separated from the runtime core.
-
-## 13. The One Sentence To Remember
-
-An Agent Native iOS app is not:
-
-- "AI controlling UI"
-
-It is:
-
-- "one app where GUI and LLM share the same domain actions and the same state"
+If the GUI and snapshot disagree, the user will feel it immediately.
+If tools are visible in the wrong view type, the agent will feel it immediately.
+If refs drift from the current render tick, both paths become unreliable.

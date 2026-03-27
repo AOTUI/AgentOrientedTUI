@@ -355,6 +355,35 @@ Allowed advanced case:
 
 V1 should optimize for the simple default case.
 
+### 7.1.1 ViewType-Scoped Tool Model
+
+The mobile framework should keep one of AOTUI's best ideas:
+
+- tools are not just global actions floating above the app
+- tools belong to semantic `ViewType`s
+
+This means the framework should preserve an authoring model conceptually similar to `useViewTypeTool(...)` from AOTUI IDE:
+
+- developer defines a tool against a `ViewType`
+- the tool describes what can be done from that semantic view
+- runtime later decides whether it is visible right now
+
+So a tool should be understood as:
+
+`ViewType-scoped action surface + state-driven visibility`
+
+Not:
+
+`global action list with no semantic home`
+
+This is important because different views expose different capabilities:
+
+- `Workspace` tools differ from `FileDetail` tools
+- `Calendar` tools differ from `EventDetail` tools
+- the same action may be meaningful only when a certain view type is mounted
+
+The mobile framework should preserve this semantic organization, even though it does not port desktop `ViewTree` mechanics.
+
 ### 7.2 Visibility
 
 Tool visibility is state-driven.
@@ -372,6 +401,35 @@ Example:
 visibility: (state) =>
   state.shell.currentTab === "inbox" && !state.inbox.isLoading
 ```
+
+But for agent-native mobile, visibility should not be thought of as state-only in an isolated global sense.
+
+The real rule is:
+
+`visibleTools = tools scoped to currently relevant ViewTypes + visibility(state)`
+
+In practice:
+
+- a tool is first scoped to a semantic `ViewType`
+- a tool becomes a candidate only when that `ViewType` is relevant in the current mounted view world
+- the final visibility check is then evaluated against current state
+
+Examples:
+
+- `open_file` belongs to `Workspace`
+- `edit_file` belongs to `FileDetail`
+- `open_event` belongs to `Calendar`
+- `update_event` belongs to `EventDetail`
+
+So if `FileDetail` is not mounted, `edit_file` should usually not be surfaced.
+And even if `FileDetail` is mounted, `edit_file` may still be hidden if state says the current file is read-only.
+
+This matches the same principle as GUI:
+
+- controls live inside semantic screens or panels
+- whether they are currently shown depends on current UI state
+
+The LLM-facing tool surface should mirror that same structure.
 
 ### 7.3 Schema
 
@@ -426,60 +484,396 @@ function InboxScreen() {
 
 ## 9. TUI Projection
 
-TUI is explicitly authored using semantic / HTML-like JSX.
+TUI is explicitly authored using semantic / HTML-like JSX, but the framework should not think in terms of "one big TUI string".
 
-Its job is:
+For the mobile agent-native model:
 
-1. expose LLM-facing state and structure
-2. hint currently relevant tool entry points
+- the agent is not an external desktop operator
+- the agent is the app's brain
+- snapshot is the app body's current semantic environment
 
-Its job is not:
+So the correct unit is not a screen dump.
+The correct unit is a set of mounted semantic `View`s.
 
-- to be a full procedural agent coach
-- to be auto-generated from GUI
+### 9.0 Snapshot Shape
 
-TUI should render from the same runtime snapshot that produced the visible tools. The read model is an atomic `SnapshotBundle` containing `tui`, `refIndex`, and `visibleTools`, and tool execution must be tied back to the exact `snapshotId` that produced it.
+The snapshot should be rendered as xml+markdown composed from ordered `<View>` fragments:
+
+- the first fragment is the static root navigation fragment, currently emitted with `type: "Root"`
+- later fragments are mounted business views derived from current state
+- each fragment keeps `id`, `type`, and `name`
+- the assembled `markup` is the concatenation of those ordered fragments
+- `views` preserves the ordered fragment list that produced the markup
+- mobile has only one app, so no `app_id` wrapper is needed
+
+Canonical shape:
+
+```xml
+<View id="root" type="Root" name="Navigation">
+...
+</View>
+
+<View id="calendar" type="Calendar" name="Month Calendar">
+...
+</View>
+
+<View id="event_detail" type="EventDetail" name="Event Detail">
+...
+</View>
+```
+
+This means:
+
+- `SnapshotBundle` as a whole already contains the current runtime view world
+- `RootView` must not redundantly narrate which concrete runtime views are mounted
+- mounted business views themselves are the runtime reality
+
+### 9.1 RootView Is Static Navigation
+
+`RootView` is not an app brochure.
+It is also not a runtime tree dump.
+
+Its job is narrower and more important:
+
+- describe the app's semantic view graph
+- explain how a view type can be entered
+- explain what kinds of actions become available inside that view type
+
+So `RootView` is a static map for decision-making.
+
+For v1, `RootView` should be developer-authored and static.
+The framework should not derive `RootView` from runtime state.
+
+That means:
+
+- developers write the root navigation content directly
+- framework wraps it as the first root fragment, currently `type="Root"`; most view-based paths use `name="Navigation"`, while the legacy `renderTUI()` helper still emits `name="Root"` for compatibility
+- runtime state is only used to derive mounted business views
+
+This keeps the boundary clean:
+
+- `RootView` = app structure knowledge
+- business views = current runtime reality
+
+It should answer:
+
+- what view types exist in this app
+- what each view type is for
+- how to get there
+- what actions are typically performed there
+
+It should not answer:
+
+- which concrete view instances are currently mounted
+- what concrete record is currently selected
+- what concrete business data is inside a mounted view
+
+That information belongs to the mounted views themselves.
+
+### 9.1.1 What To Keep From AOTUI, And What Not To Port
+
+The mobile framework should not port AOTUI's full desktop `ViewTree` runtime.
+
+The right split is:
+
+- keep AOTUI's `View` as a semantic authoring primitive
+- do not keep desktop-era `ViewTree + link + mountByLink` as the mobile runtime model
+
+What should be preserved:
+
+1. `View` is a semantic unit with stable `id`, `type`, and `name`
+2. each view renders markdown-friendly JSX / HTML
+3. snapshot is assembled from multiple view fragments
+4. tools and refs can still be scoped to views
+
+What should not be ported directly:
+
+1. `IViewTree` as the primary runtime source of truth
+2. `link:` / `view:` desktop navigation protocol
+3. `mountByLink()` and runtime-managed link expansion
+4. DOM parsing as the primary way to infer the current semantic view world
+
+Reason:
+
+- desktop AOTUI models an external agent navigating a multi-app workspace
+- mobile agent-native models an agent that is already inside one app body
+- on mobile, current views should naturally be a function of app state
+- so the correct source of truth is still state, not a separately managed runtime tree
+
+In short:
+
+- keep the `View` idea
+- drop the heavy desktop `ViewTree` mechanics
 
 Example:
 
-```tsx
-function InboxTUIView() {
-  const state = useRuntimeState((runtimeState) => runtimeState);
-  const { getVisibleTools } = useRuntimeActions();
-  const tools = getVisibleTools();
-
-  return (
-    <screen name="Inbox">
-      <section title="Current Tab">
-        <text>{state.shell.currentTab}</text>
-      </section>
-
-      <section title="Search State">
-        <text>Query: {state.inbox.query || "(empty)"}</text>
-        <text>Loading: {String(state.inbox.isLoading)}</text>
-      </section>
-
-      <section title="Messages">
-        {state.inbox.items.map((item) => (
-          <item key={item.id}>{item.subject}</item>
-        ))}
-      </section>
-
-      <section title="Available Tools">
-        {tools.map((tool) => (
-          <tool key={tool.name} name={tool.name}>
-            {tool.description}
-          </tool>
-        ))}
-      </section>
-    </screen>
-  );
-}
+```xml
+<View id="root" type="Root" name="Navigation">
+## App Navigation
+- Root
+  - purpose: app navigation and view map
+- Workspace
+  - enter: mounted by default after launch
+  - actions: open_project, browse_tree, search_files
+- FileDetail
+  - enter: use open_file from Workspace
+  - actions: read_file, edit_file, close_file
+- SearchResult
+  - enter: use search_files from Workspace
+  - actions: open_file_from_result, close_search
+</View>
 ```
+
+### 9.2 Business Views Are Current Runtime Reality
+
+All non-root views should represent currently mounted semantic runtime nodes.
+
+Examples:
+
+- `WorkspaceView` shows the current project tree and selection
+- `FileDetailView` shows the opened file and its content or analysis
+- `SearchResultView` shows active search results
+- `CalendarView` shows the current date scope and visible events
+- `EventDetailView` shows the selected event details
+
+These views are where the agent reads the actual current state.
+
+So the reading model is:
+
+1. read `RootView` to understand the app navigation graph
+2. read mounted business views to understand current runtime reality
+3. use visible tools derived from current state to act on that reality
+
+### 9.2.1 Static View Catalog + Mounted Views Projection
+
+For mobile, the framework should separate two things clearly:
+
+1. `Static View Catalog`
+   App structure knowledge written by the developer.
+
+2. `Mounted Views Projection`
+   Current runtime reality derived from state.
+
+`Static View Catalog` describes:
+
+- what view types exist
+- what each view type is for
+- how a user or agent typically enters that view type
+- what actions are typically performed there
+
+This is the knowledge source used by `RootView`.
+
+`Mounted Views Projection` describes:
+
+- which concrete views are currently mounted
+- what their runtime `id`, `type`, and `name` are
+- what current state each mounted view should render
+
+This is the knowledge source used by all non-root views.
+
+So the mobile model is:
+
+`Static View Catalog + State -> RootView + Mounted Business Views`
+
+Not:
+
+`Runtime-managed ViewTree -> infer current app world`
+
+This keeps the architecture aligned with first principles:
+
+- app state remains the source of truth
+- the mounted view set is a projection over state
+- navigation knowledge is static app knowledge, not runtime state
+
+### 9.3 Tool Exposure Must Follow App State
+
+Tool exposure is not a static hand-authored list.
+It is the agent-facing projection of current app affordances.
+
+That means:
+
+- action definitions describe the full capability set
+- current visible tools are derived from current state
+- different runtime states surface different next actions
+
+Example:
+
+- before a project is opened, emphasize `open_project`
+- after a project is opened, emphasize `open_file`, `browse_tree`, `search_files`
+- after a file is opened, expose `read_file`, `edit_file`, `close_file`
+
+This is the same principle as GUI:
+
+- what the human can currently see and trigger in GUI
+- should be mirrored as what the agent can currently see and trigger in tools
+
+### 9.4 Framework Rendering Rule
+
+The framework should render snapshot in four steps:
+
+1. render static developer-authored `RootView`
+2. derive mounted semantic view instances from state
+3. render each mounted business view from current state
+4. package all rendered views into one atomic `SnapshotBundle`
+
+So the true mapping is:
+
+`static RootView + state-derived mounted business views -> xml+markdown snapshot`
+
+The architecture behind those four steps should be:
+
+1. developer defines a static semantic view catalog
+2. developer writes a static `RootView` from that catalog
+3. runtime projects state into mounted business views
+4. snapshot assembler wraps all views into ordered `<View>` fragments
+
+### 9.4.1 Authoring And Runtime Interface Draft
+
+To enter implementation, the framework should make four interfaces explicit.
+
+These interfaces preserve the AOTUI-style authoring model while replacing the old desktop runtime mechanics.
+
+#### A. `View`
+
+`View` remains the semantic authoring primitive.
+Developers should still compose the app the same way they compose `aotui-ide`:
+
+- a static `RootView`
+- always-mounted primary views
+- conditionally mounted detail or result views
+
+Draft shape:
+
+```ts
+type ViewProps = {
+  id: string;
+  type: string;
+  name: string;
+  children: ComponentChild;
+};
+```
+
+The important point is not the surface syntax.
+The important point is that each rendered view fragment has stable:
+
+- `id`
+- `type`
+- `name`
+
+These become the semantic runtime identity of the view inside snapshot.
+
+#### B. `ViewTypeTool`
+
+Tools should be registered against `ViewType`, not as an unstructured global bag.
+
+Draft shape:
+
+```ts
+type ViewTypeToolDefinition<State, Input> = {
+  viewType: string;
+  name: string;
+  description: string;
+  inputSchema: unknown;
+  meta?: Record<string, unknown>;
+  visibility?: (state: State) => boolean;
+  handler: (ctx: ActionContext<State, AppEvent>, input: Input) => Promise<ActionResult>;
+};
+```
+
+The runtime should derive visible tools like this:
+
+1. collect tools attached to currently relevant or mounted `ViewType`s
+2. evaluate `visibility(state)`
+3. emit the final `visibleTools` list into `SnapshotBundle`
+
+So the tool surface is always:
+
+`semantic view context + current state`
+
+#### C. `MountedViewsProjection`
+
+Mounted views should be projected from state, not managed by a separate desktop-style `ViewTree`.
+
+Draft shape:
+
+```ts
+type MountedViewDescriptor<State> = {
+  id: string;
+  type: string;
+  name: string;
+  render: (state: State) => ComponentChild;
+};
+
+type MountedViewsProjection<State> = (state: State) => MountedViewDescriptor<State>[];
+```
+
+This is the crucial mobile rule:
+
+- state decides what current runtime reality exists
+- the mounted view set is a projection over state
+
+Examples:
+
+- `Workspace` may always be mounted
+- `FileDetail` is mounted only when `openedFile != null`
+- `EventDetail` is mounted only when `selectedEventId != null`
+- `SearchResult` is mounted only when there is an active search result state
+
+#### D. `SnapshotAssembler`
+
+The framework should have one runtime component responsible for turning:
+
+- static `RootView`
+- mounted business views
+- `refIndex`
+- visible tools
+
+into one atomic snapshot contract.
+
+Draft shape:
+
+```ts
+type ViewFragment = {
+  id: string;
+  type: string;
+  name: string;
+  markup: string;
+};
+
+type SnapshotAssemblerInput = {
+  rootView: ViewFragment;
+  mountedViews: ViewFragment[];
+  refIndex: Record<string, RefIndexEntry>;
+  visibleTools: readonly ToolDefinition[];
+};
+
+type SnapshotAssembler = (input: SnapshotAssemblerInput) => SnapshotBundle;
+```
+
+Assembly rules:
+
+1. `RootView` must always be first
+2. mounted business views follow in deterministic order
+3. `markup`, `views`, `tui`, `refIndex`, and `visibleTools` should be produced from the same snapshot assembly pass
+4. the result gets a fresh `snapshotId` and `generatedAt`
+
+This is the runtime replacement for the old desktop `ViewTree + formatter` path.
+
+TUI should render from the same runtime snapshot that produced the visible tools. The read model is an atomic `SnapshotBundle` containing:
+
+- full xml+markdown markup
+- structured view fragments
+- `tui` as the compatibility readout
+- `refIndex`
+- `visibleTools`
+- `snapshotId`
+- `generatedAt`
+
+Tool execution must be tied back to the exact `snapshotId` that produced it.
 
 Because TUI is handwritten, the framework must later provide drift detection or consistency checks between GUI and TUI.
 
-### 9.1 Why AOTUI Snapshot + IndexMap Must Be Preserved
+### 9.5 Why AOTUI Snapshot + IndexMap Must Be Preserved
 
 Current AOTUI already solved a very important problem:
 
@@ -503,7 +897,7 @@ The key idea is:
 In current AOTUI, this contract is described in the system instruction as:
 
 - `(content)[type:ref_id]`
-- tool calls pass only `ref_id`
+- tool calls normally pass only `ref_id`
 - runtime resolves `ref_id` from `IndexMap`
 
 See:
@@ -520,7 +914,7 @@ It is a semantic pointer protocol between:
 
 In the hardened mobile runtime, the same idea is preserved through `SnapshotBundle.refIndex` plus `snapshotId`, with stale snapshot detection handled by the snapshot registry rather than by guessing against the latest render.
 
-### 9.2 What Current AOTUI Actually Does
+### 9.6 What Current AOTUI Actually Does
 
 Under the hood, current AOTUI has three separate steps:
 
@@ -557,7 +951,7 @@ What we should not migrate is the old desktop-specific path:
 
 The new mobile framework is `state-first`, so refs should be built from TUI projection and state, not scraped back out of DOM.
 
-### 9.3 Migration Principle for Mobile AI-Native
+### 9.7 Migration Principle for Mobile AI-Native
 
 In the mobile framework, we should preserve the protocol but move its center of gravity:
 
@@ -567,34 +961,28 @@ In the mobile framework, we should preserve the protocol but move its center of 
 - new mobile AI-native:
   `State + handwritten TUI projection -> SnapshotBundle`
 
-That means the new framework should have a first-class runtime object like:
+That means the new framework should have a first-class runtime object like the one the current code already emits:
 
 ```ts
 type SnapshotBundle = {
+  snapshotId: string;
+  generatedAt: number;
+  markup: string;
+  views: readonly ViewFragment[];
   tui: string;
-  toolHints: VisibleToolHint[];
-  refIndex: RefIndex;
+  refIndex: Readonly<Record<string, RefIndexEntry>>;
+  visibleTools: readonly ToolDefinition[];
 };
 ```
 
-Where:
-
-```ts
-type RefIndex = Record<string, RefIndexEntry>;
-
-type RefIndexEntry = {
-  type: string;
-  value: unknown;
-  view?: string;
-  feature?: string;
-  displayText?: string;
-};
-```
+Where `markup` and `tui` are produced from the same render tick and should stay coherent.
 
 The important shift is this:
 
 - `refIndex` is no longer a side-product of DOM transform
 - it is an intentional output of TUI projection
+- `views` preserves the ordered fragment list that produced the snapshot
+- `visibleTools` is derived from view relevance plus `visibility(state)`
 
 In plain language:
 
@@ -603,7 +991,7 @@ In plain language:
 - the runtime collects those references into an index
 - tool execution can later resolve them safely
 
-### 9.4 Canonical Data Marker Model
+### 9.8 Canonical Data Marker Model
 
 Current AOTUI has a small historical inconsistency:
 
@@ -645,7 +1033,7 @@ So for mobile v1:
 - tool input = only `ref_id`
 - runtime resolution target = `refIndex[ref_id]`
 
-### 9.5 Developer-Facing Data Ref API
+### 9.9 Developer-Facing Data Ref API
 
 Because TUI is handwritten, the framework should give developers an explicit API to mark data.
 
@@ -724,14 +1112,15 @@ bundle.refIndex["messages[0]"];
 
 This preserves the most valuable part of AOTUI, but in a more direct mobile-first shape.
 
-### 9.6 Tool Argument Resolution in Mobile
+### 9.10 Tool Argument Resolution in Mobile
 
 The action runtime should support ref-first tool arguments the same way AOTUI does.
 
 Rule:
 
 - if a tool parameter is declared as a domain reference
-- and the caller passes a string `ref_id`
+- and the tool declares `meta.supportsRefs === true`
+- and the caller passes either a string `ref_id` or the canonical marker string
 - runtime resolves it from the same `SnapshotBundle.refIndex` that the LLM saw
 - action handler receives the reconstructed argument payload for that snapshot
 
@@ -763,7 +1152,7 @@ So the correct rule is:
 - tool execution resolves against the originating `snapshotId`
 - runtime never guesses by looking at the latest UI state
 
-### 9.7 New Framework Rule: SnapshotBundle Is a Runtime Contract
+### 9.11 New Framework Rule: SnapshotBundle Is a Runtime Contract
 
 For the new mobile framework, `SnapshotBundle` should be a first-class runtime contract, not an incidental render artifact.
 
@@ -772,10 +1161,12 @@ It should contain at least:
 ```ts
 type SnapshotBundle = {
   snapshotId: string;
-  tui: string;
-  refIndex: RefIndex;
-  visibleTools: ToolDefinition[];
   generatedAt: number;
+  markup: string;
+  views: readonly ViewFragment[];
+  tui: string;
+  refIndex: Readonly<Record<string, RefIndexEntry>>;
+  visibleTools: readonly ToolDefinition[];
 };
 ```
 
@@ -784,10 +1175,11 @@ This bundle becomes the single LLM-facing read model.
 That means:
 
 - Agent Driver reads `tui`
+- most hosts should prefer `markup` as the primary xml+markdown rendering
 - tool discovery reads `visibleTools`
 - tool argument resolution reads `refIndex`
 
-All three must come from the same render tick.
+The runtime hard-validates `markup` against `views`. `tui`, `visibleTools`, and `refIndex` are then produced and frozen on that same snapshot path, but the runtime does not yet cross-validate them field-by-field against the rendered text.
 
 That last sentence is very important.
 If they come from different moments in time, the LLM can see a ref that no longer exists.

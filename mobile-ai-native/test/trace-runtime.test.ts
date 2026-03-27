@@ -8,6 +8,7 @@ import { createInboxActions } from "../src/demo/inbox/actions";
 import { createInboxEffects } from "../src/demo/inbox/effects";
 import {
   createInitialInboxState,
+  getInboxRelevantViewTypes,
   reduceInboxState,
 } from "../src/demo/inbox/state";
 import { AppRuntimeProvider } from "../src/projection/react/AppRuntimeProvider";
@@ -21,12 +22,16 @@ afterEach(() => {
 describe("runtime trace stream", () => {
   it("records action lifecycle from started to succeeded", async () => {
     const actions = createInboxActions();
-    const messages = [{ id: "m1", subject: "Invoice ready", opened: false }];
+    const messages = [
+      { id: "m1", subject: "Welcome back", opened: false },
+      { id: "m2", subject: "Invoice ready", opened: false },
+    ];
     const runtime = createReactAppRuntime({
       initialState: createInitialInboxState(messages),
       reduce: reduceInboxState,
       actions: [actions.openMessage, actions.searchMessages],
       effects: createInboxEffects(messages),
+      getRelevantViewTypes: getInboxRelevantViewTypes,
     });
 
     await runtime.actions.callAction("searchMessages", { query: "invoice" });
@@ -57,12 +62,16 @@ describe("runtime trace stream", () => {
 
   it("subscribes React consumers to recent trace updates", async () => {
     const actions = createInboxActions();
-    const messages = [{ id: "m1", subject: "Invoice ready", opened: false }];
+    const messages = [
+      { id: "m1", subject: "Welcome back", opened: false },
+      { id: "m2", subject: "Invoice ready", opened: false },
+    ];
     const runtime = createReactAppRuntime({
       initialState: createInitialInboxState(messages),
       reduce: reduceInboxState,
       actions: [actions.openMessage, actions.searchMessages],
       effects: createInboxEffects(messages),
+      getRelevantViewTypes: getInboxRelevantViewTypes,
     });
     const seen: Array<string | null> = [];
     const root = document.createElement("div");

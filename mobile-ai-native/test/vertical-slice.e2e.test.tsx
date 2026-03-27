@@ -12,6 +12,7 @@ import { createInboxActions } from "../src/demo/inbox/actions";
 import { createInboxEffects } from "../src/demo/inbox/effects";
 import {
   createInitialInboxState,
+  getInboxRelevantViewTypes,
   reduceInboxState,
 } from "../src/demo/inbox/state";
 
@@ -31,6 +32,7 @@ describe("inbox vertical slice", () => {
       effects: createInboxEffects([
         { id: "m1", subject: "Welcome back", opened: false },
       ]),
+      getRelevantViewTypes: getInboxRelevantViewTypes,
     });
 
     expect(runtime.actions.getVisibleTools()).toContainEqual(
@@ -51,7 +53,14 @@ describe("inbox vertical slice", () => {
     });
 
     const firstSnapshot = app.bridge.getSnapshotBundle();
-    expect(firstSnapshot.tui).toContain("(Welcome back)[message:messages[0]]");
+    expect(firstSnapshot.views[0]?.type).toBe("Root");
+    expect(firstSnapshot.views.map((view) => view.type)).toEqual([
+      "Root",
+      "Inbox",
+    ]);
+    expect(firstSnapshot.markup).toContain("App Navigation");
+    expect(firstSnapshot.markup).toContain("InboxSearch");
+    expect(firstSnapshot.markup).toContain("MessageDetail");
     expect(firstSnapshot.visibleTools).toContainEqual(
       expect.objectContaining({
         name: "openMessage",
@@ -60,6 +69,11 @@ describe("inbox vertical slice", () => {
         meta: expect.objectContaining({
           supportsRefs: true,
         }),
+      }),
+    );
+    expect(firstSnapshot.visibleTools).not.toContainEqual(
+      expect.objectContaining({
+        name: "searchMessages",
       }),
     );
     expect(app.gui.getVisibleSubjects()).toEqual(["Welcome back"]);
@@ -75,7 +89,9 @@ describe("inbox vertical slice", () => {
     expect(app.gui.getRecentTrace()).toContain("Opened message");
 
     const secondSnapshot = app.bridge.getSnapshotBundle();
-    expect(secondSnapshot.tui).toContain("Opened: true");
+    expect(secondSnapshot.views[0]?.type).toBe("Root");
+    expect(secondSnapshot.views.some((view) => view.type === "MessageDetail")).toBe(true);
+    expect(secondSnapshot.markup).toContain("Opened: true");
   });
 
   it("runs an effect action and refreshes GUI and TUI from the new state", async () => {
@@ -87,6 +103,11 @@ describe("inbox vertical slice", () => {
     });
 
     const snapshot = app.bridge.getSnapshotBundle();
+    expect(snapshot.views[0]?.type).toBe("Root");
+    expect(snapshot.views.some((view) => view.type === "InboxSearch")).toBe(false);
+    expect(snapshot.visibleTools.map((tool) => tool.name)).toContain(
+      "searchMessages",
+    );
     const result = await app.bridge.executeTool(
       "searchMessages",
       { query: "Invoice" },
@@ -99,8 +120,10 @@ describe("inbox vertical slice", () => {
     expect(app.gui.render()).toContain("<gui-item>Invoice ready</gui-item>");
 
     const nextSnapshot = app.bridge.getSnapshotBundle();
-    expect(nextSnapshot.tui).toContain("Query: Invoice");
-    expect(nextSnapshot.tui).toContain("(Invoice ready)[message:messages[0]]");
+    expect(nextSnapshot.views[0]?.type).toBe("Root");
+    expect(nextSnapshot.views.some((view) => view.type === "InboxSearch")).toBe(true);
+    expect(nextSnapshot.markup).toContain("Query: Invoice");
+    expect(nextSnapshot.markup).toContain("(Invoice ready)[message:messages[0]]");
   });
 
   it("updates a mounted inbox GUI through runtime subscriptions", async () => {
@@ -114,6 +137,7 @@ describe("inbox vertical slice", () => {
       reduce: reduceInboxState,
       actions: [actions.openMessage, actions.searchMessages],
       effects: createInboxEffects(initialMessages),
+      getRelevantViewTypes: getInboxRelevantViewTypes,
     });
     const root = document.createElement("div");
     document.body.append(root);
@@ -166,6 +190,8 @@ describe("inbox vertical slice", () => {
         return {
           snapshotId: "snapshot-1",
           generatedAt: Date.now(),
+          markup: "demo",
+          views: [],
           tui: "demo",
           refIndex: {},
           visibleTools: [],
