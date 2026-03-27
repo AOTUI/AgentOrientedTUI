@@ -10,3 +10,14 @@ export {
   useRuntimeState,
   useRuntimeTrace,
 } from "./runtime/hooks";
+export {
+  createHostLifecycleBridge,
+  type HostAppState,
+  type HostLifecycleBridge,
+  type HostLifecycleState,
+  type HostScreenState,
+} from "./runtime/host-lifecycle";
+export {
+  useRuntimeHostLifecycle,
+  type RuntimeHostLifecycle,
+} from "./runtime/useRuntimeHostLifecycle";
