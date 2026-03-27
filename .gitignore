@@ -36,6 +36,7 @@ openclaw
 .claude
 .gemini
 .trae
+.worktrees/
 .shared
 .kiro
 .vscode
