@@ -1,23 +1,27 @@
-export function createReactNativeAppRuntime(..._args: readonly unknown[]) {
-  return {};
+function notImplemented(name: string): never {
+  throw new Error(`@aotui/mobile-ai-native-react-native ${name} is not implemented yet.`);
 }
 
 export function AppRuntimeProvider(..._args: readonly unknown[]) {
-  return null;
+  notImplemented("AppRuntimeProvider");
+}
+
+export function createReactNativeAppRuntime(..._args: readonly unknown[]) {
+  notImplemented("createReactNativeAppRuntime");
 }
 
 export function useRuntimeState(..._args: readonly unknown[]) {
-  return undefined;
+  notImplemented("useRuntimeState");
 }
 
 export function useRuntimeActions(..._args: readonly unknown[]) {
-  return undefined;
+  notImplemented("useRuntimeActions");
 }
 
 export function useRuntimeTrace(..._args: readonly unknown[]) {
-  return undefined;
+  notImplemented("useRuntimeTrace");
 }
 
 export function useRuntimeSnapshot(..._args: readonly unknown[]) {
-  return undefined;
+  notImplemented("useRuntimeSnapshot");
 }
