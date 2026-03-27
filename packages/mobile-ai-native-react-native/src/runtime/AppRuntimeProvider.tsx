@@ -1,0 +1,29 @@
+import { createContext, useContext, type ReactNode } from "react";
+import type { ReactAppRuntime } from "@aotui/mobile-ai-native";
+
+export type AppRuntime<State = unknown, Event = unknown> = ReactAppRuntime<
+  State,
+  Event
+>;
+
+const AppRuntimeContext = createContext<AppRuntime | null>(null);
+
+export function AppRuntimeProvider(props: {
+  runtime: AppRuntime;
+  children: ReactNode;
+}) {
+  return (
+    <AppRuntimeContext.Provider value={props.runtime}>
+      {props.children}
+    </AppRuntimeContext.Provider>
+  );
+}
+
+export function useAppRuntimeContext() {
+  const runtime = useContext(AppRuntimeContext);
+  if (!runtime) {
+    throw new Error("AppRuntimeProvider is missing from the component tree");
+  }
+
+  return runtime;
+}

@@ -10,21 +10,19 @@ it("exports the React Native adapter public API", () => {
   expect(publicApi.useRuntimeSnapshot).toBeTypeOf("function");
 });
 
-it("fails loudly when a placeholder runtime API is invoked", () => {
-  expect(() => publicApi.createReactNativeAppRuntime()).toThrowError(
-    /not implemented yet/i,
-  );
-  expect(() => publicApi.AppRuntimeProvider()).toThrowError(
-    /not implemented yet/i,
-  );
-  expect(() => publicApi.useRuntimeState()).toThrowError(
-    /not implemented yet/i,
-  );
-  expect(() => publicApi.useRuntimeActions()).toThrowError(
-    /not implemented yet/i,
-  );
-  expect(() => publicApi.useRuntimeTrace()).toThrowError(/not implemented yet/i);
-  expect(() => publicApi.useRuntimeSnapshot()).toThrowError(
-    /not implemented yet/i,
-  );
+it("re-exports concrete runtime implementations", () => {
+  const runtime = publicApi.createReactNativeAppRuntime({
+    initialState: { count: 0 },
+    reduce(state: { count: number }) {
+      return state;
+    },
+    actions: [],
+  });
+
+  expect(runtime.actions.getVisibleTools()).toEqual([]);
+  expect(publicApi.AppRuntimeProvider).toBeTypeOf("function");
+  expect(publicApi.useRuntimeState).toBeTypeOf("function");
+  expect(publicApi.useRuntimeActions).toBeTypeOf("function");
+  expect(publicApi.useRuntimeTrace).toBeTypeOf("function");
+  expect(publicApi.useRuntimeSnapshot).toBeTypeOf("function");
 });

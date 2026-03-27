@@ -8,6 +8,7 @@ export { createSnapshotBundle };
 export type {
   RefIndexEntry,
   MountedViewDescriptor,
+  SnapshotBundle,
   ToolDefinition,
   StaticViewCatalogEntry,
   SnapshotAssemblerInput,
@@ -32,6 +33,11 @@ export { View } from "./projection/tui/View";
 export { createSnapshotAssembler } from "./projection/tui/createSnapshotAssembler";
 export { renderTUI } from "./projection/tui/renderTUI";
 export { createReactAppRuntime } from "./projection/react/createReactAppRuntime";
+export type {
+  ReactAppDefinition,
+  ReactAppRuntime,
+  RuntimeTrace,
+} from "./projection/react/createReactAppRuntime";
 export { AppRuntimeProvider } from "./projection/react/AppRuntimeProvider";
 export { useAppRuntime, useRuntimeActions, useRuntimeState, useRuntimeTrace } from "./projection/react/hooks";
 export { AppProvider } from "./projection/gui/AppProvider";
