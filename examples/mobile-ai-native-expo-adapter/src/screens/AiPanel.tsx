@@ -2,8 +2,8 @@ import { createElement, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { SnapshotBundle } from "@aotui/mobile-ai-native";
 import type { InboxEvent, InboxState } from "../domain/inbox/state";
-import type { ReactNativeAppRuntime } from "../runtime/adapter";
-import { useRuntimeState } from "../runtime/adapter";
+import type { ReactNativeAppRuntime } from "@aotui/mobile-ai-native-react-native";
+import { useRuntimeState } from "@aotui/mobile-ai-native-react-native";
 
 type AiPanelProps = {
   runtime: ReactNativeAppRuntime<InboxState, InboxEvent>;

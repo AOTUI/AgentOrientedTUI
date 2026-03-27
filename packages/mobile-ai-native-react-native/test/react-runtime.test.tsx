@@ -319,4 +319,29 @@ describe("react-native runtime adapter", () => {
     expect(runtime.state.getState().shell.currentTab).toBe("settings");
     expect(runtime.ai.getSnapshot().snapshotId).not.toBe(snapshot.snapshotId);
   });
+
+  it("keeps the latest adapter snapshot executable after a prior mutating action", async () => {
+    const runtime = createReactNativeAppRuntime(createTestApp());
+
+    await act(async () => {
+      await runtime.actions.callAction("changeTab", { tab: "settings" });
+    });
+
+    const latestSnapshot = runtime.ai.getSnapshot();
+    const result = await runtime.ai.executeTool(
+      "updateTrace",
+      { summary: "after-human-action" },
+      latestSnapshot.snapshotId,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        mutated: true,
+      }),
+    );
+    expect(runtime.state.getState().shell.recentTrace).toBe(
+      "after-human-action",
+    );
+  });
 });

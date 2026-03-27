@@ -5,7 +5,7 @@ import { createInboxExpoRuntime } from "./src/app/createRuntime";
 import { AiPanel } from "./src/screens/AiPanel";
 import { InboxScreen } from "./src/screens/InboxScreen";
 import { SnapshotPreview } from "./src/screens/SnapshotPreview";
-import { AppRuntimeProvider } from "./src/runtime/adapter";
+import { AppRuntimeProvider } from "@aotui/mobile-ai-native-react-native";
 
 export default function App() {
   const [runtime] = useState(() => createInboxExpoRuntime());

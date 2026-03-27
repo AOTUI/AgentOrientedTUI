@@ -1,7 +1,10 @@
 import { createElement } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  useRuntimeActions,
+  useRuntimeState,
+} from "@aotui/mobile-ai-native-react-native";
 import type { InboxState } from "../domain/inbox/state";
-import { useRuntimeActions, useRuntimeState } from "../runtime/adapter";
 
 export function InboxScreen() {
   const inbox = useRuntimeState<InboxState, InboxState["inbox"]>(

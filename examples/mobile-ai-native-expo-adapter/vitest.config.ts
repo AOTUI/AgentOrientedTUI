@@ -5,11 +5,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@aotui/mobile-ai-native": fileURLToPath(
-        new URL("../../mobile-ai-native/src/index.ts", import.meta.url),
+        new URL("../../mobile-ai-native/dist/index.js", import.meta.url),
       ),
       "@aotui/mobile-ai-native-react-native": fileURLToPath(
         new URL(
-          "../../packages/mobile-ai-native-react-native/src/index.ts",
+          "../../packages/mobile-ai-native-react-native/dist/index.js",
           import.meta.url,
         ),
       ),

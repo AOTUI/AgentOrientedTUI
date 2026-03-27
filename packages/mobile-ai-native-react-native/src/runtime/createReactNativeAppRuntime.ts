@@ -61,14 +61,15 @@ export function createReactNativeAppRuntime<State, Event>(
     emitSnapshot();
   };
 
-  coreRuntime.store.subscribe(() => {
-    refreshSnapshot();
-  });
-
   return {
     actions: {
-      callAction(name, input) {
-        return coreRuntime.actions.callAction(name, input);
+      async callAction(name, input) {
+        const result = await coreRuntime.actions.callAction(name, input);
+        if (result.mutated) {
+          refreshSnapshot();
+        }
+
+        return result;
       },
       getVisibleTools() {
         return coreRuntime.actions.getVisibleTools();
@@ -98,8 +99,17 @@ export function createReactNativeAppRuntime<State, Event>(
       getSnapshot() {
         return currentSnapshot;
       },
-      executeTool(name, input, snapshotId) {
-        return coreRuntime.toolBridge.executeTool(name, input, snapshotId);
+      async executeTool(name, input, snapshotId) {
+        const result = await coreRuntime.toolBridge.executeTool(
+          name,
+          input,
+          snapshotId,
+        );
+        if (result.mutated) {
+          refreshSnapshot();
+        }
+
+        return result;
       },
     },
   };

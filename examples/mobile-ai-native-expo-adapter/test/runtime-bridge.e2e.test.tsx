@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createInboxExpoRuntime } from "../src/app/createRuntime";
 import { AiPanel } from "../src/screens/AiPanel";
 import { InboxScreen } from "../src/screens/InboxScreen";
-import { AppRuntimeProvider } from "../src/runtime/adapter";
+import { AppRuntimeProvider } from "@aotui/mobile-ai-native-react-native";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
   .IS_REACT_ACT_ENVIRONMENT = true;
@@ -161,5 +161,28 @@ describe("Expo adapter runtime bridge", () => {
     expect(readText(renderer!.root.findByProps({ testID: "ai-panel-status" }))).toContain(
       "Opened the first message",
     );
+  });
+
+  it("can continue AI execution from the latest snapshot after a human mutation", async () => {
+    const runtime = createInboxExpoRuntime();
+
+    await runtime.actions.callAction("openMessage", {
+      message: runtime.state.getState().inbox.items[0],
+    });
+
+    const latestSnapshot = runtime.ai.getSnapshot();
+    const result = await runtime.ai.executeTool(
+      "openMessage",
+      { message: "messages[1]" },
+      latestSnapshot.snapshotId,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        mutated: true,
+      }),
+    );
+    expect(runtime.state.getState().inbox.openedMessageId).toBe("message-2");
   });
 });

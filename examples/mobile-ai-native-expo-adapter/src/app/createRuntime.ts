@@ -2,8 +2,8 @@ import type { ToolDefinition } from "@aotui/mobile-ai-native";
 import type {
   ReactNativeAppDefinition,
   ReactNativeAppRuntime,
-} from "../runtime/adapter";
-import { createReactNativeAppRuntime } from "../runtime/adapter";
+} from "@aotui/mobile-ai-native-react-native";
+import { createReactNativeAppRuntime } from "@aotui/mobile-ai-native-react-native";
 import { createInboxActions } from "../domain/inbox/actions";
 import { createInboxEffects } from "../domain/inbox/effects";
 import { createInboxMessages } from "../domain/inbox/fixtures";
