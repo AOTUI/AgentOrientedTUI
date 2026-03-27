@@ -9,6 +9,7 @@ export type {
   RefIndexEntry,
   MountedViewDescriptor,
   SnapshotBundle,
+  TraceState,
   ToolDefinition,
   StaticViewCatalogEntry,
   SnapshotAssemblerInput,

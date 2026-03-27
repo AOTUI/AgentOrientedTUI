@@ -6,29 +6,31 @@ export function useRuntimeState<State, Selected>(
   selector: (state: State) => Selected,
 ): Selected {
   const runtime = useAppRuntimeContext();
-  const getSnapshot = () => selector(runtime.store.getState() as State);
+  const getSnapshot = () => selector(runtime.state.getState() as State);
 
-  return useSyncExternalStore(runtime.store.subscribe, getSnapshot);
+  return useSyncExternalStore(runtime.state.subscribe, getSnapshot);
 }
 
 export function useRuntimeActions() {
-  return useAppRuntimeContext().actions;
+  return useAppRuntimeContext().actions as ReturnType<
+    typeof useAppRuntimeContext
+  >["actions"];
 }
 
 export function useRuntimeTrace<Selected>(
   selector: (trace: TraceState) => Selected,
 ): Selected {
   const runtime = useAppRuntimeContext();
-  const getSnapshot = () => selector(runtime.traceStore.getState());
+  const getSnapshot = () => selector(runtime.trace.getState());
 
-  return useSyncExternalStore(runtime.traceStore.subscribe, getSnapshot);
+  return useSyncExternalStore(runtime.trace.subscribe, getSnapshot);
 }
 
 export function useRuntimeSnapshot<Selected>(
   selector: (snapshot: SnapshotBundle) => Selected,
 ): Selected {
   const runtime = useAppRuntimeContext();
-  const getSnapshot = () => selector(runtime.toolBridge.getSnapshotBundle());
+  const getSnapshot = () => selector(runtime.snapshot.getSnapshot());
 
-  return useSyncExternalStore(runtime.store.subscribe, getSnapshot);
+  return useSyncExternalStore(runtime.snapshot.subscribe, getSnapshot);
 }

@@ -19,6 +19,15 @@ it("re-exports concrete runtime implementations", () => {
     actions: [],
   });
 
+  expect(runtime).not.toHaveProperty("store");
+  expect(runtime).not.toHaveProperty("traceStore");
+  expect(runtime).not.toHaveProperty("toolBridge");
+  expect(runtime.state.getState()).toEqual({ count: 0 });
+  expect(runtime.trace.getState()).toEqual({
+    entries: [],
+    recent: null,
+  });
+  expect(runtime.snapshot.getSnapshot().views[0]?.type).toBe("Root");
   expect(runtime.actions.getVisibleTools()).toEqual([]);
   expect(publicApi.AppRuntimeProvider).toBeTypeOf("function");
   expect(publicApi.useRuntimeState).toBeTypeOf("function");

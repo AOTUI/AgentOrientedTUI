@@ -1,10 +1,8 @@
 import { createContext, useContext, type ReactNode } from "react";
-import type { ReactAppRuntime } from "@aotui/mobile-ai-native";
+import type { ReactNativeAppRuntime } from "./createReactNativeAppRuntime";
 
-export type AppRuntime<State = unknown, Event = unknown> = ReactAppRuntime<
-  State,
-  Event
->;
+export type AppRuntime<State = unknown, Event = unknown> =
+  ReactNativeAppRuntime<State, Event>;
 
 const AppRuntimeContext = createContext<AppRuntime | null>(null);
 

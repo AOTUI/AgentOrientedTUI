@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { defineAction } from "@aotui/mobile-ai-native";
+import { defineAction, type SnapshotBundle } from "@aotui/mobile-ai-native";
 import {
   AppRuntimeProvider,
   createReactNativeAppRuntime,
@@ -122,6 +122,22 @@ async function renderIntoDocument(node: ReactNode) {
 }
 
 describe("react-native runtime adapter", () => {
+  it("hides raw core internals behind an adapter runtime boundary", () => {
+    const runtime = createReactNativeAppRuntime(createTestApp());
+    const snapshot = runtime.snapshot.getSnapshot();
+
+    expect("store" in runtime).toBe(false);
+    expect("traceStore" in runtime).toBe(false);
+    expect("toolBridge" in runtime).toBe(false);
+    expect(runtime.state.getState().shell.currentTab).toBe("home");
+    expect(runtime.trace.getState()).toEqual({
+      entries: [],
+      recent: null,
+    });
+    expect(snapshot.views[0]?.type).toBe("Root");
+    expect(runtime.snapshot.getSnapshot()).toBe(snapshot);
+  });
+
   it("publishes runtime actions through the provider", async () => {
     const runtime = createReactNativeAppRuntime(createTestApp());
     const seen: Array<typeof runtime.actions> = [];
@@ -143,7 +159,7 @@ describe("react-native runtime adapter", () => {
       await seen[0]?.callAction("changeTab", { tab: "settings" });
     });
 
-    expect(runtime.store.getState().shell.currentTab).toBe("settings");
+    expect(runtime.state.getState().shell.currentTab).toBe("settings");
   });
 
   it("re-renders a consumer when runtime state changes", async () => {
@@ -167,6 +183,78 @@ describe("react-native runtime adapter", () => {
     });
 
     expect(seen).toEqual(["home", "settings"]);
+  });
+
+  it("keeps snapshot reads stable until state changes", async () => {
+    const runtime = createReactNativeAppRuntime(createTestApp());
+
+    const firstSnapshotId = runtime.snapshot.getSnapshot().snapshotId;
+    const secondSnapshotId = runtime.snapshot.getSnapshot().snapshotId;
+
+    expect(secondSnapshotId).toBe(firstSnapshotId);
+
+    await act(async () => {
+      await runtime.actions.callAction("changeTab", { tab: "settings" });
+    });
+
+    const thirdSnapshotId = runtime.snapshot.getSnapshot().snapshotId;
+
+    expect(thirdSnapshotId).not.toBe(firstSnapshotId);
+  });
+
+  it("shares the adapter snapshot cache with React snapshot consumers", async () => {
+    const runtime = createReactNativeAppRuntime(createTestApp());
+    const initialSnapshot = runtime.snapshot.getSnapshot();
+    const seen: SnapshotBundle[] = [];
+
+    function Probe() {
+      seen.push(useRuntimeSnapshot((snapshot) => snapshot));
+      return <div>snapshot</div>;
+    }
+
+    await renderIntoDocument(
+      <AppRuntimeProvider runtime={runtime}>
+        <Probe />
+      </AppRuntimeProvider>,
+    );
+
+    expect(seen[0]).toBe(initialSnapshot);
+    expect(runtime.snapshot.getSnapshot()).toBe(initialSnapshot);
+
+    await act(async () => {
+      await runtime.actions.callAction("changeTab", { tab: "settings" });
+    });
+
+    const latestSnapshot = runtime.snapshot.getSnapshot();
+
+    expect(latestSnapshot).not.toBe(initialSnapshot);
+    expect(seen.at(-1)).toBe(latestSnapshot);
+    expect(runtime.snapshot.getSnapshot()).toBe(latestSnapshot);
+  });
+
+  it("emits one snapshot update per state change", async () => {
+    const runtime = createReactNativeAppRuntime(createTestApp());
+    const seenSnapshotIds: string[] = [];
+
+    function Probe() {
+      seenSnapshotIds.push(useRuntimeSnapshot((snapshot) => snapshot.snapshotId));
+      return <div>snapshot-id</div>;
+    }
+
+    await renderIntoDocument(
+      <AppRuntimeProvider runtime={runtime}>
+        <Probe />
+      </AppRuntimeProvider>,
+    );
+
+    await act(async () => {
+      await runtime.actions.callAction("changeTab", { tab: "settings" });
+    });
+
+    const uniqueSnapshotIds = [...new Set(seenSnapshotIds)];
+
+    expect(uniqueSnapshotIds).toHaveLength(2);
+    expect(uniqueSnapshotIds[0]).not.toBe(uniqueSnapshotIds[1]);
   });
 
   it("reads trace and snapshot selectors from the runtime", async () => {
