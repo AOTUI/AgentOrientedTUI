@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
-import type { ReactNode } from "react";
-import { act } from "react";
+import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -14,7 +13,8 @@ import {
   useRuntimeTrace,
 } from "../src/index";
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
+  .IS_REACT_ACT_ENVIRONMENT = true;
 
 type TestState = {
   shell: {
@@ -129,6 +129,7 @@ describe("react-native runtime adapter", () => {
     expect("store" in runtime).toBe(false);
     expect("traceStore" in runtime).toBe(false);
     expect("toolBridge" in runtime).toBe(false);
+    expect("actionRuntime" in runtime).toBe(false);
     expect(runtime.state.getState().shell.currentTab).toBe("home");
     expect(runtime.trace.getState()).toEqual({
       entries: [],
@@ -136,6 +137,8 @@ describe("react-native runtime adapter", () => {
     });
     expect(snapshot.views[0]?.type).toBe("Root");
     expect(runtime.snapshot.getSnapshot()).toBe(snapshot);
+    expect(runtime.ai.getSnapshot()).toBe(snapshot);
+    expect(runtime.ai.executeTool).toBeTypeOf("function");
   });
 
   it("publishes runtime actions through the provider", async () => {
@@ -144,13 +147,15 @@ describe("react-native runtime adapter", () => {
 
     function Probe() {
       seen.push(useRuntimeActions());
-      return <div>probe</div>;
+      return createElement("div", null, "probe");
     }
 
     await renderIntoDocument(
-      <AppRuntimeProvider runtime={runtime}>
-        <Probe />
-      </AppRuntimeProvider>,
+      createElement(
+        AppRuntimeProvider,
+        { runtime },
+        createElement(Probe),
+      ),
     );
 
     expect(seen).toEqual([runtime.actions]);
@@ -169,13 +174,15 @@ describe("react-native runtime adapter", () => {
     function Probe() {
       const tab = useRuntimeState((state: TestState) => state.shell.currentTab);
       seen.push(tab);
-      return <div>{tab}</div>;
+      return createElement("div", null, tab);
     }
 
     await renderIntoDocument(
-      <AppRuntimeProvider runtime={runtime}>
-        <Probe />
-      </AppRuntimeProvider>,
+      createElement(
+        AppRuntimeProvider,
+        { runtime },
+        createElement(Probe),
+      ),
     );
 
     await act(async () => {
@@ -209,13 +216,15 @@ describe("react-native runtime adapter", () => {
 
     function Probe() {
       seen.push(useRuntimeSnapshot((snapshot) => snapshot));
-      return <div>snapshot</div>;
+      return createElement("div", null, "snapshot");
     }
 
     await renderIntoDocument(
-      <AppRuntimeProvider runtime={runtime}>
-        <Probe />
-      </AppRuntimeProvider>,
+      createElement(
+        AppRuntimeProvider,
+        { runtime },
+        createElement(Probe),
+      ),
     );
 
     expect(seen[0]).toBe(initialSnapshot);
@@ -238,13 +247,15 @@ describe("react-native runtime adapter", () => {
 
     function Probe() {
       seenSnapshotIds.push(useRuntimeSnapshot((snapshot) => snapshot.snapshotId));
-      return <div>snapshot-id</div>;
+      return createElement("div", null, "snapshot-id");
     }
 
     await renderIntoDocument(
-      <AppRuntimeProvider runtime={runtime}>
-        <Probe />
-      </AppRuntimeProvider>,
+      createElement(
+        AppRuntimeProvider,
+        { runtime },
+        createElement(Probe),
+      ),
     );
 
     await act(async () => {
@@ -270,13 +281,15 @@ describe("react-native runtime adapter", () => {
           `${snapshot.views[0]?.type ?? "none"}:${snapshot.visibleTools.map((tool) => tool.name).join(",")}`,
       );
       seen.push(`${traceSummary}|${snapshotSummary}`);
-      return <div>{traceSummary}</div>;
+      return createElement("div", null, traceSummary);
     }
 
     await renderIntoDocument(
-      <AppRuntimeProvider runtime={runtime}>
-        <Probe />
-      </AppRuntimeProvider>,
+      createElement(
+        AppRuntimeProvider,
+        { runtime },
+        createElement(Probe),
+      ),
     );
 
     await act(async () => {
@@ -285,5 +298,25 @@ describe("react-native runtime adapter", () => {
 
     expect(seen[0]).toBe("idle|Root:changeTab,updateTrace");
     expect(seen.at(-1)).toBe("synced|Root:changeTab,updateTrace");
+  });
+
+  it("exposes a host-safe AI surface for snapshot-scoped tool execution", async () => {
+    const runtime = createReactNativeAppRuntime(createTestApp());
+    const snapshot = runtime.ai.getSnapshot();
+
+    const result = await runtime.ai.executeTool(
+      "changeTab",
+      { tab: "settings" },
+      snapshot.snapshotId,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        mutated: true,
+      }),
+    );
+    expect(runtime.state.getState().shell.currentTab).toBe("settings");
+    expect(runtime.ai.getSnapshot().snapshotId).not.toBe(snapshot.snapshotId);
   });
 });

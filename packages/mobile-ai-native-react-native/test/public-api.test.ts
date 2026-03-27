@@ -27,6 +27,8 @@ it("re-exports concrete runtime implementations", () => {
     entries: [],
     recent: null,
   });
+  expect(runtime.ai.getSnapshot().views[0]?.type).toBe("Root");
+  expect(runtime.ai.executeTool).toBeTypeOf("function");
   expect(runtime.snapshot.getSnapshot().views[0]?.type).toBe("Root");
   expect(runtime.actions.getVisibleTools()).toEqual([]);
   expect(publicApi.AppRuntimeProvider).toBeTypeOf("function");

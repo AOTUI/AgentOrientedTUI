@@ -26,7 +26,10 @@ export type ReactAppDefinition<State, Event> = {
   actions: Array<ActionDefinition<State, Event, any>>;
   effects?: EffectMap<State, Event>;
   getRelevantViewTypes?: (state: State) => readonly string[];
-  renderCurrentSnapshot?: () => SnapshotBundle;
+  renderCurrentSnapshot?: (context: {
+    state: State;
+    visibleTools: readonly ToolDefinition[];
+  }) => SnapshotBundle;
 };
 
 export type ReactAppRuntime<State, Event> = {
@@ -90,7 +93,12 @@ export function createReactAppRuntime<State, Event>(
   const toolBridge = createToolBridge({
     actionRuntime,
     snapshotRegistry,
-    renderCurrentSnapshot,
+    renderCurrentSnapshot() {
+      return renderCurrentSnapshot({
+        state: store.getState(),
+        visibleTools: actionRuntime.listVisibleTools(),
+      });
+    },
   });
 
   return {

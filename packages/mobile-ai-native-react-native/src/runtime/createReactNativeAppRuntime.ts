@@ -31,6 +31,16 @@ export type ReactNativeAppRuntime<State, Event> = {
     getSnapshot(): SnapshotBundle;
     subscribe(listener: () => void): () => void;
   };
+  ai: {
+    getSnapshot(): SnapshotBundle;
+    executeTool(
+      name: string,
+      input: Record<string, unknown>,
+      snapshotId: string,
+    ): ReturnType<
+      ReturnType<typeof createReactAppRuntime<State, Event>>["toolBridge"]["executeTool"]
+    >;
+  };
 };
 
 export function createReactNativeAppRuntime<State, Event>(
@@ -82,6 +92,14 @@ export function createReactNativeAppRuntime<State, Event>(
         return () => {
           snapshotListeners.delete(listener);
         };
+      },
+    },
+    ai: {
+      getSnapshot() {
+        return currentSnapshot;
+      },
+      executeTool(name, input, snapshotId) {
+        return coreRuntime.toolBridge.executeTool(name, input, snapshotId);
       },
     },
   };

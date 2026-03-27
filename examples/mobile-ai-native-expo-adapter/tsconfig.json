@@ -3,20 +3,20 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
       "@aotui/mobile-ai-native": [
         "../../mobile-ai-native/dist/index.d.ts"
+      ],
+      "@aotui/mobile-ai-native-react-native": [
+        "../../packages/mobile-ai-native-react-native/dist/index.d.ts"
       ]
     },
     "strict": true,
-    "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "noEmit": false,
-    "rootDir": "src",
-    "outDir": "dist"
+    "types": ["vitest/globals"]
   },
-  "include": ["src"]
+  "include": ["App.tsx", "src", "test"]
 }

@@ -211,6 +211,12 @@ The reference app should prove:
 This app is not the framework itself.
 It is the proof that the adapter works in a real host.
 
+The current reference implementation lives at:
+
+- [`examples/mobile-ai-native-expo-adapter`](../../examples/mobile-ai-native-expo-adapter/README.md)
+
+It proves the adapter with an app-owned inbox domain, a handwritten snapshot, and a host-safe local AI panel that executes tools against `snapshotId`.
+
 ## 8. Migration Strategy
 
 The migration should be incremental:

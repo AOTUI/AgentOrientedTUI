@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import type { ReactNode } from "react";
+import { createElement, type ReactNode } from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,7 +10,8 @@ import {
   useRuntimeHostLifecycle,
 } from "../src/index";
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
+  .IS_REACT_ACT_ENVIRONMENT = true;
 
 const mountedRoots: Root[] = [];
 
@@ -86,20 +87,20 @@ describe("host lifecycle bridge", () => {
     function Probe() {
       const lifecycle = useRuntimeHostLifecycle(bridge);
       seen.push(lifecycle.state);
-      return (
-        <button
-          type="button"
-          onClick={() => {
+      return createElement(
+        "button",
+        {
+          type: "button",
+          onClick() {
             lifecycle.setAppActive();
             lifecycle.focusScreen();
-          }}
-        >
-          lifecycle
-        </button>
+          },
+        },
+        "lifecycle",
       );
     }
 
-    await renderIntoDocument(<Probe />);
+    await renderIntoDocument(createElement(Probe));
 
     expect(seen).toEqual([
       {

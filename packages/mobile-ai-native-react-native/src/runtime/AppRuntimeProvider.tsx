@@ -1,4 +1,9 @@
-import { createContext, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  createElement,
+  useContext,
+  type ReactNode,
+} from "react";
 import type { ReactNativeAppRuntime } from "./createReactNativeAppRuntime";
 
 export type AppRuntime<State = unknown, Event = unknown> =
@@ -8,12 +13,12 @@ const AppRuntimeContext = createContext<AppRuntime | null>(null);
 
 export function AppRuntimeProvider(props: {
   runtime: AppRuntime;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
-  return (
-    <AppRuntimeContext.Provider value={props.runtime}>
-      {props.children}
-    </AppRuntimeContext.Provider>
+  return createElement(
+    AppRuntimeContext.Provider,
+    { value: props.runtime },
+    props.children,
   );
 }
 

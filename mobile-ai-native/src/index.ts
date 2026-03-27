@@ -24,6 +24,13 @@ export type {
   EffectSuccess,
   EffectTrace,
 } from "./core/effect/types";
+export type {
+  ActionContext,
+  ActionDefinition,
+} from "./core/action/defineAction";
+export type {
+  ViewTypeToolActionDefinition,
+} from "./core/action/defineViewTypeTool";
 export { defineAction } from "./core/action/defineAction";
 export { defineViewTypeTool } from "./core/action/defineViewTypeTool";
 export { createActionRuntime } from "./core/action/createActionRuntime";

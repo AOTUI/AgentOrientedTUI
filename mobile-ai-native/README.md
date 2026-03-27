@@ -2,6 +2,9 @@
 
 This package is the hardened runtime core for building agent-native mobile apps.
 
+It is the **core**, not the full React Native host layer.
+React Native / Expo mounting now lives in [`@aotui/mobile-ai-native-react-native`](../packages/mobile-ai-native-react-native/README.md).
+
 It provides the state store, action runtime, trace lifecycle, snapshot registry, and tool bridge needed for a real mobile host.
 
 The current snapshot model is view-based:
@@ -104,12 +107,15 @@ await bridge.executeTool("openMessage", { message: "messages[0]" }, snapshotId);
 For tools that declare `meta.supportsRefs === true`, the bridge resolves top-level string inputs as either exact `ref_id` values or canonical marker strings from that snapshot's `refIndex`.
 It does not infer nested field refs or field-level ref metadata.
 
-The React host adapter path is:
+The low-level React-family host path inside the core is still present because the adapter composes it, but product code should prefer the dedicated RN adapter package.
+
+The adapter-facing runtime path is:
 
 - `createReactAppRuntime()` owns the store, action runtime, snapshot registry, trace store, and tool bridge
 - `AppRuntimeProvider` publishes that runtime through context
 - `useRuntimeState(selector)` subscribes to store updates with `useSyncExternalStore`
 - `useRuntimeTrace(selector)` subscribes to the trace store the same way
+- `createReactNativeAppRuntime()` in the adapter package wraps that core runtime and exposes `runtime.ai.getSnapshot()` / `runtime.ai.executeTool(...)` for host-safe tool execution
 
 That means GUI consumers react to state and trace changes without pulling the whole runtime object into component state.
 
@@ -145,7 +151,7 @@ What it gives you today:
 - atomic `SnapshotBundle`
 - static root navigation plus state-derived mounted business views
 - snapshot-scoped tool execution
-- a React-family host adapter with reactive hooks
+- a pure core that can now be mounted by the dedicated RN / Expo adapter
 - structured trace and effect contracts
 
 What you still need for a production iOS app:

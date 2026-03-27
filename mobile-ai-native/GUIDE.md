@@ -2,6 +2,11 @@
 
 This guide is for a developer who wants to build a high-quality agent-native calendar app on iOS using `@aotui/mobile-ai-native`.
 
+Important boundary:
+
+- `@aotui/mobile-ai-native` is the runtime core
+- `@aotui/mobile-ai-native-react-native` is the React Native / Expo host adapter
+
 The goal is simple:
 
 - humans use a normal GUI calendar
@@ -211,6 +216,8 @@ The React Native app should do only host work:
 - ask the framework for `SnapshotBundle`
 - pass tool calls into `executeTool`
 - subscribe to state and trace through the runtime hooks instead of copying framework state into local component state
+
+In practice, that means mounting the core through `createReactNativeAppRuntime()` and `AppRuntimeProvider` from `@aotui/mobile-ai-native-react-native`.
 
 ### Step 3: Build GUI and snapshot views as separate projections
 

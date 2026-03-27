@@ -15,12 +15,13 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "pnpm run clean && tsc -p tsconfig.json",
-    "test": "vitest",
-    "test:run": "vitest --run",
+    "test": "vitest --config vitest.config.ts",
+    "test:run": "vitest --config vitest.config.ts --run",
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "react-native": ">=0.83.0"
   },
   "dependencies": {
     "@aotui/mobile-ai-native": "workspace:*"
@@ -28,12 +29,14 @@
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "keywords": [
     "aotui",

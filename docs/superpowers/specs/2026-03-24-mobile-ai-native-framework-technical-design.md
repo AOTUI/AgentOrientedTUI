@@ -5,6 +5,8 @@
 > This document turns the design consensus into a concrete technical plan for framework architecture and v1 API shape.
 >
 > Follow-up runtime hardening requirements from AI Calendar are captured in [2026-03-24-ai-calendar-framework-gap-analysis.md](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/docs/superpowers/specs/2026-03-24-ai-calendar-framework-gap-analysis.md).
+>
+> React Native / Expo host integration is split into a separate adapter package and specified in [2026-03-27-mobile-ai-native-rn-host-adapter-design.md](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/docs/superpowers/specs/2026-03-27-mobile-ai-native-rn-host-adapter-design.md).
 
 ## 1. Goal
 
