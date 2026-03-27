@@ -1,6 +1,6 @@
 {
   "name": "@aotui/mobile-ai-native-react-native",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "React Native / Expo host adapter for the mobile AI-native runtime.",
   "license": "Apache-2.0",
   "type": "module",

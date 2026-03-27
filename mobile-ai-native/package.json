@@ -1,6 +1,6 @@
 {
   "name": "@aotui/mobile-ai-native",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Alpha host-agnostic core for building Agent Native mobile apps with shared GUI/TUI state and snapshot-scoped tool execution.",
   "license": "Apache-2.0",
   "type": "module",
