@@ -1,6 +1,6 @@
 {
   "name": "@aotui/mobile-ai-native",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Alpha host-agnostic core for building Agent Native mobile apps with shared GUI/TUI state and snapshot-scoped tool execution.",
   "license": "Apache-2.0",
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "pnpm run clean && tsc -p tsconfig.json",
+    "build": "pnpm run clean && tsc -p tsconfig.json && node ../scripts/fix-relative-import-extensions.mjs ./dist",
     "test": "vitest",
     "test:run": "vitest --run",
     "prepublishOnly": "pnpm build"

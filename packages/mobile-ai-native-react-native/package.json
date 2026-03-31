@@ -1,6 +1,6 @@
 {
   "name": "@aotui/mobile-ai-native-react-native",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "React Native / Expo host adapter for the mobile AI-native runtime.",
   "license": "Apache-2.0",
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "pnpm run clean && tsc -p tsconfig.json",
+    "build": "pnpm run clean && tsc -p tsconfig.json && node ../../scripts/fix-relative-import-extensions.mjs ./dist",
     "test": "vitest --config vitest.config.ts",
     "test:run": "vitest --config vitest.config.ts --run",
     "prepublishOnly": "pnpm build"
