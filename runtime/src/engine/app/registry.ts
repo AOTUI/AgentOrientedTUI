@@ -139,13 +139,13 @@ export class AppRegistry {
         // 加载工厂
         const factory = await this.loadFactory(source);
 
-        const name = this.resolveRegistrationName(source, factory, options?.alias);
+        const name = this.resolveRegistrationName(source, factory);
 
         // 检查名称冲突
         if (this.config.apps[name] && !options?.force) {
             throw new AOTUIError('OPERATION_DUPLICATE', {
                 operationName: name,
-                reason: `App already exists from ${this.config.apps[name].source}. Use --force to replace or --as <alias> to install with different name.`
+                reason: `App already exists from ${this.config.apps[name].source}. Use --force to replace it.`
             });
         }
 
@@ -183,7 +183,7 @@ export class AppRegistry {
         // 加载工厂
         const factory = await this.loadFactory(source);
 
-        const name = this.resolveRegistrationName(source, factory, options?.alias);
+        const name = this.resolveRegistrationName(source, factory);
 
         // 检查名称冲突 (仅检查内存中)
         if (this.apps.has(name)) {
@@ -515,9 +515,6 @@ export class AppRegistry {
 
             const configEntry = this.entryConfigs.get(name) ?? this.config.apps[name];
             const dynamicConfig: AppLaunchConfig = { ...(options.dynamicConfig ?? {}) };
-            if (dynamicConfig.AOTUI_APP_KEY === undefined) {
-                dynamicConfig.AOTUI_APP_KEY = name;
-            }
             if (dynamicConfig.AOTUI_APP_NAME === undefined) {
                 dynamicConfig.AOTUI_APP_NAME = name;
             }
@@ -618,45 +615,22 @@ export class AppRegistry {
         await this.pruneEmptyParentDirs(pathModule.dirname(normalizedInstallRoot), normalizedAllowedRoot);
     }
 
-    private resolveRegistrationName(source: string, factory: TUIAppFactory, alias?: string): string {
-        if (alias) {
-            return alias;
+    private resolveRegistrationName(source: string, factory: TUIAppFactory): string {
+        if (isKernelConfigFactory(factory) && factory.kernelConfig.appName) {
+            return factory.kernelConfig.appName;
+        }
+
+        if (factory.manifest?.app_name) {
+            return factory.manifest.app_name;
         }
 
         if (factory.manifest?.name) {
             return factory.manifest.name;
         }
 
-        const sourceName = this.extractStableNameFromSource(source);
-        if (sourceName) {
-            return sourceName;
-        }
-
-        if (factory.displayName) {
-            return factory.displayName;
-        }
-
-        return 'unknown';
-    }
-
-    private extractStableNameFromSource(source: string): string | null {
-        if (source.startsWith('local:')) {
-            const localPath = source.slice(6);
-            const candidate = pathModule.basename(localPath);
-            return candidate || null;
-        }
-
-        if (source.startsWith('npm:')) {
-            const spec = source.slice(4);
-            const withoutVersion = spec.startsWith('@')
-                ? spec.replace(/(@[^/]+\/[^@]+).*/, '$1')
-                : spec.replace(/([^@]+).*/, '$1');
-            const parts = withoutVersion.split('/');
-            return parts[parts.length - 1] || null;
-        }
-
-        const candidate = source.split('/').pop();
-        return candidate || null;
+        throw new AOTUIError('CONFIG_INVALID', {
+            reason: `App source ${source} does not expose a canonical app_name`
+        });
     }
 
     private resolveNpmInstallRoot(entry: AppConfigEntry): string | null {

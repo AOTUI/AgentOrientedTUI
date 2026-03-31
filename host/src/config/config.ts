@@ -10,6 +10,7 @@ import fs from "fs/promises"
 import path from "path"
 import os from "os"
 import { z } from "zod"
+import type { IMSessionScope } from "../im/types.js"
 
 // ─── MCP Zod 类型定义 ─────────────────────────────────────────────────────────
 
@@ -67,6 +68,8 @@ export const McpRemote = z
 export const Mcp = z.discriminatedUnion("type", [McpLocal, McpRemote])
 export type Mcp = z.infer<typeof Mcp>
 
+type ConfigImSessionScope = IMSessionScope
+
 // ─── 全局配置 Info 类型 ───────────────────────────────────────────────────────
 
 export interface Info {
@@ -75,7 +78,7 @@ export interface Info {
     channels?: {
       lark?: {
         enabled?: boolean
-        sessionScope?: "peer" | "peer_thread"
+        sessionScope?: ConfigImSessionScope
         domain?: "feishu" | "lark" | string
         connectionMode?: "webhook" | "websocket"
         appId?: string
@@ -89,7 +92,7 @@ export interface Info {
         requestTimeoutMs?: number
         accounts?: Record<string, {
           enabled?: boolean
-          sessionScope?: "peer" | "peer_thread"
+          sessionScope?: ConfigImSessionScope
           domain?: "feishu" | "lark" | string
           connectionMode?: "webhook" | "websocket"
           appId?: string
@@ -105,7 +108,7 @@ export interface Info {
       }
       feishu?: {
         enabled?: boolean
-        sessionScope?: "peer" | "peer_thread"
+        sessionScope?: ConfigImSessionScope
         domain?: "feishu" | "lark" | string
         connectionMode?: "webhook" | "websocket"
         appId?: string
@@ -127,7 +130,7 @@ export interface Info {
         requireMention?: boolean
         accounts?: Record<string, {
           enabled?: boolean
-          sessionScope?: "peer" | "peer_thread"
+          sessionScope?: ConfigImSessionScope
           domain?: "feishu" | "lark" | string
           connectionMode?: "webhook" | "websocket"
           appId?: string

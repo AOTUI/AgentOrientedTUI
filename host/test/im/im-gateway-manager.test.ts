@@ -4,6 +4,13 @@ import { IMGatewayManager } from '../../src/im/im-gateway-manager.ts'
 function createPlugin(id: string) {
   return {
     id,
+    meta: {
+      label: id.toUpperCase(),
+    },
+    capabilities: {
+      chatTypes: ['direct', 'group'] as Array<'direct' | 'group'>,
+      webhookInbound: true,
+    },
     start: vi.fn(async () => undefined),
     stop: vi.fn(async () => undefined),
   }
@@ -79,6 +86,8 @@ describe('IMGatewayManager', () => {
     const manager = new IMGatewayManager()
     const bad = {
       id: 'bad',
+      meta: { label: 'BAD' },
+      capabilities: { chatTypes: ['direct'] as Array<'direct' | 'group'> },
       start: vi.fn(async () => {
         throw new Error('boom')
       }),
@@ -102,6 +111,8 @@ describe('IMGatewayManager', () => {
     const manager = new IMGatewayManager()
     const bad = {
       id: 'bad',
+      meta: { label: 'BAD' },
+      capabilities: { chatTypes: ['direct'] as Array<'direct' | 'group'> },
       start: vi.fn(async () => undefined),
       stop: vi.fn(async () => {
         throw new Error('stop failed')
@@ -131,5 +142,39 @@ describe('IMGatewayManager', () => {
 
     expect(manager.getChannel('feishu')).toBe(feishu)
     expect(manager.getChannel('unknown')).toBeUndefined()
+  })
+
+  it('lists registered channel capabilities and runtime state', async () => {
+    const manager = new IMGatewayManager()
+    const feishu = {
+      ...createPlugin('feishu'),
+      getRuntimeState: vi.fn(() => ({
+        started: true,
+        connectionMode: 'websocket' as const,
+        accountIds: ['default', 'corp-a'],
+      })),
+    }
+
+    manager.register(feishu)
+    await manager.startAll({
+      im: { channels: { feishu: { enabled: true } } },
+    })
+
+    expect(manager.listChannels()).toEqual([
+      {
+        id: 'feishu',
+        meta: { label: 'FEISHU' },
+        capabilities: {
+          chatTypes: ['direct', 'group'],
+          webhookInbound: true,
+        },
+        active: true,
+        runtime: {
+          started: true,
+          connectionMode: 'websocket',
+          accountIds: ['default', 'corp-a'],
+        },
+      },
+    ])
   })
 })

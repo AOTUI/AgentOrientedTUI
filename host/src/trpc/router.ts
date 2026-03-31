@@ -434,13 +434,11 @@ const appsRouter = router({
         .input(z.object({
             source: z.string(),
             force: z.boolean().optional(),
-            alias: z.string().optional(),
             autoStart: z.boolean().optional(),
         }))
         .mutation(async ({ input, ctx }) => {
             return ctx.hostManager.installApp(input.source, {
                 force: input.force,
-                alias: input.alias,
                 autoStart: input.autoStart,
             });
         }),
@@ -1086,10 +1084,13 @@ const promptsRouter = router({
 
 const feishuAccountSchema = z.object({
     enabled: z.boolean().optional(),
+    disabled: z.boolean().optional(),
     appId: z.string().optional(),
     appSecret: z.string().optional(),
     domain: z.string().optional(),
     connectionMode: z.enum(['websocket', 'webhook']).optional(),
+    sessionScope: z.enum(['peer', 'peer_sender', 'peer_thread', 'peer_thread_sender']).optional(),
+    verificationToken: z.string().optional(),
     botToken: z.string().optional(),
     botAgentId: z.string().optional(),
     apiBaseUrl: z.string().optional(),
@@ -1103,22 +1104,63 @@ const feishuChannelSchema = feishuAccountSchema.extend({
 });
 
 const imConfigSchema = z.object({
+    enabled: z.boolean().optional(),
+    disabled: z.boolean().optional(),
     channels: z.object({
         feishu: feishuChannelSchema.optional(),
         lark: feishuChannelSchema.optional(),
     }).optional(),
 });
 
+function normalizeImEnabledState<T extends Record<string, any> | undefined>(value: T): T {
+    if (!value || typeof value !== 'object') {
+        return (value ?? {}) as T;
+    }
+
+    const normalized: Record<string, any> = { ...value };
+    if ('disabled' in normalized && normalized.enabled === undefined) {
+        normalized.enabled = normalized.disabled !== true;
+    }
+
+    for (const [key, nestedValue] of Object.entries(normalized)) {
+        if (!nestedValue || typeof nestedValue !== 'object' || Array.isArray(nestedValue)) {
+            continue;
+        }
+        normalized[key] = normalizeImEnabledState(nestedValue as Record<string, any>);
+    }
+
+    return normalized as T;
+}
+
 const imRouter = router({
+    getConfig: publicProcedure
+        .query(async () => {
+            const im = await Config.getGlobalIm();
+            return normalizeImEnabledState(im ?? {});
+        }),
+    getRuntime: publicProcedure
+        .query(async ({ ctx }) => {
+            return ctx.hostManager.getIMRuntime();
+        }),
+    updateConfig: publicProcedure
+        .input(z.object({
+            im: imConfigSchema,
+        }))
+        .mutation(async ({ input }) => {
+            const normalized = normalizeImEnabledState(input.im);
+            await Config.replaceGlobalIm(normalized);
+            return { success: true };
+        }),
     getImConfig: publicProcedure
         .query(async () => {
             const im = await Config.getGlobalIm();
-            return im ?? {};
+            return normalizeImEnabledState(im ?? {});
         }),
     saveImConfig: publicProcedure
         .input(imConfigSchema)
         .mutation(async ({ input }) => {
-            await Config.replaceGlobalIm(input);
+            const normalized = normalizeImEnabledState(input);
+            await Config.replaceGlobalIm(normalized);
             return { success: true };
         }),
     getAgents: publicProcedure
@@ -1128,6 +1170,20 @@ const imRouter = router({
                 list: config.agents?.list ?? [],
                 activeAgentId: config.agents?.activeAgentId ?? null,
             };
+        }),
+    listSessions: publicProcedure
+        .query(async ({ ctx }) => {
+            return ctx.hostManager.getIMSessions();
+        }),
+    getSession: publicProcedure
+        .input(z.object({ sessionKey: z.string() }))
+        .query(async ({ input, ctx }) => {
+            return ctx.hostManager.getIMSession(input.sessionKey);
+        }),
+    getMessages: publicProcedure
+        .input(z.object({ sessionKey: z.string() }))
+        .query(async ({ input, ctx }) => {
+            return ctx.hostManager.getIMMessages(input.sessionKey);
         }),
 });
 

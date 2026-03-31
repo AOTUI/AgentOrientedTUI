@@ -1,24 +1,26 @@
 import type { ModelMessage } from 'ai'
 import type { HostManagerV2, GuiUpdateEvent } from '../core/host-manager-v2.js'
 import { Config, type Info } from '../config/config.js'
-import * as db from '../db/index.js'
-import { IMGatewayManager } from './im-gateway-manager.js'
+import { parseFeishuConfig } from './channels/feishu/config-schema.js'
+import { parseFeishuWebhookPayload } from './channels/feishu/webhook.js'
+import { IMGatewayManager, type RegisteredChannelRuntime } from './im-gateway-manager.js'
 import type { IChannelPlugin, IReplyHandler } from './channel-plugin.js'
 import type { IMInboundMessage } from './types.js'
 
-type IMGatewayLike = Pick<IMGatewayManager, 'register' | 'startAll' | 'stopAll' | 'getChannel'>
+type IMGatewayLike = Pick<IMGatewayManager, 'register' | 'startAll' | 'stopAll' | 'getChannel' | 'listChannels'>
 
 type SessionRouteContext = {
   channel: string
   chatType: 'direct' | 'group'
   chatId: string
   senderId: string
+  rootId?: string
   accountId?: string
   agentId?: string
 }
 
 export interface IMRuntimeBridgeOptions {
-  hostManager: Pick<HostManagerV2, 'sendUserMessage' | 'onGuiUpdate'>
+  hostManager: Pick<HostManagerV2, 'sendIMMessage' | 'onGuiUpdate'>
   getConfig?: () => Promise<Info>
   createGatewayManager?: () => IMGatewayLike
   /**
@@ -28,7 +30,6 @@ export interface IMRuntimeBridgeOptions {
    * When omitted, no channels are registered.
    */
   createChannelPlugins?: (dispatch: (message: IMInboundMessage) => Promise<void>) => IChannelPlugin[]
-  ensureTopic?: (topicId: string, agentId: string) => void
 }
 
 function extractTextContent(message: ModelMessage | undefined): string {
@@ -84,43 +85,11 @@ function normalizeStreamText(previous: string, incoming: string): string {
   return previous + incoming
 }
 
-/**
- * Ensure a Topic record exists in the DB for an IM session.
- *
- * This is required because SessionManagerV3.createSession() reads
- * topic.agentId from the DB to apply agent customization (prompt,
- * model, tools, etc.). Without a DB record, the session falls back
- * to system defaults regardless of the configured botAgentId.
- */
-function defaultEnsureTopic(topicId: string, agentId: string): void {
-  const existing = db.getTopic(topicId)
-  if (existing) {
-    // Topic exists — update agentId if changed
-    if (existing.agentId !== agentId) {
-      db.updateTopic(topicId, { agentId, updatedAt: Date.now() })
-      console.log(`[IM] updated topic agentId: ${topicId} → ${agentId}`)
-    }
-    return
-  }
-
-  // Create a new topic for this IM session
-  db.createTopic({
-    id: topicId,
-    title: `IM: ${topicId.replace(/^agent:[^:]+:/, '')}`,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    status: 'hot',
-    agentId,
-  })
-  console.log(`[IM] created topic for IM session: ${topicId} (agentId=${agentId})`)
-}
-
 export class IMRuntimeBridge {
-  private readonly hostManager: Pick<HostManagerV2, 'sendUserMessage' | 'onGuiUpdate'>
+  private readonly hostManager: Pick<HostManagerV2, 'sendIMMessage' | 'onGuiUpdate'>
   private readonly getConfig: () => Promise<Info>
   private readonly gatewayManager: IMGatewayLike
   private readonly createChannelPlugins: (dispatch: (message: IMInboundMessage) => Promise<void>) => IChannelPlugin[]
-  private readonly ensureTopic: (topicId: string, agentId: string) => void
 
   private unsubscribeGui: (() => void) | null = null
   private started = false
@@ -139,7 +108,6 @@ export class IMRuntimeBridge {
     this.getConfig = options.getConfig ?? (() => Config.get())
     this.gatewayManager = options.createGatewayManager ? options.createGatewayManager() : new IMGatewayManager()
     this.createChannelPlugins = options.createChannelPlugins ?? (() => [])
-    this.ensureTopic = options.ensureTopic ?? defaultEnsureTopic
   }
 
   async start(): Promise<void> {
@@ -158,19 +126,12 @@ export class IMRuntimeBridge {
         chatType: message.chatType,
         chatId: message.chatId,
         senderId: message.senderId,
+        rootId: message.rootId,
         accountId: message.accountId,
         agentId: message.agentId,
       })
 
-      // Ensure a Topic record exists in the DB with the correct agentId
-      // so that SessionManagerV3.createSession() can apply agent customization.
-      try {
-        this.ensureTopic(message.sessionKey, message.agentId)
-      } catch (err) {
-        console.error(`[IM] failed to ensure topic for ${message.sessionKey}:`, err)
-      }
-
-      await this.hostManager.sendUserMessage(message.body, message.sessionKey, message.messageId)
+      await this.hostManager.sendIMMessage(message)
     }
 
     // Create and register all channel plugins
@@ -217,6 +178,68 @@ export class IMRuntimeBridge {
     this.started = false
   }
 
+  getRuntime(): {
+    started: boolean
+    channels: RegisteredChannelRuntime[]
+  } {
+    return {
+      started: this.started,
+      channels: this.gatewayManager.listChannels(),
+    }
+  }
+
+  async processFeishuWebhook(payload: unknown, accountId?: string): Promise<{ status: number; body: Record<string, unknown> }> {
+    const plugin = this.gatewayManager.getChannel('feishu') as (IChannelPlugin & {
+      processWebhook?: (event: any) => Promise<{ accepted: boolean; reason?: string }>
+    }) | undefined
+
+    if (!plugin?.processWebhook) {
+      return {
+        status: 503,
+        body: { code: 1, msg: 'feishu channel is not available' },
+      }
+    }
+
+    const parsedPayload = parseFeishuWebhookPayload(payload, accountId)
+    const verificationToken = this.resolveFeishuVerificationToken(accountId)
+
+    if (verificationToken && parsedPayload.token !== verificationToken) {
+      return {
+        status: 401,
+        body: { code: 1, msg: 'invalid verification token' },
+      }
+    }
+
+    if (parsedPayload.kind === 'challenge') {
+      return {
+        status: 200,
+        body: { challenge: parsedPayload.challenge },
+      }
+    }
+
+    const result = await plugin.processWebhook(parsedPayload.event)
+    return {
+      status: result.accepted ? 200 : 400,
+      body: result.accepted
+        ? { code: 0 }
+        : { code: 1, msg: result.reason ?? 'webhook event rejected' },
+    }
+  }
+
+  private resolveFeishuVerificationToken(accountId?: string): string | undefined {
+    const feishuConfig = this.currentConfig?.im?.channels?.feishu
+    if (!feishuConfig) {
+      return undefined
+    }
+
+    const parsedConfig = parseFeishuConfig(feishuConfig)
+    if (accountId && accountId !== 'default') {
+      return parsedConfig.accounts?.[accountId]?.verificationToken ?? parsedConfig.verificationToken
+    }
+
+    return parsedConfig.verificationToken
+  }
+
   private async onGuiUpdate(event: GuiUpdateEvent): Promise<void> {
     // Handle text_delta (streaming), reasoning_delta (thinking), and assistant (final) events
     if (event.type !== 'text_delta' && event.type !== 'reasoning_delta' && event.type !== 'assistant') {
@@ -234,20 +257,28 @@ export class IMRuntimeBridge {
       return
     }
 
+    const supportsStreaming = plugin.capabilities.streaming === true
+    const replyContext = {
+      chatType: context.chatType,
+      chatId: context.chatId,
+      senderId: context.senderId,
+      rootId: plugin.capabilities.threads === true ? context.rootId : undefined,
+      accountId: context.accountId,
+    }
+
     // ── reasoning_delta: accumulate & stream to reasoning element ────────
     if (event.type === 'reasoning_delta' && event.delta) {
+      if (!supportsStreaming) {
+        return
+      }
+
       const prev = this.accumulatedReasoning.get(event.topicId) ?? ''
       const accumulated = normalizeStreamText(prev, event.delta)
       this.accumulatedReasoning.set(event.topicId, accumulated)
 
       let handler = this.replyHandlers.get(event.topicId)
       if (!handler) {
-        handler = plugin.createReplyHandler({
-          chatType: context.chatType,
-          chatId: context.chatId,
-          senderId: context.senderId,
-          accountId: context.accountId,
-        })
+        handler = plugin.createReplyHandler(replyContext)
         this.replyHandlers.set(event.topicId, handler)
       }
 
@@ -261,6 +292,10 @@ export class IMRuntimeBridge {
 
     // ── text_delta: accumulate & stream ────────────────────────────
     if (event.type === 'text_delta' && event.delta) {
+      if (!supportsStreaming) {
+        return
+      }
+
       const prev = this.accumulatedText.get(event.topicId) ?? ''
       const accumulated = normalizeStreamText(prev, event.delta)
       this.accumulatedText.set(event.topicId, accumulated)
@@ -268,12 +303,7 @@ export class IMRuntimeBridge {
       // Get or create reply handler for this session
       let handler = this.replyHandlers.get(event.topicId)
       if (!handler) {
-        handler = plugin.createReplyHandler({
-          chatType: context.chatType,
-          chatId: context.chatId,
-          senderId: context.senderId,
-          accountId: context.accountId,
-        })
+        handler = plugin.createReplyHandler(replyContext)
         this.replyHandlers.set(event.topicId, handler)
       }
 
@@ -306,12 +336,7 @@ export class IMRuntimeBridge {
         this.accumulatedReasoning.delete(event.topicId)
       } else {
         // No streaming was started (very fast response) — create handler for one-shot send
-        const oneshot = plugin.createReplyHandler({
-          chatType: context.chatType,
-          chatId: context.chatId,
-          senderId: context.senderId,
-          accountId: context.accountId,
-        })
+        const oneshot = plugin.createReplyHandler(replyContext)
         try {
           await oneshot.onFinalReply(text)
           console.log(`[IM] one-shot reply sent for ${event.topicId}`)

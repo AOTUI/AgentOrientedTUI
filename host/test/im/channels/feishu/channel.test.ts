@@ -15,6 +15,250 @@ function createEvent(overrides: Partial<FeishuChannelInboundEvent> = {}): Feishu
 }
 
 describe('FeishuChannelPlugin', () => {
+  it('exposes channel metadata, capabilities, and runtime state', async () => {
+    const gateway = {
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      processWebhook: vi.fn(async () => ({ accepted: true })),
+    }
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch: vi.fn(async () => undefined),
+      createGateway: vi.fn(() => gateway as any),
+      createBotHandler: vi.fn(() => ({ handle: vi.fn(async () => ({ accepted: true })) } as any)),
+    })
+
+    expect(plugin.meta).toEqual({
+      label: 'Feishu',
+      description: 'Feishu/Lark enterprise chat channel with direct, group, and threaded reply support.',
+    })
+    expect(plugin.capabilities).toEqual({
+      chatTypes: ['direct', 'group'],
+      media: false,
+      threads: true,
+      streaming: true,
+      multiAccount: true,
+      webhookInbound: true,
+      websocketInbound: true,
+    })
+    expect(plugin.getRuntimeState()).toEqual({
+      started: false,
+      connectionMode: undefined,
+      accountIds: ['default'],
+      sessionScopes: [],
+      accounts: [],
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        connectionMode: 'webhook',
+        sessionScope: 'peer_thread_sender',
+        accounts: {
+          corpA: {
+            appId: 'cli_a',
+            appSecret: 'sec_a',
+            sessionScope: 'peer_sender',
+          },
+        },
+      },
+    })
+
+    expect(plugin.getRuntimeState()).toEqual({
+      started: true,
+      connectionMode: 'webhook',
+      accountIds: ['default', 'corpA'],
+      sessionScopes: ['peer_sender', 'peer_thread_sender'],
+      accounts: [
+        {
+          accountId: 'default',
+          active: true,
+          appId: 'cli_x',
+          connectionMode: 'webhook',
+          sessionScope: 'peer_thread_sender',
+        },
+        {
+          accountId: 'corpA',
+          active: true,
+          appId: 'cli_a',
+          connectionMode: 'webhook',
+          sessionScope: 'peer_sender',
+        },
+      ],
+    })
+  })
+
+  it('starts one gateway per enabled Feishu account', async () => {
+    const createGateway = vi.fn(() => ({
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      processWebhook: vi.fn(async () => ({ accepted: true })),
+    }))
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch: vi.fn(async () => undefined),
+      createGateway: createGateway as any,
+      createBotHandler: vi.fn(() => ({ handle: vi.fn(async () => ({ accepted: true })) } as any)),
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_root',
+        appSecret: 'sec_root',
+        accounts: {
+          corpA: {
+            enabled: true,
+            appId: 'cli_a',
+            appSecret: 'sec_a',
+          },
+          corpB: {
+            enabled: true,
+            appId: 'cli_b',
+            appSecret: 'sec_b',
+          },
+        },
+      },
+    })
+
+    expect(createGateway).toHaveBeenCalledTimes(3)
+  })
+
+  it('starts nested accounts without requiring a default root bot', async () => {
+    const createGateway = vi.fn(() => ({
+      start: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      processWebhook: vi.fn(async () => ({ accepted: true })),
+    }))
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch: vi.fn(async () => undefined),
+      createGateway: createGateway as any,
+      createBotHandler: vi.fn(() => ({ handle: vi.fn(async () => ({ accepted: true })) } as any)),
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        accounts: {
+          corpA: {
+            enabled: true,
+            appId: 'cli_a',
+            appSecret: 'sec_a',
+          },
+          corpB: {
+            enabled: true,
+            appId: 'cli_b',
+            appSecret: 'sec_b',
+          },
+        },
+      },
+    })
+
+    expect(createGateway).toHaveBeenCalledTimes(2)
+    expect(plugin.getRuntimeState()).toEqual({
+      started: true,
+      connectionMode: 'websocket',
+      accountIds: ['corpA', 'corpB'],
+      sessionScopes: ['peer'],
+      accounts: [
+        {
+          accountId: 'corpA',
+          active: true,
+          appId: 'cli_a',
+          connectionMode: 'websocket',
+          sessionScope: 'peer',
+        },
+        {
+          accountId: 'corpB',
+          active: true,
+          appId: 'cli_b',
+          connectionMode: 'websocket',
+          sessionScope: 'peer',
+        },
+      ],
+    })
+  })
+
+  it('reports per-account runtime when some bot accounts fail to start', async () => {
+    const createGateway = vi.fn(({ createWsClient }: { createWsClient?: () => { start?: () => Promise<void> } }) => ({
+      start: vi.fn(async () => {
+        await createWsClient?.().start?.()
+      }),
+      stop: vi.fn(async () => undefined),
+      processWebhook: vi.fn(async () => ({ accepted: true })),
+    }))
+
+    const createWsClient = vi
+      .fn<() => { start: () => Promise<void>; stop: () => Promise<void>; onMessage: () => void }>()
+      .mockImplementationOnce(() => ({
+        start: async () => undefined,
+        stop: async () => undefined,
+        onMessage: () => undefined,
+      }))
+      .mockImplementationOnce(() => ({
+        start: async () => {
+          throw new Error('corpB connect failed')
+        },
+        stop: async () => undefined,
+        onMessage: () => undefined,
+      }))
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch: vi.fn(async () => undefined),
+      createGateway: createGateway as any,
+      createBotHandler: vi.fn(() => ({ handle: vi.fn(async () => ({ accepted: true })) } as any)),
+      createWsClient: createWsClient as any,
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        accounts: {
+          corpA: {
+            enabled: true,
+            appId: 'cli_a',
+            appSecret: 'sec_a',
+          },
+          corpB: {
+            enabled: true,
+            appId: 'cli_b',
+            appSecret: 'sec_b',
+          },
+        },
+      },
+    })
+
+    expect(plugin.getRuntimeState()).toEqual({
+      started: true,
+      connectionMode: 'websocket',
+      accountIds: ['corpA', 'corpB'],
+      sessionScopes: ['peer'],
+      accounts: [
+        {
+          accountId: 'corpA',
+          active: true,
+          appId: 'cli_a',
+          connectionMode: 'websocket',
+          sessionScope: 'peer',
+        },
+        {
+          accountId: 'corpB',
+          active: false,
+          appId: 'cli_b',
+          connectionMode: 'websocket',
+          sessionScope: 'peer',
+        },
+      ],
+    })
+  })
+
   it('starts gateway with parsed connection mode', async () => {
     const gateway = {
       start: vi.fn(async () => undefined),
@@ -218,7 +462,97 @@ describe('FeishuChannelPlugin', () => {
     expect(capturedMessage.senderId).toBe('ou_sender')
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
-        sessionKey: 'agent:agent-default:feishu:direct:ou_sender',
+        sessionKey: 'agent:agent-default:feishu:bot:cli_x:direct:ou_sender',
+      }),
+    )
+  })
+
+  it('passes rootId through to dispatch when group sessionScope=peer_thread', async () => {
+    const dispatch = vi.fn(async () => undefined)
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch,
+      createGateway: vi.fn((deps: any) => ({
+        start: vi.fn(async () => {
+          await deps.onEvent(
+            createEvent({
+              chatType: 'group',
+              chatId: 'oc_group',
+              rootId: 'om_root_1',
+              text: 'thread hello',
+            }),
+          )
+        }),
+        stop: vi.fn(async () => undefined),
+        processWebhook: vi.fn(async () => ({ accepted: true })),
+      } as any)),
+      routingConfig: {
+        agents: { activeAgentId: 'agent-default' },
+        im: { channels: { feishu: {} } },
+      } as any,
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_thread',
+        requireMention: false,
+      },
+    })
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rootId: 'om_root_1',
+        peerId: 'oc_group:thread:om_root_1',
+        sessionKey: 'agent:agent-default:feishu:bot:cli_x:group:oc_group:thread:om_root_1',
+      }),
+    )
+  })
+
+  it('passes sender-scoped peerId through to dispatch when group sessionScope=peer_sender', async () => {
+    const dispatch = vi.fn(async () => undefined)
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch,
+      createGateway: vi.fn((deps: any) => ({
+        start: vi.fn(async () => {
+          await deps.onEvent(
+            createEvent({
+              chatType: 'group',
+              chatId: 'oc_group',
+              senderId: 'ou_sender_1',
+              text: 'sender hello',
+            }),
+          )
+        }),
+        stop: vi.fn(async () => undefined),
+        processWebhook: vi.fn(async () => ({ accepted: true })),
+      } as any)),
+      routingConfig: {
+        agents: { activeAgentId: 'agent-default' },
+        im: { channels: { feishu: {} } },
+      } as any,
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_sender',
+        requireMention: false,
+      },
+    })
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        peerId: 'oc_group:sender:ou_sender_1',
+        sessionScope: 'peer_sender',
+        sessionKey: 'agent:agent-default:feishu:bot:cli_x:group:oc_group:sender:ou_sender_1',
       }),
     )
   })
@@ -391,6 +725,30 @@ describe('FeishuChannelPlugin', () => {
         expect.objectContaining({
           botToken: 'auto_token',
           text: 'need token',
+        }),
+      )
+    })
+
+    it('passes rootId to reply handler context for thread-scoped group replies', async () => {
+      const sendText = vi.fn(async () => ({ messageId: 'om_thread_sent' }))
+      const plugin = createStartedPlugin({ sendText })
+      await plugin.start(startCtx)
+
+      const handler = plugin.createReplyHandler({
+        chatType: 'group',
+        chatId: 'oc_group_1',
+        senderId: 'ou_1',
+        rootId: 'om_root_1',
+      })
+
+      await handler.onFinalReply('thread reply')
+
+      expect(sendText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          receiveId: 'oc_group_1',
+          receiveIdType: 'chat_id',
+          rootId: 'om_root_1',
+          text: 'thread reply',
         }),
       )
     })

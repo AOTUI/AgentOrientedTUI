@@ -116,8 +116,7 @@ function TokenMonitorRoot() {
 }
 
 export default createTUIApp({
-    appName: 'token_monitor',
-    name: 'Token Monitor',
+    app_name: 'token_monitor',
     whatItIs: 'A real-time token usage monitoring system that tracks LLM context consumption, automatically resolves model limits from models.dev, and warns when usage exceeds configurable thresholds. Maintains a history of the last 10 usage snapshots for trend analysis.',
     whenToUse: 'Use Token Monitor when you need to: (1) Track real-time token consumption during LLM interactions, (2) Avoid context overflow by monitoring usage percentage, (3) Optimize prompt efficiency by analyzing token usage patterns, (4) Set custom warning thresholds for proactive alerts, (5) Review historical usage trends from recent interactions.',
     component: TokenMonitorRoot,

@@ -367,8 +367,7 @@ function PlanningApp() {
 }
 
 export default createTUIApp({
-    appName: 'planning_app',
-    name: 'Planning App',
+    app_name: 'planning_app',
     whatItIs: 'A hierarchical task planning and progress tracking system that organizes work into three levels: Plans (projects), Phases (major milestones), and Tasks (individual work items). Each level supports full CRUD operations and tracks completion status. All data is persisted per-desktop using SQLite.',
     whenToUse: 'Use Planning App when you need to: (1) Break down complex projects into manageable phases and tasks, (2) Track progress across multiple work streams or milestones, (3) Create structured, hierarchical work plans with descriptions and metadata, (4) Monitor completion status at plan, phase, and task levels, (5) Organize iterative development with clear phases and actionable tasks.',
     component: PlanningApp,

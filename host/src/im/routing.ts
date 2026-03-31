@@ -9,7 +9,7 @@ function toNonEmptyString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
-export function buildSessionKey(agentId: string, channel: string, chatType: ChatType, peerId: string): string {
+export function buildSessionKey(agentId: string, channel: string, chatType: ChatType, peerId: string, botIdentity?: string): string {
   const normalizedAgentId = toNonEmptyString(agentId)
   if (!normalizedAgentId) {
     throw new Error('agentId is required to build sessionKey')
@@ -25,7 +25,35 @@ export function buildSessionKey(agentId: string, channel: string, chatType: Chat
     throw new Error('peerId is required to build sessionKey')
   }
 
+  const normalizedBotIdentity = toNonEmptyString(botIdentity)
+  if (normalizedBotIdentity) {
+    return `agent:${normalizedAgentId}:${normalizedChannel}:bot:${normalizedBotIdentity}:${chatType}:${normalizedPeerId}`
+  }
+
   return `agent:${normalizedAgentId}:${normalizedChannel}:${chatType}:${normalizedPeerId}`
+}
+
+export function isIMSessionKey(value: string): boolean {
+  const normalized = toNonEmptyString(value)
+  if (!normalized) {
+    return false
+  }
+
+  const parts = normalized.split(':')
+  if (parts.length >= 7 && parts[0] === 'agent' && parts[3] === 'bot') {
+    return parts[1].trim().length > 0
+      && parts[2].trim().length > 0
+      && parts[4].trim().length > 0
+      && (parts[5] === 'direct' || parts[5] === 'group')
+      && parts.slice(6).join(':').trim().length > 0
+  }
+
+  return parts.length >= 5
+    && parts[0] === 'agent'
+    && parts[1].trim().length > 0
+    && parts[2].trim().length > 0
+    && (parts[3] === 'direct' || parts[3] === 'group')
+    && parts.slice(4).join(':').trim().length > 0
 }
 
 function getChannelConfig(params: ResolveIMRouteParams): { botAgentId?: string; accounts?: Record<string, { botAgentId?: string }> } {
@@ -51,6 +79,6 @@ export function resolveIMRoute(params: ResolveIMRouteParams): ResolveIMRouteResu
 
   return {
     agentId,
-    sessionKey: buildSessionKey(agentId, params.channel, params.chatType, params.peerId),
+    sessionKey: buildSessionKey(agentId, params.channel, params.chatType, params.peerId, params.botIdentity),
   }
 }

@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import PlanningAppFactory from '../src/tui/index.js';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@aotui/sdk', async () => import('../../sdk/src/index.ts'));
 
 describe('planning app factory', () => {
-    it('exposes display name', () => {
-        const factory = PlanningAppFactory as { displayName?: string };
-        expect(factory.displayName).toBe('Planning App');
+    let PlanningAppFactory: any;
+
+    beforeAll(async () => {
+        PlanningAppFactory = (await import('../src/tui/index.js')).default;
+    });
+
+    it('exposes canonical app_name metadata', () => {
+        const factory = PlanningAppFactory as { displayName?: string; kernelConfig?: { appName?: string } };
+        expect(factory.displayName).toBe('planning_app');
+        expect(factory.kernelConfig?.appName).toBe('planning_app');
     });
 });

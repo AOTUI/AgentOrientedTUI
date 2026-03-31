@@ -1,33 +1,11 @@
 {
-    "name": "system-lite-browser",
-    "displayName": "Lite Browser",
-    "version": "0.1.0",
-    "description": "A lightweight TUI browser with web search and URL fetch",
-    "author": "AOTUI Team",
-    "license": "MIT",
-    "runtime": {
-        "minVersion": "0.1.0"
-    },
-    "entry": {
-        "main": "./dist/index.js",
-        "types": "./dist/index.d.ts"
-    },
-    "views": [
-        {
-            "name": "Root",
-            "description": "App instructions and usage overview"
-        },
-        {
-            "name": "Search",
-            "description": "Search query status and summary"
-        },
-        {
-            "name": "ResultList",
-            "description": "Parsed search result links"
-        },
-        {
-            "name": "Page",
-            "description": "Fetched page content"
-        }
-    ]
+  "app_name": "lite_browser",
+  "version": "0.1.0",
+  "description": "AOTUI Lite Browser App - web search and fetch views for LLM workflows",
+  "whatItIs": "A lightweight TUI browser that runs web searches and fetches URL content into structured views for LLM workflows.",
+  "whenToUse": "Use Lite Browser when you need to search the web for current information and fetch specific URLs into a readable format.",
+  "entry": {
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts"
+  }
 }

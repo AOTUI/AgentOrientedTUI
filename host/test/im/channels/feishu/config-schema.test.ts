@@ -59,4 +59,28 @@ describe('Feishu config schema', () => {
     expect(parsed.accounts?.corpA?.appId).toBe('cli_a')
     expect(parsed.accounts?.corpA?.connectionMode).toBe('websocket')
   })
+
+  it('allows account-only multi-bot config without default credentials', () => {
+    const parsed = parseFeishuConfig({
+      enabled: true,
+      accounts: {
+        corpA: {
+          enabled: true,
+          appId: 'cli_a',
+          appSecret: 'sec_a',
+        },
+        corpB: {
+          enabled: true,
+          appId: 'cli_b',
+          appSecret: 'sec_b',
+          connectionMode: 'webhook',
+        },
+      },
+    })
+
+    expect(parsed.enabled).toBe(true)
+    expect(parsed.appId).toBeUndefined()
+    expect(parsed.accounts?.corpA?.appId).toBe('cli_a')
+    expect(parsed.accounts?.corpB?.connectionMode).toBe('webhook')
+  })
 })

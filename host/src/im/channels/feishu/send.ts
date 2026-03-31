@@ -3,6 +3,7 @@ export interface FeishuSendBaseInput {
   botToken: string
   receiveIdType: 'chat_id' | 'open_id' | 'user_id' | 'email' | 'union_id'
   receiveId: string
+  rootId?: string
 }
 
 export interface SendTextMessageInput extends FeishuSendBaseInput {
@@ -45,6 +46,7 @@ async function sendMessage(
       receive_id: receiveId,
       msg_type: messageType,
       content: JSON.stringify(content),
+      ...(input.rootId ? { root_id: input.rootId } : {}),
     }),
   })
 

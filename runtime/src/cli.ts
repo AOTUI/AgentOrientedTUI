@@ -26,6 +26,7 @@ import { installNpmPackage } from './cli/npm-installer.js';
 import { searchCatalog } from './cli/catalog.js';
 import { parseInstallSource, type ParsedInstallSource } from './cli/sources.js';
 import { resolveCatalog, resolveCatalogOptionsFromConfig } from './cli/catalog-resolver.js';
+import { renderInstalledAppLines } from './cli-list.js';
 
 const HELP = `
 Agentina App Manager
@@ -46,7 +47,6 @@ Commands:
 
 Options:
   --force              Force install (overwrite existing, reinstall when needed)
-  --as <alias>         Install with a different app key
   --no-autostart       Install without auto-start
   --help               Show help
 
@@ -129,13 +129,11 @@ async function main(): Promise<void> {
 interface ParsedInstallArgs {
     source: string;
     force: boolean;
-    alias?: string;
     autoStart: boolean;
 }
 
 function parseInstallArgs(args: string[], commandName: 'install' | 'link'): ParsedInstallArgs {
     let force = false;
-    let alias: string | undefined;
     let autoStart = true;
     const positional: string[] = [];
 
@@ -149,15 +147,6 @@ function parseInstallArgs(args: string[], commandName: 'install' | 'link'): Pars
             autoStart = false;
             continue;
         }
-        if (token === '--as') {
-            const next = args[i + 1];
-            if (!next || next.startsWith('--')) {
-                throw new Error('Missing alias value after --as');
-            }
-            alias = next;
-            i += 1;
-            continue;
-        }
         if (token.startsWith('--')) {
             throw new Error(`Unknown option: ${token}`);
         }
@@ -165,13 +154,12 @@ function parseInstallArgs(args: string[], commandName: 'install' | 'link'): Pars
     }
 
     if (positional.length === 0) {
-        throw new Error(`Usage: agentina ${commandName} <${commandName === 'link' ? 'path' : 'source'}> [--force] [--as <alias>] [--no-autostart]`);
+        throw new Error(`Usage: agentina ${commandName} <${commandName === 'link' ? 'path' : 'source'}> [--force] [--no-autostart]`);
     }
 
     return {
         source: positional[0],
         force,
-        alias,
         autoStart
     };
 }
@@ -234,7 +222,6 @@ async function installAppFromSource(
         console.log(`Linking ${source.absolutePath}...`);
         return registry.add(source.source, {
             force: options.force,
-            alias: options.alias,
             autoStart: options.autoStart,
             originalSource: source.source,
             distribution: {
@@ -252,7 +239,6 @@ async function installAppFromSource(
 
     return registry.add(result.localSource, {
         force: options.force,
-        alias: options.alias,
         autoStart: options.autoStart,
         originalSource: source.source,
         distribution: {
@@ -280,47 +266,9 @@ async function handleRemove(registry: AppRegistry, args: string[]): Promise<void
 
 function handleList(registry: AppRegistry): void {
     const config = registry.getConfig();
-    const appNames = Object.keys(config.apps);
-
-    if (appNames.length === 0) {
-        console.log('No apps installed.');
-        console.log('');
-        console.log('Install an app with: agentina install <source>');
-        return;
+    for (const line of renderInstalledAppLines(config, registry)) {
+        console.log(line);
     }
-
-    console.log('Installed apps:');
-    console.log('');
-
-    // Show all apps from config (including disabled ones)
-    for (const name of appNames) {
-        const entry = config.apps[name];
-        const loadedApp = registry.get(name);
-        // [RFC-014] Two-layer status: enabled + autoStart
-        const enabledStatus = entry.enabled ? '✅' : '❌';
-        const autoStartStatus = (entry.autoStart ?? true) ? '🚀' : '⏸️';
-
-        // Use loaded manifest if available, otherwise show basic info
-        if (loadedApp) {
-            // [方案 B] manifest 在 kernelConfig 模式下可能为 undefined
-            const displayName = loadedApp.manifest?.displayName ?? loadedApp.factory.displayName ?? name;
-            const version = loadedApp.manifest?.version ?? 'N/A';
-            console.log(`  ${enabledStatus}${autoStartStatus} ${displayName} (${name})`);
-            console.log(`     Version: ${version}`);
-        } else {
-            console.log(`  ${enabledStatus}${autoStartStatus} ${name} (disabled)`);
-        }
-        if (entry.originalSource && entry.originalSource !== entry.source) {
-            console.log(`     Source: ${entry.originalSource}`);
-            console.log(`     Resolved: ${entry.source}`);
-        } else {
-            console.log(`     Source: ${entry.source}`);
-        }
-        console.log('');
-    }
-
-    // [RFC-014] Legend
-    console.log('Legend: ✅=enabled ❌=disabled 🚀=auto-start ⏸️=manual-start');
 }
 
 async function handleEnable(registry: AppRegistry, args: string[], enable: boolean): Promise<void> {

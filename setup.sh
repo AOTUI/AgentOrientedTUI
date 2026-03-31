@@ -5,6 +5,8 @@
 
 set -e  # Exit on error
 
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
 echo "🚀 AOTUI Development Environment Setup"
 echo "========================================"
 echo ""
@@ -23,9 +25,51 @@ echo ""
 echo "📦 Installing dependencies for all packages..."
 echo "----------------------------------------------"
 
+force_local_package_link() {
+    local target="$1"
+    local package_name="$2"
+    local source_dir="$3"
+    local scope_dir="$REPO_ROOT/$target/node_modules/@aotui"
+    local source_path
+
+    source_path="$REPO_ROOT/$source_dir"
+    mkdir -p "$scope_dir"
+    rm -rf "$scope_dir/$package_name"
+    ln -sfn "$source_path" "$scope_dir/$package_name"
+}
+
+link_local_core_deps() {
+    local target="$1"
+
+    if [ ! -d "$target" ] || [ ! -f "$target/package.json" ]; then
+        return
+    fi
+
+    case "$target" in
+        "runtime")
+            force_local_package_link "$target" "agent-driver-v2" "agent-driver-v2"
+            ;;
+        "sdk")
+            force_local_package_link "$target" "runtime" "runtime"
+            ;;
+        "host")
+            force_local_package_link "$target" "agent-driver-v2" "agent-driver-v2"
+            force_local_package_link "$target" "runtime" "runtime"
+            force_local_package_link "$target" "sdk" "sdk"
+            ;;
+        "planning-app"|"terminal-app"|"token-monitor-app")
+            force_local_package_link "$target" "sdk" "sdk"
+            force_local_package_link "$target" "runtime" "runtime"
+            ;;
+        "aotui-ide"|"lite-browser-app")
+            force_local_package_link "$target" "sdk" "sdk"
+            ;;
+    esac
+}
+
 # Install root dependencies
 echo "📦 Installing root dependencies..."
-pnpm install
+pnpm install --ignore-workspace
 
 # Install dependencies for each package/app directory
 install_targets=(
@@ -44,21 +88,23 @@ for target in "${install_targets[@]}"; do
     if [ -d "$target" ] && [ -f "$target/package.json" ]; then
         echo "📦 Installing dependencies in $target..."
         cd "$target"
-        pnpm install
+        pnpm install --ignore-workspace
+        cd ..
+
+        echo "🔗 Linking local core packages into $target..."
+        link_local_core_deps "$target"
 
         # Build local packages immediately so downstream file: dependencies can resolve dist/types
         if [ "$target" = "agent-driver-v2" ] || [ "$target" = "runtime" ] || [ "$target" = "sdk" ]; then
             echo "🔨 Pre-building $target for local file: dependency consumers..."
-            pnpm build
+            pnpm -C "$target" build
         fi
 
         # Self-heal Electron install when pnpm blocks build scripts and electron/path.txt is missing
-        if [ "$target" = "host" ] && [ -f "node_modules/electron/install.js" ] && [ ! -f "node_modules/electron/path.txt" ]; then
+        if [ "$target" = "host" ] && [ -f "$target/node_modules/electron/install.js" ] && [ ! -f "$target/node_modules/electron/path.txt" ]; then
             echo "🔧 Electron binary not detected (path.txt missing), running installer..."
-            node node_modules/electron/install.js
+            node "$target/node_modules/electron/install.js"
         fi
-
-        cd ..
     else
         echo "⚠️  $target/package.json not found, skipping dependency install"
     fi
@@ -73,16 +119,16 @@ echo "🔨 Building packages in correct order..."
 echo "----------------------------------------------"
 
 echo "📦 Building agent-driver-v2..."
-pnpm --filter ./agent-driver-v2 build
+pnpm -C agent-driver-v2 build
 
 echo "📦 Building runtime..."
-pnpm --filter ./runtime build
+pnpm -C runtime build
 
 echo "📦 Building SDK..."
-pnpm --filter ./sdk build
+pnpm -C sdk build
 
 echo "📦 Building host..."
-pnpm --filter ./host build
+pnpm -C host build
 
 echo ""
 echo "✅ All packages built successfully!"

@@ -66,6 +66,7 @@ describe('AppKernel - Component Mode Operation Routing', () => {
 
         // Create AppKernel with component mode config
         const config: AppKernelConfig = {
+            appName: 'test_component_app',
             name: 'test-component-app',
             component: {
                 initializeComponent: vi.fn().mockResolvedValue({}),
@@ -198,6 +199,7 @@ describe('AppKernel - Component Mode Operation Routing', () => {
         it('should invoke onReinitialize hook with reason', async () => {
             const onReinitialize = vi.fn().mockResolvedValue(undefined);
             const appKernelWithHook = new AppKernel({
+                appName: 'test_component_app',
                 name: 'test-component-app',
                 component: {
                     initializeComponent: vi.fn().mockResolvedValue({}),
@@ -224,9 +226,21 @@ describe('AppKernel - Component Mode Operation Routing', () => {
             });
         });
 
+        it('should require explicit appName instead of deriving from display name', () => {
+            expect(() =>
+                new AppKernel({
+                    name: 'Test Component App',
+                    component: {
+                        initializeComponent: vi.fn().mockResolvedValue({}),
+                    },
+                } as any)
+            ).toThrow(/appName/);
+        });
+
         it('should pass launchConfig through runtime context during initialization', async () => {
             const initializeComponent = vi.fn().mockResolvedValue({});
             const appKernelWithLaunchConfig = new AppKernel({
+                appName: 'test_component_app',
                 name: 'test-component-app',
                 component: {
                     initializeComponent,

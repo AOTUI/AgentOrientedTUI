@@ -151,6 +151,30 @@ describe('Feishu reply dispatcher', () => {
     expect(streaming.start).toHaveBeenCalledWith('oc_1', 'chat_id', { replyToMessageId: 'om_reply' })
   })
 
+  it('passes rootId into stream start for threaded group replies', async () => {
+    const streaming = {
+      isActive: vi.fn(() => true),
+      start: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+      close: vi.fn(async () => undefined),
+    }
+
+    const dispatcher = createFeishuReplyDispatcher({
+      createStreamingSession: vi.fn(() => streaming as any),
+      sendMarkdownCard: vi.fn(async () => undefined),
+      receiveId: 'oc_thread',
+      receiveIdType: 'chat_id',
+      rootId: 'om_root_1',
+    })
+
+    await dispatcher.onPartialReply('hello thread')
+
+    expect(streaming.start).toHaveBeenCalledWith('oc_thread', 'chat_id', {
+      replyToMessageId: undefined,
+      rootId: 'om_root_1',
+    })
+  })
+
   it('passes open_id to stream start for direct messages', async () => {
     const streaming = {
       isActive: vi.fn(() => true),

@@ -39,14 +39,11 @@ import { initPersistenceShutdown } from '../hooks/persistence-shutdown.js';
  */
 export interface TUIAppConfig {
     /**
-     * App 语义名称（用于对外暴露给 LLM 的 Tool 名称前缀）
+     * App 唯一名称（用于展示、Tool 前缀、配置键、持久化命名空间）
      *
-     * 约束: [a-zA-Z0-9_]
+     * 约束: [a-z0-9_]
      */
-    appName: string;
-
-    /** App名称 */
-    name: string;
+    app_name: string;
 
     /** App 描述 (兼容旧字段) */
     description?: string;
@@ -119,16 +116,16 @@ export interface TUIComponentAppFactory extends Factory<IAOTUIApp> {
  * }
  * 
  * export default createTUIApp({
- *     name: 'TODO Manager',
+ *     app_name: 'todo_manager',
  *     component: TodoApp,
  * });
  * ```
  */
 export function createTUIApp(config: TUIAppConfig): TUIComponentAppFactory {
-    if (!/^[a-zA-Z0-9_]+$/.test(config.appName)) {
+    if (!/^[a-z0-9_]+$/.test(config.app_name)) {
         throw new Error(
-            `[AOTUI SDK] Invalid appName "${config.appName}". ` +
-            `appName must match /^[a-zA-Z0-9_]+$/`
+            `[AOTUI SDK] Invalid app_name "${config.app_name}". ` +
+            `app_name must match /^[a-z0-9_]+$/`
         );
     }
 
@@ -137,8 +134,8 @@ export function createTUIApp(config: TUIAppConfig): TUIComponentAppFactory {
 
     // 转换为AppKernelConfig格式
     const kernelConfig: AppKernelConfig = {
-        appName: config.appName,
-        name: config.name,
+        appName: config.app_name,
+        name: config.app_name,
         description: config.description,
         whatItIs: config.whatItIs,
         whenToUse: config.whenToUse,
@@ -153,7 +150,7 @@ export function createTUIApp(config: TUIAppConfig): TUIComponentAppFactory {
 
     const factory: TUIComponentAppFactory = {
         [TUI_FACTORY]: 'app',
-        displayName: config.name,
+        displayName: config.app_name,
         kernelConfig,
 
         /**

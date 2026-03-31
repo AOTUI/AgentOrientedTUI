@@ -22,6 +22,7 @@ import type {
     ToolResultMessagePart
 } from '../types.js';
 import { createLLMConfigsTable } from './llm-config-db.js';
+import { isIMSessionKey } from '../im/routing.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
@@ -159,9 +160,35 @@ function initSchema() {
             provider_options TEXT DEFAULT NULL,
             FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_messages_v2_topic_id ON messages_v2(topic_id);
         CREATE INDEX IF NOT EXISTS idx_messages_v2_timestamp ON messages_v2(timestamp);
+
+        CREATE TABLE IF NOT EXISTS im_messages (
+            id TEXT PRIMARY KEY,
+            session_key TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_im_messages_session_key ON im_messages(session_key);
+        CREATE INDEX IF NOT EXISTS idx_im_messages_timestamp ON im_messages(timestamp);
+
+        CREATE TABLE IF NOT EXISTS im_sessions (
+            session_key TEXT PRIMARY KEY,
+            agent_id TEXT NOT NULL,
+            channel TEXT NOT NULL,
+            chat_type TEXT NOT NULL,
+            peer_id TEXT NOT NULL,
+            account_id TEXT DEFAULT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            last_access_time INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_im_sessions_updated_at ON im_sessions(updated_at);
+        CREATE INDEX IF NOT EXISTS idx_im_sessions_channel ON im_sessions(channel);
 
         -- Projects table
         CREATE TABLE IF NOT EXISTS projects (
@@ -224,6 +251,38 @@ function migrateSchema() {
         
         CREATE INDEX IF NOT EXISTS idx_messages_v2_topic_id ON messages_v2(topic_id);
         CREATE INDEX IF NOT EXISTS idx_messages_v2_timestamp ON messages_v2(timestamp);
+    `);
+
+    console.log('[DB] Ensuring im_messages table exists...');
+    db.run(`
+        CREATE TABLE IF NOT EXISTS im_messages (
+            id TEXT PRIMARY KEY,
+            session_key TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_im_messages_session_key ON im_messages(session_key);
+        CREATE INDEX IF NOT EXISTS idx_im_messages_timestamp ON im_messages(timestamp);
+    `);
+
+    console.log('[DB] Ensuring im_sessions table exists...');
+    db.run(`
+        CREATE TABLE IF NOT EXISTS im_sessions (
+            session_key TEXT PRIMARY KEY,
+            agent_id TEXT NOT NULL,
+            channel TEXT NOT NULL,
+            chat_type TEXT NOT NULL,
+            peer_id TEXT NOT NULL,
+            account_id TEXT DEFAULT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            last_access_time INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_im_sessions_updated_at ON im_sessions(updated_at);
+        CREATE INDEX IF NOT EXISTS idx_im_sessions_channel ON im_sessions(channel);
     `);
 
     // [RFC-025] Add Projects table
@@ -471,7 +530,8 @@ export function getTopic(id: string): Topic | null {
 }
 
 export function getAllTopics(): Topic[] {
-    return queryAll('SELECT * FROM topics ORDER BY updated_at DESC', [], rowToTopic);
+    return queryAll('SELECT * FROM topics ORDER BY updated_at DESC', [], rowToTopic)
+        .filter((topic) => !isIMSessionKey(topic.id));
 }
 
 export function updateTopic(id: string, updates: Partial<Topic>): void {
@@ -749,4 +809,3 @@ export function getMessagesWithParts(topicId: string): MessageWithParts[] {
         parts: allParts.get(msg.id) || []
     }));
 }
-

@@ -1,25 +1,11 @@
 {
-    "name": "system-token-monitor",
-    "displayName": "TokenMonitor",
-    "version": "0.1.0",
-    "description": "Token usage monitor using LLM output metadata",
-    "author": "AOTUI Team",
-    "license": "MIT",
-    "runtime": {
-        "minVersion": "0.1.0"
-    },
-    "entry": {
-        "main": "./dist/index.js",
-        "types": "./dist/index.d.ts"
-    },
-    "views": [
-        {
-            "name": "Root",
-            "description": "App instructions and token limit configuration"
-        },
-        {
-            "name": "Token Monitor",
-            "description": "Latest usage stats and warning status"
-        }
-    ]
+  "app_name": "token_monitor",
+  "version": "0.1.0",
+  "description": "AOTUI Token Monitor App - LLM usage metadata and warning view",
+  "whatItIs": "A real-time token usage monitoring system that tracks LLM context consumption, automatically resolves model limits from models.dev, and warns when usage exceeds configurable thresholds. Maintains a history of the last 10 usage snapshots for trend analysis.",
+  "whenToUse": "Use Token Monitor when you need to: (1) Track real-time token consumption during LLM interactions, (2) Avoid context overflow by monitoring usage percentage, (3) Optimize prompt efficiency by analyzing token usage patterns, (4) Set custom warning thresholds for proactive alerts, (5) Review historical usage trends from recent interactions.",
+  "entry": {
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts"
+  }
 }

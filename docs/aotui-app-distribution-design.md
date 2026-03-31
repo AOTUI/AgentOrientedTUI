@@ -33,7 +33,7 @@
 采用“三层解耦”架构：
 
 1. 发布层（Publish）
-   - 开发者通过 NPM 发布 AOTUI App（包内包含 `aoapp.json` + build 产物）。
+   - 开发者通过 NPM 发布 AOTUI App（包内包含 build 产物 + 由 build 生成的 `aoapp.json`）。
 2. 目录层（Catalog）
    - 提供可检索应用索引（Phase 1 使用内置/静态 Catalog；后续扩展到远程 Catalog 服务）。
 3. 安装层（Install Runtime）
@@ -43,7 +43,7 @@
 
 ## 5. 配置与数据模型设计
 
-基于 `~/.agentina/config.json` 的 `apps.<name>` 扩展字段：
+基于 `~/.agentina/config.json` 的 `apps.<app_name>` 扩展字段：
 
 1. `source`: 实际运行 source（Phase 1 为 `local:<cachePath>`）。
 2. `originalSource`: 原始来源（如 `npm:@scope/pkg@1.2.3`）。
@@ -62,7 +62,7 @@
 
 ### 6.1 新增命令
 
-1. `agentina install <sourceOrPackage> [--force] [--as <alias>] [--no-autostart]`
+1. `agentina install <sourceOrPackage> [--force] [--no-autostart]`
    - 输入可为：
      - 本地路径（等价 link）
      - `local:<path>`

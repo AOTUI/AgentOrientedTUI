@@ -2,7 +2,11 @@ import type { FeishuReceiveIdType } from './targets.js'
 
 export interface FeishuStreamingSessionLike {
   isActive: () => boolean
-  start: (receiveId: string, receiveIdType: FeishuReceiveIdType, options?: { replyToMessageId?: string }) => Promise<void>
+  start: (
+    receiveId: string,
+    receiveIdType: FeishuReceiveIdType,
+    options?: { replyToMessageId?: string; rootId?: string },
+  ) => Promise<void>
   update: (text: string) => Promise<void>
   close: (text?: string) => Promise<void>
   /** Optional: stream reasoning/thinking text into a dedicated card element */
@@ -20,6 +24,7 @@ export interface FeishuReplyDispatcherDeps {
   receiveId: string
   receiveIdType: FeishuReceiveIdType
   replyToMessageId?: string
+  rootId?: string
 }
 
 export function createFeishuReplyDispatcher(deps: FeishuReplyDispatcherDeps) {
@@ -61,6 +66,7 @@ export function createFeishuReplyDispatcher(deps: FeishuReplyDispatcherDeps) {
     startPromise = (async () => {
       await stream.start(deps.receiveId, deps.receiveIdType, {
         replyToMessageId: deps.replyToMessageId,
+        rootId: deps.rootId,
       })
       started = true
     })()

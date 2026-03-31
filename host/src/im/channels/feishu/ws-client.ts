@@ -122,6 +122,16 @@ export function createRealFeishuWsClient(options: CreateRealFeishuWsClientOption
               chatId: msg.chat_id,
               chatType: msg.chat_type === 'p2p' ? 'direct' : 'group',
               senderId,
+              mentions: Array.isArray(msg.mentions)
+                ? msg.mentions.map((mention) => ({
+                  key: mention.key,
+                  openId: mention.id?.open_id,
+                  userId: mention.id?.user_id,
+                  unionId: mention.id?.union_id,
+                  name: mention.name,
+                }))
+                : undefined,
+              rootId: msg.root_id,
               text,
               timestamp: Date.now(),
             }

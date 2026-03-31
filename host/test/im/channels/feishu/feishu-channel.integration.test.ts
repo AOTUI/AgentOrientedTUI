@@ -69,7 +69,7 @@ describe('Feishu channel integration', () => {
         channel: 'feishu',
         chatType: 'direct',
         agentId: 'agent-main',
-        sessionKey: 'agent:agent-main:feishu:direct:ou_1',
+        sessionKey: 'agent:agent-main:feishu:bot:cli_x:direct:ou_1',
       }),
     )
   })
@@ -102,7 +102,7 @@ describe('Feishu channel integration', () => {
     expect(dispatch).toHaveBeenCalledTimes(1)
   })
 
-  it('blocks group messages without mention when requireMention=true', async () => {
+  it('persists group messages without triggering agent when mention is required and absent', async () => {
     const dispatch = vi.fn(async () => undefined)
     const gateway = createGatewayHarness()
 
@@ -134,7 +134,14 @@ describe('Feishu channel integration', () => {
       }),
     )
 
-    expect(dispatch).not.toHaveBeenCalled()
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'hello everyone',
+        triggerAgent: false,
+        wasMentioned: false,
+        sessionKey: 'agent:agent-main:feishu:bot:cli_x:group:oc_group_1',
+      }),
+    )
   })
 
   it('accepts group messages with mention and strips mention text', async () => {
@@ -173,7 +180,159 @@ describe('Feishu channel integration', () => {
       expect.objectContaining({
         body: 'summarize this',
         chatType: 'group',
-        sessionKey: 'agent:agent-main:feishu:group:oc_group_1',
+        sessionKey: 'agent:agent-main:feishu:bot:cli_x:group:oc_group_1',
+      }),
+    )
+  })
+
+  it('routes group thread messages into independent thread-scoped sessions', async () => {
+    const dispatch = vi.fn(async () => undefined)
+    const gateway = createGatewayHarness()
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch,
+      createGateway: gateway.factory as any,
+      routingConfig: {
+        agents: { activeAgentId: 'agent-main' },
+      },
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_thread',
+        groupPolicy: 'open',
+        requireMention: false,
+      },
+    })
+
+    await gateway.emit(
+      createEvent({
+        messageId: 'om_group_thread_1',
+        chatType: 'group',
+        chatId: 'oc_group_1',
+        rootId: 'om_root_topic_1',
+        text: 'inside thread',
+      }),
+    )
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatType: 'group',
+        rootId: 'om_root_topic_1',
+        peerId: 'oc_group_1:thread:om_root_topic_1',
+        sessionKey: 'agent:agent-main:feishu:bot:cli_x:group:oc_group_1:thread:om_root_topic_1',
+      }),
+    )
+  })
+
+  it('routes group messages into sender-scoped sessions when sessionScope=peer_sender', async () => {
+    const dispatch = vi.fn(async () => undefined)
+    const gateway = createGatewayHarness()
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch,
+      createGateway: gateway.factory as any,
+      routingConfig: {
+        agents: { activeAgentId: 'agent-main' },
+      },
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_sender',
+        groupPolicy: 'open',
+        requireMention: false,
+      },
+    })
+
+    await gateway.emit(
+      createEvent({
+        messageId: 'om_group_sender_1',
+        chatType: 'group',
+        chatId: 'oc_group_1',
+        senderId: 'ou_99',
+        text: 'sender scoped',
+      }),
+    )
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatType: 'group',
+        peerId: 'oc_group_1:sender:ou_99',
+        sessionScope: 'peer_sender',
+        sessionKey: 'agent:agent-main:feishu:bot:cli_x:group:oc_group_1:sender:ou_99',
+      }),
+    )
+  })
+
+  it('isolates the same group into different sessions for different bot accounts', async () => {
+    const dispatch = vi.fn(async () => undefined)
+    const gateway = createGatewayHarness()
+
+    const plugin = new FeishuChannelPlugin({
+      dispatch,
+      createGateway: gateway.factory as any,
+      routingConfig: {
+        agents: { activeAgentId: 'agent-main' },
+      },
+    })
+
+    await plugin.start({
+      config: {},
+      channelConfig: {
+        enabled: true,
+        appId: 'cli_root',
+        appSecret: 'sec_root',
+        groupPolicy: 'open',
+        requireMention: false,
+        accounts: {
+          corpA: {
+            enabled: true,
+            appId: 'cli_a',
+            appSecret: 'sec_a',
+          },
+        },
+      },
+    })
+
+    await gateway.emit(createEvent({
+      accountId: 'default',
+      chatType: 'group',
+      chatId: 'oc_group_multi',
+      senderId: 'ou_1',
+      text: 'hello from group',
+    }))
+    await gateway.emit(createEvent({
+      accountId: 'corpA',
+      messageId: 'om_dm_2',
+      chatType: 'group',
+      chatId: 'oc_group_multi',
+      senderId: 'ou_1',
+      text: 'hello from group',
+    }))
+
+    expect(dispatch).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        accountId: 'default',
+        botIdentity: 'cli_root',
+        sessionKey: 'agent:agent-main:feishu:bot:cli_root:group:oc_group_multi',
+      }),
+    )
+    expect(dispatch).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        accountId: 'corpA',
+        botIdentity: 'cli_a',
+        sessionKey: 'agent:agent-main:feishu:bot:cli_a:group:oc_group_multi',
       }),
     )
   })

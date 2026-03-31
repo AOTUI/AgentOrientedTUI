@@ -2,7 +2,7 @@ import type { ChannelStartContext, IChannelPlugin, IReplyHandler, ReplyHandlerCo
 import { MessageDeduplicator } from '../../dedup.js'
 import { resolveIMRoute } from '../../routing.js'
 import type { IMInboundMessage, IMRoutingConfig } from '../../types.js'
-import { resolveFeishuAccount } from './accounts.js'
+import { listResolvedFeishuAccounts, resolveFeishuAccount } from './accounts.js'
 import { createFeishuBotHandler, type FeishuInboundEvent } from './bot.js'
 import { buildFeishuApiBase } from './client.js'
 import { parseFeishuConfig, type FeishuChannelConfigInput, type FeishuChannelConfig } from './config-schema.js'
@@ -59,6 +59,19 @@ function getRoutingConfig(
 
 export class FeishuChannelPlugin implements IChannelPlugin {
   readonly id = 'feishu'
+  readonly meta = {
+    label: 'Feishu',
+    description: 'Feishu/Lark enterprise chat channel with direct, group, and threaded reply support.',
+  }
+  readonly capabilities = {
+    chatTypes: ['direct', 'group'] as Array<'direct' | 'group'>,
+    media: false,
+    threads: true,
+    streaming: true,
+    multiAccount: true,
+    webhookInbound: true,
+    websocketInbound: true,
+  }
 
   private readonly dispatch: (message: IMInboundMessage) => Promise<void>
   private readonly createGatewayImpl: NonNullable<FeishuChannelPluginOptions['createGateway']>
@@ -70,8 +83,8 @@ export class FeishuChannelPlugin implements IChannelPlugin {
   private readonly fetchTenantTokenImpl: typeof getTenantAccessToken
 
   private started = false
-  private gateway: FeishuGatewayRuntime | null = null
-  private botHandler: FeishuBotRuntime | null = null
+  private gateways = new Map<string, FeishuGatewayRuntime>()
+  private botHandlers = new Map<string, FeishuBotRuntime>()
   private parsedConfig: FeishuChannelConfig | null = null
 
   constructor(options: FeishuChannelPluginOptions) {
@@ -97,46 +110,61 @@ export class FeishuChannelPlugin implements IChannelPlugin {
 
     const parsedConfig = parseFeishuConfig(channelInput)
     this.parsedConfig = parsedConfig
-    const dedup = new MessageDeduplicator()
     const routingConfig = getRoutingConfig(ctx.config, this.routingConfig)
-
-    const defaultBotHandler = createFeishuBotHandler({
-      dedup,
-      getConfig: async (accountId?: string) => {
-        return resolveFeishuAccount(parsedConfig, accountId)
-      },
-      resolveRoute: (params) => {
-        return resolveIMRoute({
-          ...params,
-          config: routingConfig,
-        })
-      },
-      dispatch: this.dispatch,
-    })
-
-    this.botHandler = this.createBotHandlerImpl ? this.createBotHandlerImpl(defaultBotHandler) : defaultBotHandler
-
-    const gateway = this.createGatewayImpl({
-      connectionMode: parsedConfig.connectionMode,
-      createWsClient: this.createWsClient ?? (() => createRealFeishuWsClient({
-        appId: parsedConfig.appId,
-        appSecret: parsedConfig.appSecret,
-        domain: parsedConfig.domain,
-      })),
-      onEvent: async (event) => {
-        await this.botHandler?.handle(event)
-      },
-    })
-
-    this.gateway = gateway
     this.started = true
 
     try {
-      await gateway.start()
+      const accounts = listResolvedFeishuAccounts(parsedConfig)
+      let startedAccounts = 0
+
+      for (const account of accounts) {
+        const accountId = account.accountId
+        const dedup = new MessageDeduplicator()
+        const baseHandler = createFeishuBotHandler({
+          dedup,
+          getConfig: async () => account,
+          resolveRoute: (params) => {
+            return resolveIMRoute({
+              ...params,
+              config: routingConfig,
+            })
+          },
+          dispatch: this.dispatch,
+        })
+        const botHandler = this.createBotHandlerImpl ? this.createBotHandlerImpl(baseHandler) : baseHandler
+        this.botHandlers.set(accountId, botHandler)
+
+        const gateway = this.createGatewayImpl({
+          connectionMode: account.connectionMode,
+          createWsClient: this.createWsClient ?? (() => createRealFeishuWsClient({
+            appId: account.appId,
+            appSecret: account.appSecret,
+            domain: account.domain,
+            accountId,
+          })),
+          onEvent: async (event) => {
+            const handler = this.botHandlers.get(event.accountId ?? accountId)
+            await handler?.handle(event)
+          },
+        })
+
+        try {
+          await gateway.start()
+          this.gateways.set(accountId, gateway)
+          startedAccounts += 1
+        } catch (error) {
+          console.error(`[IM] feishu account "${accountId}" failed to start:`, error)
+          this.botHandlers.delete(accountId)
+        }
+      }
+
+      if (startedAccounts === 0) {
+        throw new Error('no feishu accounts were started successfully')
+      }
     } catch (error) {
       this.started = false
-      this.gateway = null
-      this.botHandler = null
+      this.gateways.clear()
+      this.botHandlers.clear()
       throw error
     }
   }
@@ -148,13 +176,47 @@ export class FeishuChannelPlugin implements IChannelPlugin {
 
     this.started = false
 
-    if (this.gateway) {
-      await this.gateway.stop()
+    const gateways = Array.from(this.gateways.values())
+    for (const gateway of gateways) {
+      await gateway.stop()
     }
 
-    this.gateway = null
-    this.botHandler = null
+    this.gateways.clear()
+    this.botHandlers.clear()
     this.parsedConfig = null
+  }
+
+  getRuntimeState() {
+    const parsedConfig = this.parsedConfig
+    const resolvedAccounts = parsedConfig
+      ? listResolvedFeishuAccounts(parsedConfig)
+      : []
+    const accountIds = resolvedAccounts.length > 0
+      ? resolvedAccounts.map((account) => account.accountId)
+      : ['default']
+    const sessionScopes = new Set<string>()
+    if (parsedConfig) {
+      sessionScopes.add(parsedConfig.sessionScope)
+      for (const account of Object.values(parsedConfig.accounts ?? {})) {
+        if (account?.sessionScope) {
+          sessionScopes.add(account.sessionScope)
+        }
+      }
+    }
+
+    return {
+      started: this.started && this.gateways.size > 0,
+      connectionMode: parsedConfig?.connectionMode,
+      accountIds,
+      sessionScopes: Array.from(sessionScopes.values()).sort(),
+      accounts: resolvedAccounts.map((account) => ({
+        accountId: account.accountId,
+        active: this.gateways.has(account.accountId),
+        appId: account.appId,
+        connectionMode: account.connectionMode,
+        sessionScope: account.sessionScope,
+      })),
+    }
   }
 
   /**
@@ -211,6 +273,7 @@ export class FeishuChannelPlugin implements IChannelPlugin {
           receiveIdType,
           receiveId,
           text,
+          rootId: ctx.rootId,
         })
         console.log(`[IM] feishu plain text reply sent to ${receiveIdType}=${receiveId}`)
       } catch (err) {
@@ -226,14 +289,21 @@ export class FeishuChannelPlugin implements IChannelPlugin {
       receiveId,
       receiveIdType,
       replyToMessageId: undefined,
+      rootId: ctx.rootId,
     })
   }
 
   async processWebhook(event: FeishuInboundEvent): Promise<{ accepted: boolean; reason?: string }> {
-    if (!this.gateway || !this.started) {
+    if (!this.started || this.gateways.size === 0) {
       throw new Error('Feishu channel plugin is not started')
     }
 
-    return this.gateway.processWebhook(event)
+    const accountId = event.accountId ?? 'default'
+    const gateway = this.gateways.get(accountId) ?? this.gateways.get('default') ?? this.gateways.values().next().value
+    if (!gateway) {
+      throw new Error(`Feishu channel gateway not found for account: ${accountId}`)
+    }
+
+    return gateway.processWebhook(event)
   }
 }

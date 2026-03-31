@@ -9,6 +9,7 @@ import type { Unsubscribable } from '@trpc/server/observable';
 import { ipcLink } from 'electron-trpc/renderer';
 import superjson from 'superjson';
 import type { AppRouter } from '../trpc/router-types.js';
+import { isIMSessionKey } from '../im/routing.js';
 
 // Event types for subscribers
 export interface ChatUpdateEvent {
@@ -460,6 +461,7 @@ export class ChatBridge {
     getTopics(): Topic[] {
         // Return sorted by updated time desc
         return Array.from(this.topics.values())
+            .filter((topic) => !isIMSessionKey(topic.id))
             .sort((a, b) => b.updatedAt - a.updatedAt);
     }
 
@@ -1283,6 +1285,10 @@ export class ChatBridge {
 
     async getImConfig(): Promise<any> {
         return this.getTrpcClient().im.getImConfig.query();
+    }
+
+    async getImRuntime(): Promise<any> {
+        return this.getTrpcClient().im.getRuntime.query();
     }
 
     async saveImConfig(config: any): Promise<any> {

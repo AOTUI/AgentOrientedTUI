@@ -32,6 +32,18 @@ export function shouldHydratePersistentState(
   return true;
 }
 
+export function resolvePersistentAppName({
+  storageKey,
+  appNameFromEnv,
+  appId,
+}: {
+  storageKey?: string;
+  appNameFromEnv?: string;
+  appId: string | number;
+}): string {
+  return storageKey || appNameFromEnv || String(appId);
+}
+
 function sanitizeSegment(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
@@ -120,9 +132,13 @@ export function usePersistentState<T>(
 ): [T, Dispatch<StateUpdater<T>>, PersistMeta] {
   const { appId, desktopId } = useAppRuntimeContext();
   const dataDir = useAppEnv<string>("AOTUI_DATA_DIR");
-  const appKeyFromEnv = useAppEnv<string>("AOTUI_APP_KEY") || useAppEnv<string>("AOTUI_APP_NAME");
+  const appNameFromEnv = useAppEnv<string>("AOTUI_APP_NAME");
   const lifecycle = useAppEnv<AOTUILifecycleMetadata>("__aotuiLifecycle");
-  const appKey = options.storageKey || appKeyFromEnv || String(appId);
+  const appKey = resolvePersistentAppName({
+    storageKey: options.storageKey,
+    appNameFromEnv,
+    appId,
+  });
 
   const [state, setState] = useState<T>(initial);
   const [ready, setReady] = useState(false);

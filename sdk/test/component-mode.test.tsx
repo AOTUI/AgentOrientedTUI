@@ -14,17 +14,16 @@ describe('[RFC-027] Component Mode', () => {
         }
 
         const app = createTUIApp({
-            appName: 'test_app',
-            name: 'Test App',
+            app_name: 'test_app',
             component: TestApp,
-        });
+        } as any);
 
         expect(app).toBeDefined();
-        expect(app.displayName).toBe('Test App');
+        expect(app.displayName).toBe('test_app');
         // component字段被转换为factory对象
         expect(app.kernelConfig.component).toBeDefined();
-        expect(app.kernelConfig.component.displayName).toBe('Test App');
-        expect(app.kernelConfig.name).toBe('Test App');
+        expect(app.kernelConfig.component.displayName).toBe('test_app');
+        expect(app.kernelConfig.name).toBe('test_app');
     });
 
 
@@ -35,10 +34,9 @@ describe('[RFC-027] Component Mode', () => {
         }
 
         const app = createTUIApp({
-            appName: 'test_app',
-            name: 'Test App',
+            app_name: 'test_app',
             component: TestApp,
-        });
+        } as any);
 
         // component字段应该存在(已转换为factory)
         expect(app.kernelConfig.component).toBeDefined();

@@ -29,7 +29,7 @@ describe('Feishu bot inbound handler', () => {
       }),
       resolveRoute: vi.fn().mockReturnValue({
         agentId: 'agent-A',
-        sessionKey: 'agent:agent-A:feishu:direct:ou_001',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:direct:ou_001',
       }),
       dispatch,
     })
@@ -42,7 +42,9 @@ describe('Feishu bot inbound handler', () => {
       expect.objectContaining({
         body: 'hello',
         agentId: 'agent-A',
-        sessionKey: 'agent:agent-A:feishu:direct:ou_001',
+        botIdentity: 'cli_x',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:direct:ou_001',
+        triggerAgent: true,
       }),
     )
   })
@@ -97,7 +99,7 @@ describe('Feishu bot inbound handler', () => {
       }),
       resolveRoute: vi.fn().mockReturnValue({
         agentId: 'agent-A',
-        sessionKey: 'agent:agent-A:feishu:direct:ou_001',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:direct:ou_001',
       }),
       dispatch,
     })
@@ -107,8 +109,12 @@ describe('Feishu bot inbound handler', () => {
     expect(dispatch).toHaveBeenCalledTimes(1)
   })
 
-  it('blocks group message when mention is required and absent', async () => {
+  it('persists group message without triggering agent when mention is required and absent', async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined)
+    const resolveRoute = vi.fn().mockReturnValue({
+      agentId: 'agent-A',
+      sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_001',
+    })
     const handler = createFeishuBotHandler({
       dedup: { isDuplicate: vi.fn().mockReturnValue(false) },
       getConfig: vi.fn().mockResolvedValue({
@@ -117,7 +123,7 @@ describe('Feishu bot inbound handler', () => {
         groupPolicy: 'open',
         requireMention: true,
       }),
-      resolveRoute: vi.fn(),
+      resolveRoute,
       dispatch,
     })
 
@@ -128,9 +134,21 @@ describe('Feishu bot inbound handler', () => {
       }),
     )
 
-    expect(result.accepted).toBe(false)
-    expect(result.reason).toMatch(/mention/i)
-    expect(dispatch).not.toHaveBeenCalled()
+    expect(result.accepted).toBe(true)
+    expect(resolveRoute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        botIdentity: 'cli_x',
+        peerId: 'oc_001',
+      }),
+    )
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'hello everyone',
+        wasMentioned: false,
+        triggerAgent: false,
+        botIdentity: 'cli_x',
+      }),
+    )
   })
 
   it('accepts group message when mentioned and strips mention text', async () => {
@@ -145,7 +163,7 @@ describe('Feishu bot inbound handler', () => {
       }),
       resolveRoute: vi.fn().mockReturnValue({
         agentId: 'agent-A',
-        sessionKey: 'agent:agent-A:feishu:group:oc_001',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_001',
       }),
       dispatch,
     })
@@ -162,6 +180,107 @@ describe('Feishu bot inbound handler', () => {
       expect.objectContaining({
         body: 'summarize this',
         wasMentioned: true,
+        triggerAgent: true,
+        botIdentity: 'cli_x',
+      }),
+    )
+  })
+
+  it('accepts group message when structured mentions include the bot appId', async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined)
+    const handler = createFeishuBotHandler({
+      dedup: { isDuplicate: vi.fn().mockReturnValue(false) },
+      getConfig: vi.fn().mockResolvedValue({
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        groupPolicy: 'open',
+        requireMention: true,
+      }),
+      resolveRoute: vi.fn().mockReturnValue({
+        agentId: 'agent-A',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_001',
+      }),
+      dispatch,
+    })
+
+    const result = await handler.handle(
+      createEvent({
+        chatType: 'group',
+        text: 'summarize this please',
+        mentions: [
+          {
+            userId: 'cli_x',
+            name: 'bot',
+          },
+        ],
+      }),
+    )
+
+    expect(result.accepted).toBe(true)
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'summarize this please',
+        wasMentioned: true,
+        triggerAgent: true,
+      }),
+    )
+  })
+
+  it('learns bot mention identity from one event and matches later placeholder mentions', async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined)
+    const handler = createFeishuBotHandler({
+      dedup: { isDuplicate: vi.fn().mockReturnValue(false) },
+      getConfig: vi.fn().mockResolvedValue({
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        groupPolicy: 'open',
+        requireMention: true,
+      }),
+      resolveRoute: vi.fn().mockReturnValue({
+        agentId: 'agent-A',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_001',
+      }),
+      dispatch,
+    })
+
+    await handler.handle(
+      createEvent({
+        messageId: 'om_first',
+        chatType: 'group',
+        text: '<at user_id="cli_x">bot</at> first question',
+        mentions: [
+          {
+            key: '_user_1',
+            openId: 'ou_bot_real',
+            unionId: 'on_bot_real',
+            name: 'AgentGroup',
+          },
+        ],
+      }),
+    )
+
+    const result = await handler.handle(
+      createEvent({
+        messageId: 'om_second',
+        chatType: 'group',
+        text: '@_user_1 second question',
+        mentions: [
+          {
+            key: '_user_1',
+            openId: 'ou_bot_real',
+            unionId: 'on_bot_real',
+            name: 'AgentGroup',
+          },
+        ],
+      }),
+    )
+
+    expect(result.accepted).toBe(true)
+    expect(dispatch).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        body: 'second question',
+        wasMentioned: true,
+        triggerAgent: true,
       }),
     )
   })
@@ -208,7 +327,7 @@ describe('Feishu bot inbound handler', () => {
     const dispatch = vi.fn().mockResolvedValue(undefined)
     const resolveRoute = vi.fn().mockReturnValue({
       agentId: 'agent-A',
-      sessionKey: 'agent:agent-A:feishu:direct:ou_001',
+      sessionKey: 'agent:agent-A:feishu:bot:cli_x:direct:ou_001',
     })
 
     const handler = createFeishuBotHandler({
@@ -223,6 +342,7 @@ describe('Feishu bot inbound handler', () => {
     expect(resolveRoute).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId: 'corpA',
+        botIdentity: 'cli_x',
         peerId: 'ou_001',
       }),
     )
@@ -232,7 +352,7 @@ describe('Feishu bot inbound handler', () => {
     const dispatch = vi.fn().mockResolvedValue(undefined)
     const resolveRoute = vi.fn().mockReturnValue({
       agentId: 'agent-A',
-      sessionKey: 'agent:agent-A:feishu:group:oc_001',
+      sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_001',
     })
 
     const handler = createFeishuBotHandler({
@@ -252,6 +372,172 @@ describe('Feishu bot inbound handler', () => {
       expect.objectContaining({
         chatType: 'group',
         peerId: 'oc_group_1',
+      }),
+    )
+  })
+
+  it('uses thread-scoped peerId when group sessionScope=peer_thread and rootId is present', async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined)
+    const resolveRoute = vi.fn().mockReturnValue({
+      agentId: 'agent-A',
+      sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_group_1:thread:om_root_1',
+    })
+
+    const handler = createFeishuBotHandler({
+      dedup: { isDuplicate: vi.fn().mockReturnValue(false) },
+      getConfig: vi.fn().mockResolvedValue({
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_thread',
+        requireMention: false,
+      }),
+      resolveRoute,
+      dispatch,
+    })
+
+    await handler.handle(
+      createEvent({
+        chatType: 'group',
+        chatId: 'oc_group_1',
+        rootId: 'om_root_1',
+      }),
+    )
+
+    expect(resolveRoute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatType: 'group',
+        peerId: 'oc_group_1:thread:om_root_1',
+      }),
+    )
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rootId: 'om_root_1',
+        sessionScope: 'peer_thread',
+      }),
+    )
+  })
+
+  it('uses sender-scoped peerId when group sessionScope=peer_sender', async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined)
+    const resolveRoute = vi.fn().mockReturnValue({
+      agentId: 'agent-A',
+      sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_group_1:sender:ou_001',
+    })
+
+    const handler = createFeishuBotHandler({
+      dedup: { isDuplicate: vi.fn().mockReturnValue(false) },
+      getConfig: vi.fn().mockResolvedValue({
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_sender',
+        requireMention: false,
+      }),
+      resolveRoute,
+      dispatch,
+    })
+
+    await handler.handle(
+      createEvent({
+        chatType: 'group',
+        chatId: 'oc_group_1',
+        senderId: 'ou_001',
+      }),
+    )
+
+    expect(resolveRoute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatType: 'group',
+        peerId: 'oc_group_1:sender:ou_001',
+      }),
+    )
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionScope: 'peer_sender',
+        peerId: 'oc_group_1:sender:ou_001',
+      }),
+    )
+  })
+
+  it('uses thread+sender-scoped peerId when group sessionScope=peer_thread_sender and rootId is present', async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined)
+    const resolveRoute = vi.fn().mockReturnValue({
+      agentId: 'agent-A',
+      sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_group_1:thread:om_root_1:sender:ou_001',
+    })
+
+    const handler = createFeishuBotHandler({
+      dedup: { isDuplicate: vi.fn().mockReturnValue(false) },
+      getConfig: vi.fn().mockResolvedValue({
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_thread_sender',
+        requireMention: false,
+      }),
+      resolveRoute,
+      dispatch,
+    })
+
+    await handler.handle(
+      createEvent({
+        chatType: 'group',
+        chatId: 'oc_group_1',
+        rootId: 'om_root_1',
+        senderId: 'ou_001',
+      }),
+    )
+
+    expect(resolveRoute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatType: 'group',
+        peerId: 'oc_group_1:thread:om_root_1:sender:ou_001',
+      }),
+    )
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rootId: 'om_root_1',
+        sessionScope: 'peer_thread_sender',
+        peerId: 'oc_group_1:thread:om_root_1:sender:ou_001',
+      }),
+    )
+  })
+
+  it('falls back from peer_thread_sender to peer_sender when rootId is absent', async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined)
+    const resolveRoute = vi.fn().mockReturnValue({
+      agentId: 'agent-A',
+      sessionKey: 'agent:agent-A:feishu:bot:cli_x:group:oc_group_1:sender:ou_001',
+    })
+
+    const handler = createFeishuBotHandler({
+      dedup: { isDuplicate: vi.fn().mockReturnValue(false) },
+      getConfig: vi.fn().mockResolvedValue({
+        appId: 'cli_x',
+        appSecret: 'sec_x',
+        sessionScope: 'peer_thread_sender',
+        requireMention: false,
+      }),
+      resolveRoute,
+      dispatch,
+    })
+
+    await handler.handle(
+      createEvent({
+        chatType: 'group',
+        chatId: 'oc_group_1',
+        senderId: 'ou_001',
+      }),
+    )
+
+    expect(resolveRoute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatType: 'group',
+        peerId: 'oc_group_1:sender:ou_001',
+      }),
+    )
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionScope: 'peer_sender',
+        peerId: 'oc_group_1:sender:ou_001',
       }),
     )
   })
@@ -299,7 +585,7 @@ describe('Feishu bot inbound handler', () => {
       getConfig: vi.fn().mockResolvedValue({ appId: 'cli_x', appSecret: 'sec_x' }),
       resolveRoute: vi.fn().mockReturnValue({
         agentId: 'agent-A',
-        sessionKey: 'agent:agent-A:feishu:direct:ou_001',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:direct:ou_001',
       }),
       dispatch: vi.fn(async () => {
         throw new Error('dispatch failed')
@@ -316,7 +602,7 @@ describe('Feishu bot inbound handler', () => {
       getConfig: vi.fn().mockResolvedValue({ appId: 'cli_x', appSecret: 'sec_x' }),
       resolveRoute: vi.fn().mockReturnValue({
         agentId: 'agent-A',
-        sessionKey: 'agent:agent-A:feishu:direct:ou_001',
+        sessionKey: 'agent:agent-A:feishu:bot:cli_x:direct:ou_001',
       }),
       dispatch,
     })

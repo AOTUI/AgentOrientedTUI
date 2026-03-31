@@ -93,22 +93,25 @@ describe('AppRegistry', () => {
             expect(registry.has('non-existent')).toBe(false);
         });
 
-        it('should prefer source-derived stable name when manifest name is missing', async () => {
+        it('should use canonical app_name from kernel metadata when manifest identity is missing', async () => {
             const registry = new AppRegistry({ configPath });
             await registry.loadFromConfig();
 
             const factoryWithoutManifestName = {
-                displayName: 'AOTUI IDE',
+                kernelConfig: {
+                    appName: 'system_ide',
+                    name: 'system_ide',
+                    component: {},
+                },
                 manifest: undefined,
-                create: vi.fn(),
             } as unknown as TUIAppFactory;
 
             // @ts-ignore
             registry.loadFactory = vi.fn().mockResolvedValue(factoryWithoutManifestName);
 
             const name = await registry.add('local:/tmp/cache/node_modules/@agentina/aotui-ide');
-            expect(name).toBe('aotui-ide');
-            expect(registry.getConfig().apps['aotui-ide']).toBeDefined();
+            expect(name).toBe('system_ide');
+            expect(registry.getConfig().apps['system_ide']).toBeDefined();
         });
 
         it('should delete managed npm install artifacts on remove', async () => {
@@ -239,6 +242,35 @@ describe('AppRegistry', () => {
             expect(mockDesktop.registerPendingApp).not.toHaveBeenCalled();
         });
 
+        it('should inject only canonical AOTUI_APP_NAME into launch config', async () => {
+            registry['apps'].set('worker-app', {
+                name: 'worker-app',
+                source: 'local:/mock',
+                // @ts-ignore
+                factory: createMockFactory('worker-app'),
+                manifest: { name: 'worker-app', description: 'Worker App' } as any
+            });
+            registry['config'].apps['worker-app'] = {
+                source: 'local:/mock',
+                enabled: true,
+                autoStart: true
+            };
+
+            await registry.installAll(mockDesktop);
+
+            expect(mockDesktop.installDynamicWorkerApp).toHaveBeenCalledWith(
+                '/mock/module/path',
+                expect.objectContaining({
+                    config: expect.objectContaining({
+                        AOTUI_APP_NAME: 'worker-app',
+                    }),
+                })
+            );
+
+            const installOptions = mockDesktop.installDynamicWorkerApp.mock.calls[0]?.[1];
+            expect(installOptions?.config?.AOTUI_APP_KEY).toBeUndefined();
+        });
+
         it('should register autoStart=false apps as pending', async () => {
             // Setup: Add app with autoStart=false
             // @ts-ignore
@@ -349,17 +381,15 @@ describe('AOApp Validation', () => {
     describe('validateManifest', () => {
         it('should accept valid manifest', () => {
             const manifest = {
-                name: 'my-app',
-                displayName: 'My App',
+                app_name: 'my_app',
                 version: '1.0.0',
                 entry: { main: './index.js' }
             };
             expect(validateManifest(manifest)).toBe(true);
         });
 
-        it('should reject missing name', () => {
+        it('should reject missing app_name', () => {
             const manifest = {
-                displayName: 'My App',
                 version: '1.0.0',
                 entry: { main: './index.js' }
             };
@@ -368,8 +398,7 @@ describe('AOApp Validation', () => {
 
         it('should reject missing entry', () => {
             const manifest = {
-                name: 'my-app',
-                displayName: 'My App',
+                app_name: 'my_app',
                 version: '1.0.0'
             };
             expect(validateManifest(manifest)).toBe(false);
@@ -379,13 +408,13 @@ describe('AOApp Validation', () => {
     describe('isValidAppName', () => {
         it('should accept valid names', () => {
             expect(isValidAppName('weather')).toBe(true);
-            expect(isValidAppName('todo-list')).toBe(true);
-            expect(isValidAppName('my-app-123')).toBe(true);
+            expect(isValidAppName('todo_list')).toBe(true);
+            expect(isValidAppName('my_app_123')).toBe(true);
         });
 
         it('should reject invalid names', () => {
             expect(isValidAppName('MyApp')).toBe(false); // uppercase
-            expect(isValidAppName('my_app')).toBe(false); // underscore
+            expect(isValidAppName('my-app')).toBe(false); // hyphen
             expect(isValidAppName('-app')).toBe(false); // starts with hyphen
             expect(isValidAppName('app-')).toBe(false); // ends with hyphen
         });

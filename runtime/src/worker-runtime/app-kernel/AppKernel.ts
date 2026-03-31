@@ -100,36 +100,27 @@ export class AppKernel implements IAOTUIApp, IRefExporter {
                 { reason: 'AppKernelConfig.component is required. Traditional mode (config.root) is no longer supported.' }
             );
         }
+        if (!config.appName) {
+            throw new AOTUIError('CONFIG_INVALID', {
+                reason: 'AppKernelConfig.appName is required.'
+            });
+        }
 
         this.config = config;
         this.name = config.name;
-        this.toolAppName = this.resolveToolAppName(config.appName, config.name);
+        this.toolAppName = this.resolveToolAppName(config.appName);
 
         // Initialize ViewRegistry
         this.viewRegistry = createViewRegistry();
     }
 
-    private resolveToolAppName(explicitAppName: string | undefined, displayName: string): string {
-        if (explicitAppName !== undefined) {
-            if (!/^[a-zA-Z0-9_]+$/.test(explicitAppName)) {
-                throw new AOTUIError('CONFIG_INVALID', {
-                    reason: `Invalid appName "${explicitAppName}". appName must match /^[a-zA-Z0-9_]+$/`
-                });
-            }
-            return explicitAppName;
+    private resolveToolAppName(appName: string): string {
+        if (!/^[a-z0-9_]+$/.test(appName)) {
+            throw new AOTUIError('CONFIG_INVALID', {
+                reason: `Invalid appName "${appName}". appName must match /^[a-z0-9_]+$/`
+            });
         }
-
-        const normalized = displayName
-            .replace(/[^a-zA-Z0-9_]+/g, '_')
-            .replace(/^_+|_+$/g, '')
-            .replace(/_{2,}/g, '_')
-            .toLowerCase();
-
-        if (normalized.length > 0) {
-            return normalized;
-        }
-
-        return 'app';
+        return appName;
     }
 
     /**

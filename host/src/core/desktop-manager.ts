@@ -47,7 +47,6 @@ export interface DesktopInfo {
 
 export interface InstallAppOptions {
     force?: boolean;
-    alias?: string;
     autoStart?: boolean;
     enabled?: boolean;
 }
@@ -314,7 +313,6 @@ export class DesktopManager {
 
             const name = await this.appRegistry.add(resolved.source, {
                 force: options?.force,
-                alias: options?.alias,
                 autoStart: options?.autoStart,
                 enabled: options?.enabled,
                 originalSource: resolved.source,
@@ -339,7 +337,6 @@ export class DesktopManager {
 
         const name = await this.appRegistry.add(installResult.localSource, {
             force: options?.force,
-            alias: options?.alias,
             autoStart: options?.autoStart,
             enabled: options?.enabled,
             originalSource: resolved.source,
@@ -370,7 +367,6 @@ export class DesktopManager {
 
         return this.installApp(originalSource, {
             force: true,
-            alias: name,
             autoStart: current.autoStart,
             enabled: current.enabled
         });

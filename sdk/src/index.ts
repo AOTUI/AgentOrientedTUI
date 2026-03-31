@@ -41,7 +41,7 @@
  * }
  *
  * export default createTUIApp({
- *     name: 'HelpCenter',
+ *     app_name: 'help_center',
  *     component: HelpCenter
  * })
  * ```

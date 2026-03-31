@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveFeishuAccount } from '../../../../src/im/channels/feishu/accounts.ts'
+import { listResolvedFeishuAccounts, resolveFeishuAccount } from '../../../../src/im/channels/feishu/accounts.ts'
 
 describe('Feishu account resolver', () => {
   const base = {
@@ -74,5 +74,62 @@ describe('Feishu account resolver', () => {
         'corpA',
       ),
     ).toThrow(/appId/i)
+  })
+
+  it('lists all enabled resolved accounts including default root', () => {
+    const accounts = listResolvedFeishuAccounts({
+      ...base,
+      accounts: {
+        corpA: {
+          enabled: true,
+          appId: 'cli_a',
+          appSecret: 'sec_a',
+        },
+        corpB: {
+          enabled: false,
+          appId: 'cli_b',
+          appSecret: 'sec_b',
+        },
+      },
+    })
+
+    expect(accounts.map((account) => account.accountId)).toEqual(['default', 'corpA'])
+    expect(accounts.map((account) => account.appId)).toEqual(['cli_root', 'cli_a'])
+  })
+
+  it('lists nested accounts even when default account is omitted', () => {
+    const accounts = listResolvedFeishuAccounts({
+      accounts: {
+        corpA: {
+          enabled: true,
+          appId: 'cli_a',
+          appSecret: 'sec_a',
+        },
+        corpB: {
+          enabled: true,
+          appId: 'cli_b',
+          appSecret: 'sec_b',
+        },
+      },
+    })
+
+    expect(accounts.map((account) => account.accountId)).toEqual(['corpA', 'corpB'])
+  })
+
+  it('throws when resolving default account without credentials', () => {
+    expect(() =>
+      resolveFeishuAccount(
+        {
+          accounts: {
+            corpA: {
+              enabled: true,
+              appId: 'cli_a',
+              appSecret: 'sec_a',
+            },
+          },
+        },
+        'default',
+      ),
+    ).toThrow(/default account is not configured/i)
   })
 })

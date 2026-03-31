@@ -43,6 +43,34 @@ describe('ChatBridge Host-only', () => {
         expect(mockTrpcClient.db.createTopic.mutate).toHaveBeenCalledWith({ title: 'Test' });
     });
 
+    it('reads IM runtime through tRPC', async () => {
+        const bridge = ChatBridge.getInstance();
+        const runtime = {
+            started: true,
+            channels: [
+                {
+                    id: 'feishu',
+                    runtime: {
+                        accountIds: ['default'],
+                    },
+                },
+            ],
+        };
+
+        const mockTrpcClient = {
+            im: {
+                getRuntime: {
+                    query: vi.fn().mockResolvedValue(runtime),
+                },
+            },
+        };
+
+        (bridge as any).getTrpcClient = () => mockTrpcClient;
+
+        await expect((bridge as any).getImRuntime()).resolves.toEqual(runtime);
+        expect(mockTrpcClient.im.getRuntime.query).toHaveBeenCalledTimes(1);
+    });
+
     it('passes agentId when creating topic with overrides', async () => {
         const bridge = ChatBridge.getInstance();
 
@@ -196,6 +224,31 @@ describe('ChatBridge Host-only', () => {
         expect(normalized[0].metadata?.attachments).toBeUndefined();
         expect(normalized[0].metadata?.toolName).toBe('mock_tool');
     });
+
+    it('hides IM session-shaped topics from GUI topic list', () => {
+        const bridge = ChatBridge.getInstance();
+
+        (bridge as any).topics.set('topic_normal', {
+            id: 'topic_normal',
+            title: 'Normal Topic',
+            createdAt: 1,
+            updatedAt: 2,
+            status: 'hot',
+        });
+        (bridge as any).topics.set('agent:agent-a:feishu:direct:ou_123', {
+            id: 'agent:agent-a:feishu:direct:ou_123',
+            title: 'IM Session',
+            createdAt: 1,
+            updatedAt: 3,
+            status: 'hot',
+        });
+
+        expect(bridge.getTopics()).toEqual([
+            expect.objectContaining({
+                id: 'topic_normal',
+            }),
+        ]);
+    });
 });
 
 describe('Database topic persistence', () => {
@@ -222,6 +275,43 @@ describe('Database topic persistence', () => {
         const stored = db.getTopic(topic.id);
 
         expect(stored?.projectId).toBe('project_test');
+
+        db.closeDatabase();
+        if (fs.existsSync(dbPath)) {
+            fs.rmSync(dbPath, { force: true });
+        }
+    });
+
+    it('filters IM session-shaped topic ids from getAllTopics', async () => {
+        const dbPath = path.join(
+            os.tmpdir(),
+            `system-chat-db-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.sqlite`
+        );
+        process.env.DB_PATH = dbPath;
+        const db = await import('../src/db/index.js');
+
+        await db.initDatabase();
+
+        db.createTopic({
+            id: 'topic_visible',
+            title: 'Visible Topic',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            status: 'hot',
+        });
+        db.createTopic({
+            id: 'agent:agent-a:feishu:direct:ou_hidden',
+            title: 'Hidden IM Topic',
+            createdAt: Date.now(),
+            updatedAt: Date.now() + 1,
+            status: 'hot',
+        });
+
+        expect(db.getAllTopics()).toEqual([
+            expect.objectContaining({
+                id: 'topic_visible',
+            }),
+        ]);
 
         db.closeDatabase();
         if (fs.existsSync(dbPath)) {

@@ -165,7 +165,6 @@ cd host && pnpm electron:dev
 1. **Create app directory** with required structure:
    ```
    my-app/
-   ├── aoapp.json          # App manifest
    ├── package.json
    ├── tsconfig.json
    ├── src/
@@ -175,22 +174,26 @@ cd host && pnpm electron:dev
    └── test/
    ```
 
-2. **Create `aoapp.json` manifest**:
+2. **Define the canonical `app_name` in `createTUIApp()`**:
+   ```ts
+   export default createTUIApp({
+     app_name: "my_app",
+     component: MyApp,
+     whatItIs: "Describe what the app is",
+     whenToUse: "Describe when the agent should use it",
+   });
+   ```
+
+3. **Generate `aoapp.json` as a build artifact**:
    ```json
    {
-     "name": "my-app",
-     "displayName": "My TUI App",
-     "version": "0.1.0",
-     "description": "Description of what the app does",
-     "runtime": { "minVersion": "0.1.0" },
-     "entry": {
-       "main": "./dist/index.js",
-       "types": "./dist/index.d.ts"
+     "scripts": {
+       "build": "tsc && node ../scripts/generate-aoapp.mjs ."
      }
    }
    ```
 
-3. **Build and link**:
+4. **Build and link**:
    ```bash
    cd my-app
    pnpm build
@@ -199,7 +202,7 @@ cd host && pnpm electron:dev
    npm link my-app
    ```
 
-4. **Use in host**:
+5. **Use in host**:
    ```typescript
    // host/src/examples/my-app-example.ts
    import myApp from 'my-app';

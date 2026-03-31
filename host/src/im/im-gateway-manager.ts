@@ -1,5 +1,13 @@
 import { EventEmitter } from 'events'
-import type { IChannelPlugin } from './channel-plugin.js'
+import type { ChannelCapabilities, ChannelMeta, ChannelRuntimeState, IChannelPlugin } from './channel-plugin.js'
+
+export interface RegisteredChannelRuntime {
+  id: string
+  meta: ChannelMeta
+  capabilities: ChannelCapabilities
+  active: boolean
+  runtime: ChannelRuntimeState
+}
 
 function toRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object') {
@@ -44,6 +52,20 @@ export class IMGatewayManager extends EventEmitter {
 
   getActiveChannelIds(): string[] {
     return Array.from(this.activeChannelIds.values()).sort((a, b) => a.localeCompare(b))
+  }
+
+  listChannels(): RegisteredChannelRuntime[] {
+    return Array.from(this.channels.values())
+      .map((channel) => ({
+        id: channel.id,
+        meta: channel.meta,
+        capabilities: channel.capabilities,
+        active: this.activeChannelIds.has(channel.id),
+        runtime: channel.getRuntimeState?.() ?? {
+          started: this.activeChannelIds.has(channel.id),
+        },
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id))
   }
 
   async startAll(config: Record<string, unknown>): Promise<void> {

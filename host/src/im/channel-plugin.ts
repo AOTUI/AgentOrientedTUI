@@ -3,6 +3,35 @@ export interface ChannelStartContext {
   channelConfig: Record<string, unknown>
 }
 
+export interface ChannelMeta {
+  label: string
+  description?: string
+}
+
+export interface ChannelCapabilities {
+  chatTypes: Array<'direct' | 'group'>
+  media?: boolean
+  threads?: boolean
+  streaming?: boolean
+  multiAccount?: boolean
+  webhookInbound?: boolean
+  websocketInbound?: boolean
+}
+
+export interface ChannelRuntimeState {
+  started: boolean
+  connectionMode?: 'websocket' | 'webhook'
+  accountIds?: string[]
+  sessionScopes?: string[]
+  accounts?: Array<{
+    accountId: string
+    active: boolean
+    appId?: string
+    connectionMode?: 'websocket' | 'webhook'
+    sessionScope?: string
+  }>
+}
+
 /**
  * IReplyHandler — per-session outbound reply lifecycle.
  *
@@ -30,12 +59,17 @@ export interface ReplyHandlerContext {
   chatId: string
   senderId: string
   accountId?: string
+  rootId?: string
 }
 
 export interface IChannelPlugin {
   readonly id: string
+  readonly meta: ChannelMeta
+  readonly capabilities: ChannelCapabilities
   start(ctx: ChannelStartContext): Promise<void>
   stop(): Promise<void>
+  getRuntimeState?(): ChannelRuntimeState
+  processWebhook?(event: unknown): Promise<{ accepted: boolean; reason?: string }>
 
   /**
    * Create a per-session reply handler for outbound messages.

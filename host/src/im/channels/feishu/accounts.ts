@@ -8,9 +8,14 @@ export function resolveFeishuAccount(config: FeishuChannelConfigInput, accountId
   const parsed = parseFeishuConfig(config)
 
   if (accountId === 'default') {
+    if (!parsed.appId || !parsed.appSecret) {
+      throw new Error('default account is not configured')
+    }
     return {
       accountId,
       ...parsed,
+      appId: parsed.appId,
+      appSecret: parsed.appSecret,
     }
   }
 
@@ -23,4 +28,30 @@ export function resolveFeishuAccount(config: FeishuChannelConfigInput, accountId
     accountId,
     ...account,
   }
+}
+
+export function listResolvedFeishuAccounts(config: FeishuChannelConfigInput): ResolvedFeishuAccount[] {
+  const parsed = parseFeishuConfig(config)
+  const accounts: ResolvedFeishuAccount[] = []
+
+  if (parsed.enabled !== false && parsed.appId && parsed.appSecret) {
+    accounts.push({
+      accountId: 'default',
+      ...parsed,
+      appId: parsed.appId,
+      appSecret: parsed.appSecret,
+    })
+  }
+
+  for (const [accountId, account] of Object.entries(parsed.accounts ?? {})) {
+    if (account.enabled === false) {
+      continue
+    }
+    accounts.push({
+      accountId,
+      ...account,
+    })
+  }
+
+  return accounts
 }

@@ -51,14 +51,20 @@ export interface AOAppEntry {
  * ```
  */
 export interface AOAppManifest {
-    /** 
-     * App 唯一标识符 (用于安装和卸载)
+    /**
+     * App 唯一标识符（新 schema）
+     * 格式: 小写字母、数字、下划线，如 "system_ide"
+     */
+    app_name?: string;
+
+    /**
+     * App 唯一标识符（旧 schema，兼容读取）
      * 格式: 小写字母、数字、连字符，如 "weather", "todo-list"
      */
-    name: string;
+    name?: string;
 
-    /** 显示名称 (用于 UI 展示) */
-    displayName: string;
+    /** 显示名称（旧 schema，兼容读取） */
+    displayName?: string;
 
     /** 语义化版本号 */
     version: string;
@@ -102,8 +108,8 @@ export function validateManifest(manifest: unknown): manifest is AOAppManifest {
     const m = manifest as Record<string, unknown>;
 
     // 必填字段检查
-    if (typeof m.name !== 'string' || !m.name) return false;
-    if (typeof m.displayName !== 'string' || !m.displayName) return false;
+    const appName = typeof m.app_name === 'string' ? m.app_name : m.name;
+    if (typeof appName !== 'string' || !appName) return false;
     if (typeof m.version !== 'string' || !m.version) return false;
 
     // entry 检查
@@ -119,5 +125,5 @@ export function validateManifest(manifest: unknown): manifest is AOAppManifest {
  * 规则: 小写字母、数字、连字符，长度 1-50
  */
 export function isValidAppName(name: string): boolean {
-    return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name) && name.length <= 50;
+    return /^[a-z0-9_]+$/.test(name) && name.length <= 50;
 }

@@ -1,25 +1,11 @@
 {
-    "name": "system-planning",
-    "displayName": "Planning App",
-    "version": "0.1.0",
-    "description": "Planning application for LLMs to create plans, phases, and todos",
-    "author": "AOTUI Team",
-    "license": "MIT",
-    "runtime": {
-        "minVersion": "0.1.0"
-    },
-    "entry": {
-        "main": "./dist/index.js",
-        "types": "./dist/index.d.ts"
-    },
-    "views": [
-        {
-            "name": "PlanList",
-            "description": "List of unfinished plans and entry to open a plan"
-        },
-        {
-            "name": "PlanDetail",
-            "description": "Plan progress with phases and todos"
-        }
-    ]
+  "app_name": "planning_app",
+  "version": "0.1.0",
+  "description": "AOTUI Planning Application - Plan/Phase/Todo management for LLM workflows",
+  "whatItIs": "A hierarchical task planning and progress tracking system that organizes work into three levels: Plans (projects), Phases (major milestones), and Tasks (individual work items). Each level supports full CRUD operations and tracks completion status. All data is persisted per-desktop using SQLite.",
+  "whenToUse": "Use Planning App when you need to: (1) Break down complex projects into manageable phases and tasks, (2) Track progress across multiple work streams or milestones, (3) Create structured, hierarchical work plans with descriptions and metadata, (4) Monitor completion status at plan, phase, and task levels, (5) Organize iterative development with clear phases and actionable tasks.",
+  "entry": {
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts"
+  }
 }

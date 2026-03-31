@@ -34,6 +34,7 @@ function setupExpressRoutes(
     hostManager?: HostManagerV2,
     options?: {
         setupPreJsonRoutes?: (app: express.Application) => void;
+        imRuntimeBridge?: IMRuntimeBridge;
     },
 ): void {
     app.use(cors());
@@ -164,6 +165,95 @@ function setupExpressRoutes(
         }
     });
 
+    app.get('/api/im/sessions', (_req: Request, res: Response) => {
+        try {
+            if (!hostManager) {
+                res.status(503).json({ success: false, error: 'Host manager is not ready' });
+                return;
+            }
+
+            const sessions = hostManager.getIMSessions();
+            res.json({ success: true, data: sessions });
+        } catch (error) {
+            console.error('[HostV2] Error getting IM sessions:', error);
+            res.status(500).json({ success: false, error: 'Failed to get IM sessions' });
+        }
+    });
+
+    app.get('/api/im/sessions/:sessionKey', (req: Request, res: Response) => {
+        try {
+            if (!hostManager) {
+                res.status(503).json({ success: false, error: 'Host manager is not ready' });
+                return;
+            }
+
+            const sessionKey = decodeURIComponent(req.params.sessionKey);
+            const session = hostManager.getIMSession(sessionKey);
+            if (!session) {
+                res.status(404).json({ success: false, error: 'IM session not found' });
+                return;
+            }
+
+            res.json({ success: true, data: session });
+        } catch (error) {
+            console.error('[HostV2] Error getting IM session:', error);
+            res.status(500).json({ success: false, error: 'Failed to get IM session' });
+        }
+    });
+
+    app.get('/api/im/sessions/:sessionKey/messages', (req: Request, res: Response) => {
+        try {
+            if (!hostManager) {
+                res.status(503).json({ success: false, error: 'Host manager is not ready' });
+                return;
+            }
+
+            const sessionKey = decodeURIComponent(req.params.sessionKey);
+            const session = hostManager.getIMSession(sessionKey);
+            if (!session) {
+                res.status(404).json({ success: false, error: 'IM session not found' });
+                return;
+            }
+
+            const messages = hostManager.getIMMessages(sessionKey);
+            res.json({ success: true, data: messages });
+        } catch (error) {
+            console.error('[HostV2] Error getting IM session messages:', error);
+            res.status(500).json({ success: false, error: 'Failed to get IM session messages' });
+        }
+    });
+
+    app.post('/api/im/feishu/webhook', async (req: Request, res: Response) => {
+        try {
+            if (!options?.imRuntimeBridge) {
+                res.status(503).json({ success: false, error: 'IM runtime bridge is not ready' });
+                return;
+            }
+
+            const result = await options.imRuntimeBridge.processFeishuWebhook(req.body);
+            res.status(result.status).json(result.body);
+        } catch (error) {
+            console.error('[HostV2] Error processing Feishu webhook:', error);
+            res.status(500).json({ code: 1, msg: 'Failed to process Feishu webhook' });
+        }
+    });
+
+    app.post('/api/im/feishu/webhook/:accountId', async (req: Request, res: Response) => {
+        try {
+            if (!options?.imRuntimeBridge) {
+                res.status(503).json({ success: false, error: 'IM runtime bridge is not ready' });
+                return;
+            }
+
+            const accountId = decodeURIComponent(req.params.accountId);
+            const result = await options.imRuntimeBridge.processFeishuWebhook(req.body, accountId);
+            res.status(result.status).json(result.body);
+        } catch (error) {
+            console.error('[HostV2] Error processing Feishu account webhook:', error);
+            res.status(500).json({ code: 1, msg: 'Failed to process Feishu account webhook' });
+        }
+    });
+
     // Health check
     app.get('/api/health', (_req: Request, res: Response) => {
         res.json({ status: 'ok', service: 'host-v2', timestamp: Date.now() });
@@ -232,6 +322,7 @@ export async function createHostV2Core(modelRegistry: ModelRegistry): Promise<{
       ],
     });
     await imRuntimeBridge.start();
+    hostManager.setIMRuntimeProvider(() => imRuntimeBridge.getRuntime());
     console.log('[HostV2] IM Runtime Bridge initialized');
 
 
@@ -242,10 +333,11 @@ export async function createHostV2(port: number = 8080, modelRegistry?: ModelReg
     console.log('[HostV2] Starting Host V2 with AgentDriver V2 architecture...');
 
     const registry = modelRegistry || new ModelRegistry();
-    const { hostManager, llmConfigService, wsHandler } = await createHostV2Core(registry);
+    const { hostManager, llmConfigService, wsHandler, imRuntimeBridge } = await createHostV2Core(registry);
 
     // 3. Setup Express (pass hostManager for Session initialization on Topic creation)
     const app = express();
+    setupExpressRoutes(app, hostManager, { imRuntimeBridge });
 
     // 4. Create HTTP + WebSocket servers
     const server = createHttpServer(app);

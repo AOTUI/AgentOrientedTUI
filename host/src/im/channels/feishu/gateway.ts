@@ -5,6 +5,14 @@ export interface FeishuGatewayEvent {
   chatType: 'direct' | 'group'
   senderId: string
   senderName?: string
+  mentions?: Array<{
+    key?: string
+    openId?: string
+    userId?: string
+    unionId?: string
+    name?: string
+  }>
+  rootId?: string
   text: string
   timestamp: number
 }

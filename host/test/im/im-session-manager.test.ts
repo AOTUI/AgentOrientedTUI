@@ -11,9 +11,14 @@ function createManager() {
     stop: vi.fn(),
   }))
 
+  const persistSession = vi.fn(async () => undefined)
+  const deletePersistedSession = vi.fn(async () => undefined)
+
   const manager = new IMSessionManager({
     createDesktop,
     createAgentDriver,
+    persistSession,
+    deletePersistedSession,
     now: (() => {
       let t = 1_000
       return () => ++t
@@ -21,17 +26,64 @@ function createManager() {
     maxSessions: 2,
   })
 
-  return { manager, createDesktop, createAgentDriver }
+  return { manager, createDesktop, createAgentDriver, persistSession, deletePersistedSession }
 }
 
 describe('IMSessionManager', () => {
   it('creates session on first ensure', async () => {
-    const { manager } = createManager()
+    const { manager, persistSession } = createManager()
     const session = await manager.ensureSession('agent:a:feishu:direct:u1', 'agent-a')
 
     expect(session.sessionKey).toBe('agent:a:feishu:direct:u1')
     expect(session.agentId).toBe('agent-a')
     expect(session.source.name).toBe('IM')
+    expect(persistSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionKey: 'agent:a:feishu:direct:u1',
+        agentId: 'agent-a',
+        channel: 'feishu',
+        chatType: 'direct',
+        peerId: 'u1',
+      }),
+    )
+  })
+
+  it('keeps sourceControls when createAgentDriver returns a bundle', async () => {
+    const createDesktop = vi.fn(async ({ sessionKey }: { sessionKey: string }) => ({
+      id: `desktop-${sessionKey}`,
+      destroy: vi.fn(),
+    }))
+    const persistSession = vi.fn(async () => undefined)
+
+    const manager = new IMSessionManager({
+      createDesktop,
+      createAgentDriver: vi.fn(() => ({
+        agentDriver: { stop: vi.fn() },
+        sourceControls: {
+          apps: { enabled: false, disabledItems: ['app-a'] },
+          mcp: { enabled: true, disabledItems: ['server:server-b'] },
+          skill: { enabled: true, disabledItems: ['skill-a'] },
+        },
+      })),
+      persistSession,
+    })
+
+    const session = await manager.ensureSession('agent:a:feishu:direct:u-controls', 'agent-a')
+
+    expect(session.sourceControls).toEqual({
+      apps: { enabled: false, disabledItems: ['app-a'] },
+      mcp: { enabled: true, disabledItems: ['server:server-b'] },
+      skill: { enabled: true, disabledItems: ['skill-a'] },
+    })
+    expect(persistSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceControls: {
+          apps: { enabled: false, disabledItems: ['app-a'] },
+          mcp: { enabled: true, disabledItems: ['server:server-b'] },
+          skill: { enabled: true, disabledItems: ['skill-a'] },
+        },
+      }),
+    )
   })
 
   it('reuses existing session for same key', async () => {
@@ -80,16 +132,45 @@ describe('IMSessionManager', () => {
   })
 
   it('updates lastAccessTime on reuse', async () => {
-    const { manager } = createManager()
+    const { manager, persistSession } = createManager()
     const first = await manager.ensureSession('agent:a:feishu:direct:u3', 'agent-a')
     const before = first.lastAccessTime
 
     const reused = await manager.ensureSession('agent:a:feishu:direct:u3', 'agent-a')
     expect(reused.lastAccessTime).toBeGreaterThan(before)
+    expect(persistSession).toHaveBeenCalledTimes(2)
+  })
+
+  it('persists account metadata and access updates on dispatch', async () => {
+    const { manager, persistSession } = createManager()
+
+    const session = await manager.dispatch({
+      sessionKey: 'agent:a:feishu:group:oc_100',
+      agentId: 'agent-a',
+      channel: 'feishu',
+      chatType: 'group',
+      peerId: 'oc_100',
+      body: 'group hello',
+      messageId: 'msg-2',
+      senderId: 'ou_group',
+      chatId: 'oc_100',
+      accountId: 'tenant-1',
+      timestamp: 4_321,
+    })
+
+    expect(session.accountId).toBe('tenant-1')
+    expect(persistSession).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sessionKey: 'agent:a:feishu:group:oc_100',
+        chatType: 'group',
+        peerId: 'oc_100',
+        accountId: 'tenant-1',
+      }),
+    )
   })
 
   it('destroys session and calls stop/destroy hooks', async () => {
-    const { manager } = createManager()
+    const { manager, deletePersistedSession } = createManager()
     const session = await manager.ensureSession('agent:a:feishu:direct:u4', 'agent-a')
 
     const stopSpy = vi.spyOn(session.agentDriver, 'stop')
@@ -100,6 +181,7 @@ describe('IMSessionManager', () => {
     expect(stopSpy).toHaveBeenCalledTimes(1)
     expect(destroySpy).toHaveBeenCalledTimes(1)
     expect(manager.getSession('agent:a:feishu:direct:u4')).toBeUndefined()
+    expect(deletePersistedSession).toHaveBeenCalledWith('agent:a:feishu:direct:u4')
   })
 
   it('noops when destroying unknown session', async () => {

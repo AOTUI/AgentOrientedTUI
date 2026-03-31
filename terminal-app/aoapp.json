@@ -1,29 +1,11 @@
 {
-    "name": "system-terminal",
-    "displayName": "Terminal",
-    "version": "0.1.0",
-    "description": "Multi-terminal command execution with project path constraints",
-    "author": "AOTUI Team",
-    "license": "MIT",
-    "runtime": {
-        "minVersion": "0.1.0"
-    },
-    "entry": {
-        "main": "./dist/index.js",
-        "types": "./dist/index.d.ts"
-    },
-    "views": [
-        {
-            "name": "Root",
-            "description": "App instructions and terminal tool registry"
-        },
-        {
-            "name": "TerminalConsole",
-            "description": "Project path and terminal session summary"
-        },
-        {
-            "name": "Terminal",
-            "description": "Command history, working directory, and output tail"
-        }
-    ]
+  "app_name": "terminal",
+  "version": "1.0.2",
+  "description": "AOTUI Terminal Application - Multi-terminal command execution for LLM workflows",
+  "whatItIs": "A multi-terminal command execution system constrained to the project path, providing command history, working directory tracking, and output tailing for LLM workflows.",
+  "whenToUse": "Use Terminal when you need to run shell commands, manage multiple terminal sessions, and review command outputs while staying within the current project directory.",
+  "entry": {
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts"
+  }
 }
