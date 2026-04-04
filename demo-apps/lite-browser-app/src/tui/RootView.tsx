@@ -1,6 +1,5 @@
 import { defineParams, useViewTypeTool } from '@aotui/sdk';
 import type { FetchFormat, SearchQuery } from '../types.js';
-import { config } from 'process';
 
 type RootViewProps = {
     hasResults: boolean;
@@ -245,38 +244,54 @@ export function RootView({
     onClosePage
 }: RootViewProps) {
     return (
-        <div>
-            <h1>Lite Browser Application Instruction</h1>
-            <h2>What Lite Browser is</h2>
-            <p>A lightweight TUI browser that searches the web and fetches page content into structured views.</p>
-            <h2>How to use Lite Browser</h2>
-            <ul>
-                <li>Use Search View tools to run web searches.</li>
-                <li>Use ResultList tools to open a result URL.</li>
-                <li>Use Page View tools to fetch or close the current page.</li>
-            </ul>
-            <h2>Views of Lite Browser</h2>
-            <h3>Search View</h3>
-            <h4>Search View Instruction</h4>
-            <p>Shows the current query parameters and search status.</p>
-            <h4>Search View Available Tools</h4>
-            <SearchToolSection onSearch={onSearch} />
-            {hasResults ? (
-                <>
-                    <h3>ResultList View</h3>
-                    <h4>ResultList View Instruction</h4>
-                    <p>Shows ranked search results with titles, URLs, and snippets.</p>
-                    <h4>ResultList View Available Tools</h4>
+        <>
+            <div data-role="application-instruction">
+                <section>
+                    <h1>Lite Browser - Application Instruction</h1>
+                    <h2>What it is</h2>
+                    <p>A lightweight TUI browser that searches the web and fetches page content into structured views.</p>
+                    <h2>How to use</h2>
+                    <ul>
+                        <li>Use Search to run a web query and create fresh search results.</li>
+                        <li>Use ResultList to open a result URL into Page or clear outdated results.</li>
+                        <li>Use Page to fetch a specific URL again or close the current page view when finished.</li>
+                    </ul>
+                    <h2>Views</h2>
+                    <h3>Search</h3>
+                    <p><strong>What it shows:</strong> The current search entry point and the tools for starting a web search.</p>
+                    <p><strong>How to use:</strong> Start here whenever you need a new query.</p>
+                    <h4>Tool Preconditions</h4>
+                    <ul>
+                        <li><strong>search_web</strong>: requires a non-empty query; optional search parameters can refine result count or crawl mode.</li>
+                    </ul>
+
+                    <h3>ResultList</h3>
+                    <p><strong>What it shows:</strong> Ranked search results with titles, URLs, and snippets.</p>
+                    <p><strong>How to use:</strong> Review results first, then open a promising URL or clear the list before starting another search.</p>
+                    <h4>Tool Preconditions</h4>
+                    <ul>
+                        <li><strong>open_result</strong>: requires either a SearchResult reference or a direct URL.</li>
+                        <li><strong>clear_results</strong>: requires an existing result list.</li>
+                    </ul>
+
+                    <h3>Page</h3>
+                    <p><strong>What it shows:</strong> Fetched page content in the selected format together with any extracted attachments.</p>
+                    <p><strong>How to use:</strong> Use Page for deeper reading after selecting or manually providing a URL.</p>
+                    <h4>Tool Preconditions</h4>
+                    <ul>
+                        <li><strong>fetch_url</strong>: requires a URL; optional format and timeout refine the fetch.</li>
+                        <li><strong>close_page</strong>: requires an active Page view.</li>
+                    </ul>
+                </section>
+            </div>
+
+            <div data-role="view-content">
+                <SearchToolSection onSearch={onSearch} />
+                {hasResults ? (
                     <ResultListToolSection onOpenResult={onOpenResult} onClearResults={onClearResults} />
-                </>
-            ) : null}
-            <>
-                <h3>Page View</h3>
-                <h4>Page View Instruction</h4>
-                <p>Shows fetched page content in the selected format and any attachments.</p>
-                <h4>Page View Available Tools</h4>
+                ) : null}
                 <PageToolSection onFetch={onFetch} onClosePage={onClosePage} hasPage={hasPage} />
-            </>
-        </div>
+            </div>
+        </>
     );
 }
