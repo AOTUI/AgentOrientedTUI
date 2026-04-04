@@ -6,6 +6,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentDriverV2 } from '../../src/core/agent-driver-v2.js';
 import type { IDrivenSource, AgentState } from '../../src/core/interfaces.js';
 
+function stubLlmCall(driver: AgentDriverV2) {
+    const call = vi.fn().mockResolvedValue({
+        text: 'ok',
+        toolCalls: [],
+        finishReason: 'stop',
+        assistantMessage: {
+            role: 'assistant',
+            content: 'ok',
+        },
+    });
+
+    (driver as any).llmClient = { call };
+    return call;
+}
+
+async function waitForIdle(driver: AgentDriverV2): Promise<void> {
+    await vi.waitFor(() => {
+        expect(driver.getState()).toBe('idle');
+    });
+}
+
 describe('AgentDriver State Machine', () => {
     let mockSource: IDrivenSource;
     let stateChangeLog: Array<{ old: AgentState; new: AgentState }>;
@@ -48,15 +69,18 @@ describe('AgentDriver State Machine', () => {
                 stateChangeLog.push({ old, new: newState });
             },
         });
+        const call = stubLlmCall(driver);
 
         // 手动触发
         await driver.trigger();
+        await waitForIdle(driver);
 
         // 应该至少有一次状态转换: idle → thinking
         const hasThinking = stateChangeLog.some(
             (log) => log.old === 'idle' && log.new === 'thinking'
         );
         expect(hasThinking).toBe(true);
+        expect(call).toHaveBeenCalled();
 
         // 最终应该回到 idle (因为没有 ToolCalls)
         expect(driver.getState()).toBe('idle');
@@ -67,20 +91,35 @@ describe('AgentDriver State Machine', () => {
             sources: [mockSource],
             llm: { model: 'gpt-4' },
         });
+        const call = vi.fn().mockImplementation(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            return {
+                text: 'ok',
+                toolCalls: [],
+                finishReason: 'stop',
+                assistantMessage: {
+                    role: 'assistant',
+                    content: 'ok',
+                },
+            };
+        });
+        (driver as any).llmClient = { call };
 
         // 启动一个 run (会进入 thinking 状态)
-        const runPromise = driver.trigger();
+        await driver.trigger();
+        await vi.waitFor(() => {
+            expect(driver.getState()).toBe('thinking');
+        });
 
         // 立即尝试触发另一个更新
-        // 注意：这个需要在 thinking 状态下调用
-        // 为了测试，我们可以直接调用 handleUpdate
-        // 但由于 handleUpdate 是 private，我们通过 onUpdate 回调来模拟
+        await driver.trigger();
+        expect(driver.hasPendingUpdate()).toBe(true);
 
         // 等待 run 完成
-        await runPromise;
-
-        // 验证 hasPendingUpdate (这里需要在 run 期间检查，所以这个测试不够严谨)
-        // 实际测试需要 mock 更复杂的场景
+        await waitForIdle(driver);
+        expect(call).toHaveBeenCalledTimes(1);
+        expect(mockSource.getMessages).toHaveBeenCalledTimes(2);
+        expect(driver.hasPendingUpdate()).toBe(false);
     });
 
     it('should dispose correctly', () => {
@@ -137,9 +176,11 @@ describe('Tool Mapping', () => {
             sources: [source1, source2],
             llm: { model: 'gpt-4' },
         });
+        stubLlmCall(driver);
 
         // 手动触发以建立映射
         await driver.trigger();
+        await waitForIdle(driver);
 
         // 验证映射
         expect(driver.getToolSource('tool1')).toBe(source1);
@@ -172,9 +213,11 @@ describe('Tool Mapping', () => {
             sources: [source],
             llm: { model: 'gpt-4' },
         });
+        stubLlmCall(driver);
 
         // 触发以建立映射
         await driver.trigger();
+        await waitForIdle(driver);
 
         // 验证 executeTool 被调用
         // 注意：实际测试需要 mock LLM 返回 ToolCalls
@@ -211,9 +254,11 @@ describe('Message Collection', () => {
             sources: [source1, source2],
             llm: { model: 'gpt-4' },
         });
+        stubLlmCall(driver);
 
         // 触发以收集消息
         await driver.trigger();
+        await waitForIdle(driver);
 
         // 验证 getMessages 被调用
         expect(source1.getMessages).toHaveBeenCalled();

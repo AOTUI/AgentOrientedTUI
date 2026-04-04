@@ -17,6 +17,9 @@
  */
 
 import type { IDrivenSource, MessageWithTimestamp, ToolResult } from '@aotui/agent-driver-v2';
+type StaticMessageWithTimestamp = MessageWithTimestamp & {
+    region?: 'static';
+};
 
 /**
  * SystemPromptDrivenSource 配置
@@ -90,7 +93,7 @@ export class SystemPromptDrivenSource implements IDrivenSource {
             content: this.config.systemPrompt,
             timestamp: 0, // ✅ 确保第一位
             region: 'static',
-        }];
+        } as StaticMessageWithTimestamp];
     }
 
     /**

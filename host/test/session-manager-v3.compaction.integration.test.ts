@@ -16,6 +16,10 @@ vi.mock('../src/config/config.js', () => ({
   },
 }));
 
+vi.mock('../src/mcp/source.js', () => ({
+  McpDrivenSource: class McpDrivenSource {},
+}));
+
 describe('SessionManagerV3 compaction integration', () => {
   let manager: SessionManagerV3;
   let messageService: {

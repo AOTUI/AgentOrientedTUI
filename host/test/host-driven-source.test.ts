@@ -33,6 +33,7 @@ describe('HostDrivenSourceV2', () => {
             timestamp: 1,
             region: 'session',
         });
+        expect(messages.every((message) => message.region === 'session')).toBe(true);
     });
 
     it('should expose context_compact tool', async () => {

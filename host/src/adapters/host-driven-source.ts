@@ -13,6 +13,9 @@ import type { MessageWithTimestamp } from '@aotui/agent-driver-v2';
 import EventEmitter from 'events';
 import type { MessageServiceV2 } from '../core/message-service-v2.js';
 import { dynamicTool, jsonSchema } from 'ai';
+type SessionMessageWithTimestamp = MessageWithTimestamp & {
+    region?: 'session';
+};
 
 /**
  * Tool Result (临时定义，避免import问题)
@@ -106,7 +109,7 @@ export class HostDrivenSourceV2 implements IDrivenSource {
         return messages.map((message) => ({
             ...message,
             region: message.region ?? 'session',
-        }));
+        } as SessionMessageWithTimestamp));
     }
 
     /**
