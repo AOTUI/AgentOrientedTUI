@@ -270,6 +270,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 role: 'user',
                 content: this.systemInstruction,
                 timestamp: 1, // ✅ 在 SystemPrompt (0) 之后，在用户消息之前
+                region: 'static',
             });
         }
         
@@ -283,11 +284,33 @@ export class AOTUIDrivenSource implements IDrivenSource {
 
             // 3. 优先使用结构化 Snapshot (RFC-014)
             if (snapshot.structured?.appStates) {
+                const applicationInstructions = Array.isArray(snapshot.structured.applicationInstructions)
+                    ? snapshot.structured.applicationInstructions
+                    : [];
+
+                for (const instruction of applicationInstructions) {
+                    const instructionAppId = this.normalizeAppKey((instruction as any).appId);
+                    const instructionAppName = this.normalizeAppKey((instruction as any).appName)
+                        || this.normalizeAppKey(this.resolveAppName(instructionAppId));
+
+                    if (!this.isAppAllowed(instructionAppId, instructionAppName)) {
+                        continue;
+                    }
+
+                    messages.push({
+                        role: 'user',
+                        content: instruction.markup,
+                        timestamp: instruction.timestamp ?? baseTimestamp,
+                        region: 'static',
+                    });
+                }
+
                 if (snapshot.structured.desktopState && this.disabledApps.size === 0) {
                     messages.push({
                         role: 'user',
                         content: snapshot.structured.desktopState,
-                        timestamp: desktopTimestamp
+                        timestamp: desktopTimestamp,
+                        region: 'dynamic',
                     });
                 }
 
@@ -317,6 +340,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
                             role: 'user',
                             content: wrappedView,
                             timestamp: view.timestamp ?? baseTimestamp,
+                            region: 'dynamic',
                         });
                     }
 
@@ -335,7 +359,8 @@ export class AOTUIDrivenSource implements IDrivenSource {
                     messages.push({
                         role: 'user',
                         content: `${fragment.markup}`,
-                        timestamp: fragment.timestamp ?? baseTimestamp
+                        timestamp: fragment.timestamp ?? baseTimestamp,
+                        region: 'dynamic',
                     });
                 }
             }
@@ -344,7 +369,8 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 messages.push({
                     role: 'user',
                     content: `# TUI Desktop State\n\n${snapshot.markup}`,
-                    timestamp: baseTimestamp
+                    timestamp: baseTimestamp,
+                    region: 'dynamic',
                 });
             }
 

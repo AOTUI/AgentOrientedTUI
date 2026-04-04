@@ -184,6 +184,7 @@ function createCompactionMessages(
         },
       ] as any,
       timestamp: timestampBase,
+      region: 'session',
     },
     {
       role: 'tool',
@@ -206,6 +207,7 @@ function createCompactionMessages(
         },
       ] as any,
       timestamp: timestampBase + 1,
+      region: 'session',
     },
   ]
 }
@@ -344,7 +346,10 @@ export class IMDrivenSource {
   async getMessages(): Promise<MessageWithTimestamp[]> {
     await this.ensureHistoryLoaded()
 
-    return [...getActiveWindow(this.messages)]
+    return getActiveWindow(this.messages).map((message) => ({
+      ...message,
+      region: message.region ?? 'session',
+    }))
   }
 
   async getTools(): Promise<Record<string, any>> {
@@ -644,6 +649,7 @@ export class IMDrivenSource {
       role: message.role,
       content: message.content,
       timestamp: typeof timestamp === 'number' ? timestamp : this.now(),
+      region: 'session',
     }
 
     this.messages = mergeMessages(this.messages, [record])

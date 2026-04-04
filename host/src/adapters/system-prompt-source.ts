@@ -89,6 +89,7 @@ export class SystemPromptDrivenSource implements IDrivenSource {
             role: 'system',
             content: this.config.systemPrompt,
             timestamp: 0, // ✅ 确保第一位
+            region: 'static',
         }];
     }
 

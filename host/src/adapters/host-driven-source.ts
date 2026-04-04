@@ -102,7 +102,11 @@ export class HostDrivenSourceV2 implements IDrivenSource {
      * ✅ 直接返回，零转换!
      */
     async getMessages(): Promise<MessageWithTimestamp[]> {
-        return this.messageService.getMessagesForLLM(this.topicId);
+        const messages = await this.messageService.getMessagesForLLM(this.topicId);
+        return messages.map((message) => ({
+            ...message,
+            region: message.region ?? 'session',
+        }));
     }
 
     /**

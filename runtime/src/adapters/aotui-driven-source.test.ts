@@ -382,4 +382,80 @@ describe('AOTUIDrivenSource type tool routing', () => {
         expect(wrapper).toContain('app_name="sys&quot;ide&lt;prod&gt;"');
         expect(wrapper).not.toContain('<View ');
     });
+
+    it('emits application instructions as static messages and business views as dynamic messages', async () => {
+        const kernel = {
+            acquireSnapshot: vi.fn().mockResolvedValue({
+                id: 'snap_regions',
+                createdAt: 1705305600000,
+                structured: {
+                    desktopState: 'desktop-state',
+                    desktopTimestamp: 1705305600500,
+                    applicationInstructions: [
+                        {
+                            appId: 'app_1',
+                            appName: 'system_ide',
+                            viewId: 'root',
+                            viewType: 'Root',
+                            viewName: 'Application Instruction',
+                            markup: '<view data-role="application-instruction">Application Instruction</view>',
+                            timestamp: 1705305601000,
+                            kind: 'application-instruction',
+                        },
+                    ],
+                    appStates: [
+                        { appId: 'app_1', appName: 'system_ide', markup: 'APP-MARKUP', timestamp: 1705305601200 },
+                    ],
+                    viewStates: [
+                        {
+                            appId: 'app_1',
+                            appName: 'system_ide',
+                            viewId: 'workspace',
+                            viewType: 'Workspace',
+                            viewName: 'Workspace',
+                            markup: '<view id="workspace">Workspace Content</view>',
+                            timestamp: 1705305602000,
+                        },
+                    ],
+                },
+                indexMap: {},
+            }),
+            releaseSnapshot: vi.fn(),
+            acquireLock: vi.fn(),
+            releaseLock: vi.fn(),
+            execute: vi.fn(),
+            getSystemToolDefinitions: vi.fn().mockReturnValue([]),
+        } as any;
+
+        const desktop = {
+            id: 'desktop_regions',
+            output: {
+                subscribe: vi.fn(),
+                unsubscribe: vi.fn(),
+            },
+        } as any;
+
+        const source = new AOTUIDrivenSource(desktop, kernel, { includeInstruction: false });
+        const messages = await source.getMessages();
+
+        expect(messages).toHaveLength(3);
+        expect(messages[0]).toMatchObject({
+            role: 'user',
+            region: 'static',
+        });
+        expect(String(messages[0]?.content)).toContain('Application Instruction');
+        expect(messages[1]).toMatchObject({
+            role: 'user',
+            content: 'desktop-state',
+            region: 'dynamic',
+        });
+        expect(messages[2]).toMatchObject({
+            role: 'user',
+            region: 'dynamic',
+        });
+        expect(String(messages[2]?.content)).toContain('Workspace Content');
+        expect(messages.filter((message) => (message as any).region === 'dynamic')).toHaveLength(2);
+        expect(messages.filter((message) => (message as any).region === 'static')).toHaveLength(1);
+        expect(messages.filter((message) => (message as any).region === 'dynamic').map((message) => String(message.content)).join('\n')).not.toContain('Application Instruction');
+    });
 });

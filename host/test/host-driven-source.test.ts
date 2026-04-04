@@ -27,6 +27,12 @@ describe('HostDrivenSourceV2', () => {
         const messages = await source.getMessages();
         expect(messageServiceMock.getMessagesForLLM).toHaveBeenCalledWith(topicId);
         expect(messages).toHaveLength(1);
+        expect(messages[0]).toMatchObject({
+            role: 'user',
+            content: 'hello',
+            timestamp: 1,
+            region: 'session',
+        });
     });
 
     it('should expose context_compact tool', async () => {
