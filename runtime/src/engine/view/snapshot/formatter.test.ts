@@ -272,5 +272,66 @@ describe('SnapshotFormatter', () => {
             });
             expect(result.structured.viewStates ?? []).toHaveLength(0);
         });
+
+        it('should separate application instructions from business view states', () => {
+            const metadataWithRole: IDesktopMetadata = {
+                getInstalledApps: () => [{
+                    appId: 'app_0',
+                    name: 'IDE',
+                    status: 'running',
+                    promptRole: 'user'
+                }],
+                getSystemLogs: () => [],
+                getAppOperationLogs: () => []
+            };
+
+            const fragment: ISnapshotFragment = {
+                appId: 'app_0',
+                markup: '<application id="app_0" name="IDE"></application>',
+                indexMap: {},
+                views: [
+                    {
+                        viewId: 'root',
+                        viewType: 'Root',
+                        viewName: 'Application Instruction',
+                        markup: '<view data-role="application-instruction">Root Instruction</view>',
+                        timestamp: 1705305601000,
+                        kind: 'application-instruction',
+                    },
+                    {
+                        viewId: 'workspace',
+                        viewType: 'Workspace',
+                        viewName: 'Workspace',
+                        markup: '<view id="workspace">Workspace Content</view>',
+                        timestamp: 1705305603000,
+                        kind: 'view-state',
+                    }
+                ]
+            };
+
+            const formatter = new SnapshotFormatter();
+            const result = formatter.format([fragment], metadataWithRole);
+
+            expect(result.structured.applicationInstructions).toHaveLength(1);
+            expect(result.structured.applicationInstructions?.[0]).toMatchObject({
+                appId: 'app_0',
+                appName: 'IDE',
+                viewId: 'root',
+                viewType: 'Root',
+                viewName: 'Application Instruction',
+                kind: 'application-instruction',
+                role: 'user'
+            });
+            expect(result.structured.viewStates).toHaveLength(1);
+            expect(result.structured.viewStates?.[0]).toMatchObject({
+                appId: 'app_0',
+                appName: 'IDE',
+                viewId: 'workspace',
+                viewType: 'Workspace',
+                viewName: 'Workspace',
+                role: 'user'
+            });
+            expect(result.structured.viewStates?.find((view) => view.viewId === 'root')).toBeUndefined();
+        });
     });
 });

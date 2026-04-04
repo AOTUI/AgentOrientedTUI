@@ -106,7 +106,7 @@ export interface ISnapshotFragment {
         viewName?: string;
         markup: string;
         timestamp: number;
-        kind?: 'view-state';
+        kind?: 'application-instruction' | 'view-state';
     }>;
 
     /**

@@ -15,6 +15,7 @@ import type {
     FormattedSnapshotResult,
     StructuredSnapshot,
     AppStateFragment,
+    ApplicationInstructionFragment,
     ViewStateFragment,
 } from '../../../spi/index.js';
 import { SYSTEM_INSTRUCTION, SYSTEM_INSTRUCTION_PURE, formatTimestamp, formatAppStatus } from './templates.js';
@@ -97,6 +98,8 @@ export class SnapshotFormatter implements ISnapshotFormatter {
     ): ExtendedSnapshotResult {
         const parts: string[] = [];
         const mergedIndexMap: Record<string, unknown> = {};
+        const applicationInstructions: ApplicationInstructionFragment[] = [];
+        const instructionKeys = new Set<string>();
 
         // 1. Build <desktop> section (legacy - includes SYSTEM_INSTRUCTION)
         parts.push(this.buildDesktopSection(metadata));
@@ -118,8 +121,31 @@ export class SnapshotFormatter implements ISnapshotFormatter {
                 role: appInfo?.promptRole
             });
 
+            if (fragment.applicationInstructions && fragment.applicationInstructions.length > 0) {
+                for (const instruction of fragment.applicationInstructions) {
+                    const normalized = this.normalizeApplicationInstruction(
+                        fragment,
+                        appInfo?.name,
+                        appInfo?.promptRole,
+                        instruction,
+                    );
+                    this.pushUniqueApplicationInstruction(applicationInstructions, instructionKeys, normalized);
+                }
+            }
+
             if (fragment.views && fragment.views.length > 0) {
                 for (const view of fragment.views) {
+                    if (this.isApplicationInstructionView(view)) {
+                        const normalized = this.normalizeApplicationInstruction(
+                            fragment,
+                            appInfo?.name,
+                            appInfo?.promptRole,
+                            view,
+                        );
+                        this.pushUniqueApplicationInstruction(applicationInstructions, instructionKeys, normalized);
+                        continue;
+                    }
+
                     viewStates.push({
                         appId: fragment.appId,
                         appName: appInfo?.name ?? fragment.appId,
@@ -160,6 +186,7 @@ export class SnapshotFormatter implements ISnapshotFormatter {
             systemInstruction: SYSTEM_INSTRUCTION_PURE,
             desktopState: this.buildDesktopStateOnly(metadata),
             desktopTimestamp: this.computeDesktopTimestamp(metadata, appStates, viewStates),
+            applicationInstructions,
             appStates,
             viewStates,
         };
@@ -168,6 +195,70 @@ export class SnapshotFormatter implements ISnapshotFormatter {
             markup: parts.join('\n\n'),
             indexMap: mergedIndexMap,
             structured
+        };
+    }
+
+    private pushUniqueApplicationInstruction(
+        applicationInstructions: ApplicationInstructionFragment[],
+        instructionKeys: Set<string>,
+        instruction: ApplicationInstructionFragment,
+    ): void {
+        const key = [
+            instruction.appId,
+            instruction.viewId,
+            instruction.viewType,
+            instruction.timestamp ?? '',
+            instruction.markup,
+        ].join('|');
+
+        if (instructionKeys.has(key)) {
+            return;
+        }
+
+        instructionKeys.add(key);
+        applicationInstructions.push(instruction);
+    }
+
+    private isApplicationInstructionView(view: {
+        kind?: unknown;
+        markup?: unknown;
+    }): boolean {
+        if (view.kind === 'application-instruction') {
+            return true;
+        }
+
+        const markup = typeof view.markup === 'string' ? view.markup : '';
+        return markup.includes('data-role="application-instruction"')
+            || markup.includes("data-role='application-instruction'");
+    }
+
+    private normalizeApplicationInstruction(
+        fragment: ISnapshotFragment,
+        fallbackAppName: string | undefined,
+        fallbackRole: 'user' | 'assistant' | undefined,
+        source: {
+            appId?: string;
+            appName?: string;
+            viewId?: string;
+            viewType?: string;
+            viewName?: string;
+            markup?: string;
+            timestamp?: number;
+            digest?: string;
+            role?: 'user' | 'assistant';
+        },
+    ): ApplicationInstructionFragment {
+        return {
+            appId: source.appId || fragment.appId,
+            appName: source.appName || fallbackAppName || fragment.appId,
+            viewId: source.viewId || 'root',
+            viewType: source.viewType || 'Root',
+            viewName: source.viewName,
+            markup: source.markup || '',
+            timestamp: source.timestamp ?? fragment.timestamp,
+            digest: source.digest,
+            role: source.role || fallbackRole,
+            kind: 'application-instruction',
         };
     }
 
