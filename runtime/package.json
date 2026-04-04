@@ -63,10 +63,36 @@
   "dependencies": {
     "@aotui/agent-driver-v2": "^0.2.1",
     "ai": "^6.0.77",
-    "happy-dom": "^20.1.0",
+    "happy-dom": "^20.8.9",
     "linkedom": "^0.18.12",
-    "preact": "^10.28.0",
+    "preact": "^10.29.1",
     "preact-render-to-string": "^6.6.4",
     "zod": "^4.3.6"
+  },
+  "overrides": {
+    "ajv": "^6.14.0",
+    "brace-expansion@1.1.12": "1.1.13",
+    "brace-expansion@2.0.2": "2.0.3",
+    "flatted": "^3.4.2",
+    "happy-dom": "^20.8.9",
+    "minimatch@3.1.2": "3.1.4",
+    "minimatch@9.0.5": "9.0.7",
+    "picomatch@4.0.3": "4.0.4",
+    "preact": "^10.29.1",
+    "rollup": "^4.60.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "ajv": "^6.14.0",
+      "brace-expansion@1.1.12": "1.1.13",
+      "brace-expansion@2.0.2": "2.0.3",
+      "flatted": "^3.4.2",
+      "happy-dom": "^20.8.9",
+      "minimatch@3.1.2": "3.1.4",
+      "minimatch@9.0.5": "9.0.7",
+      "picomatch@4.0.3": "4.0.4",
+      "preact": "^10.29.1",
+      "rollup": "^4.60.1"
+    }
   }
 }

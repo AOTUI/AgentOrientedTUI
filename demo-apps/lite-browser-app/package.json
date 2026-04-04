@@ -19,5 +19,15 @@
         "typescript": "^5.9.3",
         "vitest": "^3.2.4"
     },
-    "peerDependencies": {}
+    "peerDependencies": {},
+    "overrides": {
+        "picomatch@4.0.3": "4.0.4",
+        "rollup": "^4.60.1"
+    },
+    "pnpm": {
+        "overrides": {
+            "picomatch@4.0.3": "4.0.4",
+            "rollup": "^4.60.1"
+        }
+    }
 }

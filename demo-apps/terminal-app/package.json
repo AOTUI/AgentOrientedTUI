@@ -26,6 +26,14 @@
     "publishConfig": {
         "access": "public"
     },
+    "overrides": {
+        "picomatch@4.0.3": "4.0.4"
+    },
+    "pnpm": {
+        "overrides": {
+            "picomatch@4.0.3": "4.0.4"
+        }
+    },
     "files": [
         "dist",
         "aoapp.json"
