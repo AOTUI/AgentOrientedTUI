@@ -6,6 +6,13 @@
 set -e  # Exit on error
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+DEMO_APP_DIRS=(
+    "demo-apps/aotui-ide"
+    "demo-apps/planning-app"
+    "demo-apps/terminal-app"
+    "demo-apps/token-monitor-app"
+    "demo-apps/lite-browser-app"
+)
 
 echo "🚀 Starting AOTUI Development Environment"
 echo "=========================================="
@@ -26,12 +33,15 @@ force_local_package_link() {
 
 link_local_core_deps() {
     local target="$1"
+    local target_name
 
     if [ ! -d "$target" ] || [ ! -f "$target/package.json" ]; then
         return
     fi
 
-    case "$target" in
+    target_name="$(basename "$target")"
+
+    case "$target_name" in
         "runtime")
             force_local_package_link "$target" "agent-driver-v2" "agent-driver-v2"
             ;;
@@ -70,11 +80,7 @@ link_targets=(
     "runtime"
     "sdk"
     "host"
-    "aotui-ide"
-    "planning-app"
-    "terminal-app"
-    "token-monitor-app"
-    "lite-browser-app"
+    "${DEMO_APP_DIRS[@]}"
 )
 
 for target in "${link_targets[@]}"; do
@@ -92,7 +98,7 @@ echo "📦 Building SDK..."
 pnpm -C sdk build
 
 # Build apps
-apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app" "lite-browser-app")
+apps=("${DEMO_APP_DIRS[@]}")
 
 for app in "${apps[@]}"; do
     if [ -d "$app" ]; then

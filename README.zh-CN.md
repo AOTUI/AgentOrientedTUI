@@ -34,11 +34,12 @@ AgentOrientedTUI/
 ├── agent-driver-v2/   # Agent 驱动：LLM 调用、工具编排、多消息源聚合
 ├── runtime/           # 核心运行时：Worker 隔离、TUI 快照引擎、Operation 调度
 ├── sdk/               # 开发者 SDK：基于 Preact 构建 TUI App 的组件库
-├── aotui-ide/         # 系统 App：代码 IDE
-├── terminal-app/      # 系统 App：终端
-├── lite-browser-app/  # 系统 App：精简浏览器
-├── planning-app/      # 系统 App：规划管理
-└── token-monitor-app/ # 系统 App：Token 监控
+└── demo-apps/         # 系统 / demo App 目录，和核心包分开
+    ├── aotui-ide/         # 系统 App：代码 IDE
+    ├── terminal-app/      # 系统 App：终端
+    ├── lite-browser-app/  # 系统 App：精简浏览器
+    ├── planning-app/      # 系统 App：规划管理
+    └── token-monitor-app/ # 系统 App：Token 监控
 ```
 
 ## Agentina 预览
@@ -123,4 +124,3 @@ AgentOrientedTUI/
 | [Vitest](https://vitest.dev/) | 单元测试 / 集成测试 |
 | [esbuild](https://esbuild.github.io/) / `tsc` | 构建编译 |
 | [electron-builder](https://www.electron.build/) | 桌面应用打包（macOS / Windows / Linux）|
-

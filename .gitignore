@@ -7,7 +7,10 @@ backup
 context-compact-migration
 multi-im-migration-report
 openclaw
+docs
+mobile-ai-native
 .DS_Store
+scripts
 
 # Python
 **/__pycache__/
