@@ -35,11 +35,12 @@ AgentOrientedTUI/
 ├── agent-driver-v2/   # Agent driver: LLM calls, tool orchestration, multi-source message aggregation
 ├── runtime/           # Core runtime: Worker isolation, TUI snapshot engine, Operation dispatch
 ├── sdk/               # Developer SDK: Preact-based component library for building TUI apps
-├── aotui-ide/         # System App: Code IDE
-├── terminal-app/      # System App: Terminal
-├── lite-browser-app/  # System App: Lite browser
-├── planning-app/      # System App: Planning manager
-└── token-monitor-app/ # System App: Token monitor
+└── demo-apps/         # System/demo apps kept outside the core packages
+    ├── aotui-ide/         # System App: Code IDE
+    ├── terminal-app/      # System App: Terminal
+    ├── lite-browser-app/  # System App: Lite browser
+    ├── planning-app/      # System App: Planning manager
+    └── token-monitor-app/ # System App: Token monitor
 ```
 
 ## Preview
@@ -125,4 +126,3 @@ AgentOrientedTUI/
 | [Vitest](https://vitest.dev/) | Unit and integration testing |
 | [esbuild](https://esbuild.github.io/) / `tsc` | Build and compilation |
 | [electron-builder](https://www.electron.build/) | Desktop app packaging (macOS / Windows / Linux) |
-

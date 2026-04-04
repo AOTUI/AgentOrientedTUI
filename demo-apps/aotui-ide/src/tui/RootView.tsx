@@ -5,6 +5,7 @@ import { fileSystemService } from '../core/file-system-service.js';
 import { lspService } from '../core/lsp-service.js';
 import { persistenceService } from '../core/persistence-service.js';
 import type { AppEvents, EditTool, FileInfo } from '../types.js';
+import { completeCreateFileWorkflow } from './create-file-workflow.js';
 
 const searchByPatternParams = defineParams({
   pattern: {
@@ -1026,12 +1027,22 @@ You call: create_file({ filePath: "/project/src/utils.ts", content: "export clas
     params: createFileParams
   }, async ({ filePath, content }: { filePath: string; content: string }) => {
     try {
-      await fileSystemService.createFile(filePath as string, content as string);
+      const { message, viewId } = await completeCreateFileWorkflow({
+        filePath: filePath as string,
+        content: content as string,
+        activeFiles,
+        workspaceFolders,
+        fileSystemService,
+        persistenceService,
+        eventBus,
+        onOpenFileDetail,
+      });
 
       return {
         success: true,
         data: {
-          message: `File created. Check it in the Workspace View: ${filePath}`
+          message,
+          view_id: viewId
         }
       };
     } catch (error) {

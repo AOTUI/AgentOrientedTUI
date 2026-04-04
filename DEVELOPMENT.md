@@ -62,10 +62,10 @@ pnpm --filter ./agent-driver-v2 build
 pnpm --filter ./host build
 
 # Build individual apps (optional, built on-demand)
-pnpm --filter ./aotui-ide build
-pnpm --filter ./planning-app build
-pnpm --filter ./terminal-app build
-pnpm --filter ./token-monitor-app build
+pnpm -C demo-apps/aotui-ide build
+pnpm -C demo-apps/planning-app build
+pnpm -C demo-apps/terminal-app build
+pnpm -C demo-apps/token-monitor-app build
 ```
 
 #### 4. Install agentina CLI
@@ -84,10 +84,10 @@ agentina --version
 
 ```bash
 # Link each app
-cd aotui-ide && npm link && cd ..
-cd planning-app && npm link && cd ..
-cd terminal-app && npm link && cd ..
-cd token-monitor-app && npm link && cd ..
+cd demo-apps/aotui-ide && npm link && cd ../..
+cd demo-apps/planning-app && npm link && cd ../..
+cd demo-apps/terminal-app && npm link && cd ../..
+cd demo-apps/token-monitor-app && npm link && cd ../..
 
 # Install linked apps to host
 cd host
@@ -113,10 +113,11 @@ aotui_v6/
 ├── sdk/                  # SDK for building TUI apps (Preact components)
 ├── host/                 # Host application (runs the runtime)
 ├── agent-driver-v2/      # Agent driver for LLM integration
-├── aotui-ide/            # System IDE TUI app
-├── planning-app/         # Planning/project management TUI app
-├── terminal-app/         # Terminal TUI app
-├── token-monitor-app/    # Token monitoring TUI app
+├── demo-apps/            # System and demo TUI apps
+│   ├── aotui-ide/        # System IDE TUI app
+│   ├── planning-app/     # Planning/project management TUI app
+│   ├── terminal-app/     # Terminal TUI app
+│   └── token-monitor-app/ # Token monitoring TUI app
 ├── setup.sh              # Automated setup script
 ├── run.sh                # Electron development app runner
 └── package.json          # Workspace configuration
@@ -130,7 +131,7 @@ aotui_v6/
 # Build specific package
 pnpm --filter ./runtime build
 pnpm --filter ./sdk build
-pnpm --filter ./aotui-ide build
+pnpm -C demo-apps/aotui-ide build
 
 # Build all packages
 pnpm -r build
@@ -164,7 +165,7 @@ cd host && pnpm electron:dev
 
 1. **Create app directory** with required structure:
    ```
-   my-app/
+   demo-apps/my-app/
    ├── package.json
    ├── tsconfig.json
    ├── src/
@@ -188,17 +189,17 @@ cd host && pnpm electron:dev
    ```json
    {
      "scripts": {
-       "build": "tsc && node ../scripts/generate-aoapp.mjs ."
+       "build": "tsc && node ../../scripts/generate-aoapp.mjs ."
      }
    }
    ```
 
 4. **Build and link**:
    ```bash
-   cd my-app
+   cd demo-apps/my-app
    pnpm build
    npm link
-   cd ../host
+   cd ../../host
    npm link my-app
    ```
 
@@ -327,7 +328,7 @@ pnpm --filter ./sdk typecheck
 - Review [Building TUI Applications for AI Agents](./Building%20TUI%20Application%20for%20AI%20Agent.md)
 - Check [Runtime Developer Guide](./runtime/RUNTIME_DEVELOPER_GUIDE.md)
 - Explore [SDK Developer Guide](./sdk/SDK_DEVELOPER_GUIDE.md)
-- Study example apps: `aotui-ide`, `planning-app`, `terminal-app`
+- Study example apps: `demo-apps/aotui-ide`, `demo-apps/planning-app`, `demo-apps/terminal-app`
 
 ## Contributing
 

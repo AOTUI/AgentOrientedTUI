@@ -67,7 +67,7 @@ export namespace LSPServer {
       proc.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'ENOENT') {
           log.warn(`LSP server not found: ${command}. Please install it globally or add to project dependencies.`);
-          log.warn(`Installation guide: see aotui-ide/LSP_SETUP.md`);
+          log.warn(`Installation guide: see demo-apps/aotui-ide/LSP_SETUP.md`);
         } else {
           log.error(`Failed to start ${command}`, err);
         }

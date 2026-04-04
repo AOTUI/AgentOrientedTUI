@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@aotui/sdk', async () => import('../../sdk/src/index.ts'));
+vi.mock('@aotui/sdk', async () => import('../../../sdk/src/index.ts'));
 
 describe('token monitor app factory', () => {
     let TokenMonitorAppFactory: any;

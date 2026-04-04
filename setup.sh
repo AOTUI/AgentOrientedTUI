@@ -6,6 +6,13 @@
 set -e  # Exit on error
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+DEMO_APP_DIRS=(
+    "demo-apps/aotui-ide"
+    "demo-apps/planning-app"
+    "demo-apps/terminal-app"
+    "demo-apps/token-monitor-app"
+    "demo-apps/lite-browser-app"
+)
 
 echo "🚀 AOTUI Development Environment Setup"
 echo "========================================"
@@ -40,12 +47,15 @@ force_local_package_link() {
 
 link_local_core_deps() {
     local target="$1"
+    local target_name
 
     if [ ! -d "$target" ] || [ ! -f "$target/package.json" ]; then
         return
     fi
 
-    case "$target" in
+    target_name="$(basename "$target")"
+
+    case "$target_name" in
         "runtime")
             force_local_package_link "$target" "agent-driver-v2" "agent-driver-v2"
             ;;
@@ -77,19 +87,13 @@ install_targets=(
     "runtime"
     "sdk"
     "host"
-    "aotui-ide"
-    "planning-app"
-    "terminal-app"
-    "token-monitor-app"
-    "lite-browser-app"
+    "${DEMO_APP_DIRS[@]}"
 )
 
 for target in "${install_targets[@]}"; do
     if [ -d "$target" ] && [ -f "$target/package.json" ]; then
         echo "📦 Installing dependencies in $target..."
-        cd "$target"
-        pnpm install --ignore-workspace
-        cd ..
+        pnpm -C "$target" install --ignore-workspace
 
         echo "🔗 Linking local core packages into $target..."
         link_local_core_deps "$target"
@@ -156,49 +160,52 @@ echo "🔗 Linking TUI applications..."
 echo "----------------------------------------------"
 
 # Array of apps to link
-apps=("aotui-ide" "planning-app" "terminal-app" "token-monitor-app" "lite-browser-app")
+apps=("${DEMO_APP_DIRS[@]}")
 
 for app in "${apps[@]}"; do
     if [ -d "$app" ]; then
-        echo "🔗 Linking $app with agentina..."
-        cd "$app"
-        
-        # Build app to generate dist artifacts
-        if [ -f "package.json" ]; then
-            pnpm build
-        fi
-        
-        # Ensure dist exists before linking
-        if [ ! -d "dist" ]; then
-            echo "❌ $app build completed but dist directory was not found"
-            echo "   Please check the build output path before running setup again"
-            exit 1
-        fi
+        app_name="$(basename "$app")"
+        echo "🔗 Linking $app_name with agentina..."
 
-        # Link current app directory to agentina (idempotent on reruns)
-        if ! link_output=$(agentina link . 2>&1); then
-            if echo "$link_output" | grep -q "already registered"; then
-                app_name=$(echo "$link_output" | sed -n "s/.*Operation '\(.*\)' is already registered.*/\1/p")
-                if [ -n "$app_name" ]; then
-                    echo "ℹ️  App '$app_name' is already registered, replacing link..."
-                    agentina remove "$app_name"
-                    agentina link .
+        (
+            cd "$app"
+
+            # Build app to generate dist artifacts
+            if [ -f "package.json" ]; then
+                pnpm build
+            fi
+
+            # Ensure dist exists before linking
+            if [ ! -d "dist" ]; then
+                echo "❌ $app_name build completed but dist directory was not found"
+                echo "   Please check the build output path before running setup again"
+                exit 1
+            fi
+
+            # Link current app directory to agentina (idempotent on reruns)
+            if ! link_output=$(agentina link . 2>&1); then
+                if echo "$link_output" | grep -q "already registered"; then
+                    registered_app_name=$(echo "$link_output" | sed -n "s/.*Operation '\(.*\)' is already registered.*/\1/p")
+                    if [ -n "$registered_app_name" ]; then
+                        echo "ℹ️  App '$registered_app_name' is already registered, replacing link..."
+                        agentina remove "$registered_app_name"
+                        agentina link .
+                    else
+                        echo "$link_output"
+                        echo "❌ Failed to parse already-registered app name"
+                        exit 1
+                    fi
                 else
                     echo "$link_output"
-                    echo "❌ Failed to parse already-registered app name"
+                    echo "❌ Failed to link $app_name"
                     exit 1
                 fi
             else
                 echo "$link_output"
-                echo "❌ Failed to link $app"
-                exit 1
             fi
-        else
-            echo "$link_output"
-        fi
-        cd ..
-        
-        echo "✅ $app linked successfully"
+        )
+
+        echo "✅ $app_name linked successfully"
     else
         echo "⚠️  $app directory not found, skipping..."
     fi
@@ -217,7 +224,7 @@ echo "2. Or run 'cd host && pnpm dev' to start manually"
 echo ""
 echo "Available TUI apps:"
 for app in "${apps[@]}"; do
-    echo "  - $app"
+    echo "  - $(basename "$app")"
 done
 echo ""
 echo "To verify installation:"
