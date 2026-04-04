@@ -21,6 +21,25 @@ export interface AppStateFragment {
 }
 
 /**
+ * Application 指令片段
+ *
+ * 语义上属于 view fragments，但用于单独承载应用指令内容。
+ */
+export interface ApplicationInstructionFragment {
+    appId: string;
+    appName: string;
+    viewId: string;
+    viewType: string;
+    viewName?: string;
+    markup: string;
+    timestamp?: number;
+    digest?: string;
+    /** [RFC-014] 消息角色 (user/assistant) */
+    role?: 'user' | 'assistant';
+    kind: 'application-instruction';
+}
+
+/**
  * View 状态片段
  *
  * 用于 View 级别的消息粒度与时间排序。
@@ -35,6 +54,7 @@ export interface ViewStateFragment {
     timestamp?: number;
     /** [RFC-014] 消息角色 (user/assistant) */
     role?: 'user' | 'assistant';
+    kind?: 'view-state';
 }
 
 /**
@@ -57,6 +77,9 @@ export interface StructuredSnapshot {
 
     /** When - 各 App 的当前状态 */
     appStates: AppStateFragment[];
+
+    /** When - 各应用指令片段 */
+    applicationInstructions?: ApplicationInstructionFragment[];
 
     /** When - 各 View 的当前状态（细粒度） */
     viewStates?: ViewStateFragment[];

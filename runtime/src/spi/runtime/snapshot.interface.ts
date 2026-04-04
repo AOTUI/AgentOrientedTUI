@@ -35,6 +35,22 @@ export interface LogEntry {
 }
 
 /**
+ * Worker-input application instruction fragment
+ *
+ * Lean input-side shape used by ISnapshotFragment.
+ */
+interface ISnapshotApplicationInstructionFragment {
+    readonly viewId: string;
+    readonly viewType: string;
+    readonly viewName?: string;
+    readonly markup: string;
+    readonly timestamp?: number;
+    readonly digest?: string;
+    readonly role?: 'user' | 'assistant';
+    readonly kind?: 'application-instruction';
+}
+
+/**
  * Desktop metadata for snapshot generation
  *
  * Provides read-only access to Desktop state information
@@ -77,6 +93,7 @@ export interface ISnapshotFragment {
     readonly markup: string;
     readonly indexMap: Record<string, unknown>;
     readonly timestamp?: number;
+    readonly applicationInstructions?: ReadonlyArray<ISnapshotApplicationInstructionFragment>;
 
     /**
      * View 级别片段（可选）
@@ -89,6 +106,7 @@ export interface ISnapshotFragment {
         viewName?: string;
         markup: string;
         timestamp: number;
+        kind?: 'view-state';
     }>;
 
     /**

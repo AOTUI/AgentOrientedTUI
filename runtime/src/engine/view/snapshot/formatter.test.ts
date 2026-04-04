@@ -1,7 +1,13 @@
 
 import { describe, it, expect } from 'vitest';
 import { SnapshotFormatter } from './formatter.js';
-import type { IDesktopMetadata, ISnapshotFragment, InstalledAppInfo, LogEntry } from '../../../spi/index.js';
+import type {
+    ApplicationInstructionFragment,
+    IDesktopMetadata,
+    ISnapshotFragment,
+    InstalledAppInfo,
+    LogEntry
+} from '../../../spi/index.js';
 
 describe('SnapshotFormatter', () => {
     // Mock metadata
@@ -225,6 +231,46 @@ describe('SnapshotFormatter', () => {
                 timestamp: 1705305604000,
                 role: 'user'
             });
+        });
+
+        it('should expose application instructions separately from viewStates', () => {
+            const fragment: ISnapshotFragment = {
+                appId: 'app_0',
+                markup: '<application id="app_0" name="IDE"></application>',
+                indexMap: {},
+                applicationInstructions: [
+                    {
+                        appId: 'app_0',
+                        appName: 'IDE',
+                        viewId: 'workspace',
+                        viewType: 'Workspace',
+                        viewName: 'Workspace',
+                        markup: '<instruction>Open workspace</instruction>',
+                        timestamp: 1705305602000,
+                        digest: 'digest-1',
+                        role: 'user',
+                        kind: 'application-instruction'
+                    } satisfies ApplicationInstructionFragment
+                ]
+            };
+
+            const formatter = new SnapshotFormatter();
+            const result = formatter.format([fragment], mockMetadata);
+
+            expect(result.structured.applicationInstructions).toHaveLength(1);
+            expect(result.structured.applicationInstructions?.[0]).toMatchObject({
+                appId: 'app_0',
+                appName: 'IDE',
+                viewId: 'workspace',
+                viewType: 'Workspace',
+                viewName: 'Workspace',
+                markup: '<instruction>Open workspace</instruction>',
+                timestamp: 1705305602000,
+                digest: 'digest-1',
+                role: 'user',
+                kind: 'application-instruction'
+            });
+            expect(result.structured.viewStates ?? []).toHaveLength(0);
         });
     });
 });
