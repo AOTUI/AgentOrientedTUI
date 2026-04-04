@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { AOTUIDrivenSource } from './aotui-driven-source.js';
 
@@ -457,5 +458,16 @@ describe('AOTUIDrivenSource type tool routing', () => {
         expect(messages.filter((message) => (message as any).region === 'dynamic')).toHaveLength(2);
         expect(messages.filter((message) => (message as any).region === 'static')).toHaveLength(1);
         expect(messages.filter((message) => (message as any).region === 'dynamic').map((message) => String(message.content)).join('\n')).not.toContain('Application Instruction');
+    });
+
+    it('keeps aotui-ide application instruction free of live state text', () => {
+        const rootViewSource = readFileSync(
+            new URL('../../../demo-apps/aotui-ide/src/tui/RootView.tsx', import.meta.url),
+            'utf-8',
+        );
+
+        expect(rootViewSource).not.toContain('What happened (Current State)');
+        expect(rootViewSource).toContain('<h2>Views</h2>');
+        expect(rootViewSource).toContain('Tool Preconditions');
     });
 });
