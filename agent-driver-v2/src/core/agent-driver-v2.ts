@@ -24,6 +24,7 @@ import type {
 import { debounce } from '../utils/debounce.js';
 import { Logger } from '../utils/logger.js';
 import { LLMClient } from './llm-client.js';
+import { assembleContextRegions } from './context-regions.js';
 
 /**
  * AgentDriverV2 - 核心类
@@ -153,14 +154,10 @@ private async collectMessages(): Promise<ModelMessage[]> {
             }
         }
 
-        // 按时间戳排序
-        allMessages.sort((a, b) => a.timestamp - b.timestamp);
-
         this.logger.info(`Total messages collected: ${allMessages.length}`);
 
-        // 移除 timestamp 字段，返回纯 ModelMessage（同时修复历史消息结构）
-        const normalized = allMessages
-            .map(({ timestamp, ...message }) => message as ModelMessage)
+        const normalizedTimedMessages = allMessages
+            .map((message) => ({ ...message }))
             .map((message) => {
                 if (message.role === 'assistant') {
                     if (typeof message.content === 'string') {
@@ -172,7 +169,7 @@ private async collectMessages(): Promise<ModelMessage[]> {
                         try {
                             const parsed = JSON.parse(trimmed);
                             if (Array.isArray(parsed) && parsed.every((part) => part && typeof part === 'object' && typeof part.type === 'string')) {
-                                message = { ...message, content: parsed } as ModelMessage;
+                                message = { ...message, content: parsed } as MessageWithTimestamp;
                             }
                         } catch {
                             // Not JSON; keep as string.
@@ -210,7 +207,9 @@ private async collectMessages(): Promise<ModelMessage[]> {
 
                 return message;
             })
-            .filter((message): message is ModelMessage => message !== null);
+            .filter((message): message is MessageWithTimestamp => message !== null);
+
+        const normalized = assembleContextRegions(normalizedTimedMessages);
 
         const getToolCallIds = (message: ModelMessage): string[] => {
             if (message.role !== 'assistant' || !Array.isArray(message.content)) {
