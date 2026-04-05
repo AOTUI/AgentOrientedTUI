@@ -41,3 +41,16 @@ test('run.sh preserves local core build order for linked dependencies', async ()
   assert.equal(agentDriverIndex < runtimeIndex, true);
   assert.equal(runtimeIndex < sdkIndex, true);
 });
+
+test('setup.sh and run.sh default to ide, terminal, and lite-browser apps', async () => {
+  const setupContent = await readFile(new URL('../setup.sh', import.meta.url), 'utf-8');
+  const runContent = await readFile(new URL('../run.sh', import.meta.url), 'utf-8');
+
+  for (const content of [setupContent, runContent]) {
+    assert.equal(content.includes('"demo-apps/aotui-ide"'), true);
+    assert.equal(content.includes('"demo-apps/terminal-app"'), true);
+    assert.equal(content.includes('"demo-apps/lite-browser-app"'), true);
+    assert.equal(content.includes('"demo-apps/planning-app"'), false);
+    assert.equal(content.includes('"demo-apps/token-monitor-app"'), false);
+  }
+});

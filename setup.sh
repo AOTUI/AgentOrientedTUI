@@ -1,16 +1,14 @@
 #!/bin/bash
 
 # AOTUI Development Environment Setup Script
-# This script installs dependencies and links all TUI applications
+# This script installs dependencies and links the default TUI applications
 
 set -e  # Exit on error
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 DEMO_APP_DIRS=(
     "demo-apps/aotui-ide"
-    "demo-apps/planning-app"
     "demo-apps/terminal-app"
-    "demo-apps/token-monitor-app"
     "demo-apps/lite-browser-app"
 )
 
@@ -174,7 +172,7 @@ else
 fi
 
 echo ""
-echo "🔗 Linking TUI applications..."
+echo "🔗 Linking default TUI applications..."
 echo "----------------------------------------------"
 
 # Array of apps to link
@@ -230,7 +228,7 @@ for app in "${apps[@]}"; do
 done
 
 echo ""
-echo "✅ All apps linked successfully!"
+echo "✅ Default apps linked successfully!"
 echo ""
 echo "================================================================"
 echo "✨ Setup Complete! ✨"
@@ -240,12 +238,12 @@ echo "Next steps:"
 echo "1. Run './run.sh' to start the development server"
 echo "2. Or run 'cd host && pnpm dev' to start manually"
 echo ""
-echo "Available TUI apps:"
+echo "Default installed TUI apps:"
 for app in "${apps[@]}"; do
     echo "  - $(basename "$app")"
 done
 echo ""
 echo "To verify installation:"
 echo "  agentina list              # List all available apps"
-echo "  agentina link <app-name>   # Link additional apps"
+echo "  agentina link <path>       # Link additional apps manually"
 echo ""

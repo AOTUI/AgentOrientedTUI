@@ -8,9 +8,7 @@ set -e  # Exit on error
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 DEMO_APP_DIRS=(
     "demo-apps/aotui-ide"
-    "demo-apps/planning-app"
     "demo-apps/terminal-app"
-    "demo-apps/token-monitor-app"
     "demo-apps/lite-browser-app"
 )
 

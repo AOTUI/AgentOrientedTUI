@@ -47,7 +47,7 @@ agent-driver-v2 -> runtime -> sdk -> host -> demo-apps
 | `runtime/` | Core execution substrate: app registry, app lifecycle, worker runtime, kernel, view exposure, and the `agentina` CLI. |
 | `sdk/` | Developer-facing app API: `createTUIApp`, `View`, hooks, refs, and operation types used by app authors. |
 | `host/` | Electron desktop shell plus web UI, local services, and product integration points. |
-| `demo-apps/` | Reference apps that run on the stack, including `aotui-ide`, `planning-app`, `terminal-app`, `token-monitor-app`, and `lite-browser-app`. |
+| `demo-apps/` | Reference apps that run on the stack. The setup scripts auto-install `aotui-ide`, `terminal-app`, and `lite-browser-app` by default. |
 | `scripts/` | Repo-level helper scripts such as `generate-aoapp.mjs`, which writes app manifests during app builds. |
 | `resource/` | Static assets used by the project. |
 
@@ -145,10 +145,10 @@ What they do:
   - links local core packages into dependent folders for local development
   - builds the core packages in dependency order
   - globally links the `agentina` CLI from `runtime/`
-  - builds and registers the demo apps with `agentina link .`
+  - builds and registers the default apps (`aotui-ide`, `terminal-app`, and `lite-browser-app`) with `agentina link .`
 - `run.sh`
   - refreshes local links
-  - rebuilds the core packages and demo apps
+  - rebuilds the core packages and the default apps
   - starts the host in Electron development mode via `pnpm -C host electron:dev`
 
 
@@ -201,7 +201,7 @@ Use this layer for GUI work, desktop UX, settings, installation flow, IPC wiring
 
 ### I want to add a new app
 
-Use an existing `demo-apps/*` package as the template. The current app build pattern is:
+Use an existing `demo-apps/*` package as the template. Apps outside the default install set can still be linked manually. The current app build pattern is:
 
 - export a `createTUIApp(...)` app factory from the app entry
 - compile with `tsc`
