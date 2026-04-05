@@ -77,6 +77,24 @@ link_local_core_deps() {
     esac
 }
 
+install_electron_binary() {
+    local target="$1"
+    local install_script="$target/node_modules/electron/install.js"
+    local default_mirror="https://npmmirror.com/mirrors/electron/"
+
+    if node "$install_script"; then
+        return 0
+    fi
+
+    if [ -n "${ELECTRON_MIRROR:-}" ]; then
+        echo "❌ Electron install failed with ELECTRON_MIRROR=$ELECTRON_MIRROR"
+        return 1
+    fi
+
+    echo "⚠️  Default Electron download failed, retrying with mirror: $default_mirror"
+    ELECTRON_MIRROR="$default_mirror" node "$install_script"
+}
+
 # Install root dependencies
 echo "📦 Installing root dependencies..."
 pnpm install --ignore-workspace
@@ -107,7 +125,7 @@ for target in "${install_targets[@]}"; do
         # Self-heal Electron install when pnpm blocks build scripts and electron/path.txt is missing
         if [ "$target" = "host" ] && [ -f "$target/node_modules/electron/install.js" ] && [ ! -f "$target/node_modules/electron/path.txt" ]; then
             echo "🔧 Electron binary not detected (path.txt missing), running installer..."
-            node "$target/node_modules/electron/install.js"
+            install_electron_binary "$target"
         fi
     else
         echo "⚠️  $target/package.json not found, skipping dependency install"
