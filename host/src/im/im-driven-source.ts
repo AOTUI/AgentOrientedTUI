@@ -2,6 +2,9 @@ import { EventEmitter } from 'events'
 import type { MessageWithTimestamp, ToolResult } from '@aotui/agent-driver-v2'
 import type { ModelMessage } from 'ai'
 import { dynamicTool, jsonSchema } from 'ai'
+type SessionMessageWithTimestamp = MessageWithTimestamp & {
+  region?: 'session'
+}
 
 export interface IMDrivenSourceOptions {
   sessionKey: string
@@ -184,7 +187,8 @@ function createCompactionMessages(
         },
       ] as any,
       timestamp: timestampBase,
-    },
+      region: 'session',
+    } as SessionMessageWithTimestamp,
     {
       role: 'tool',
       content: [
@@ -206,7 +210,8 @@ function createCompactionMessages(
         },
       ] as any,
       timestamp: timestampBase + 1,
-    },
+      region: 'session',
+    } as SessionMessageWithTimestamp,
   ]
 }
 
@@ -344,7 +349,13 @@ export class IMDrivenSource {
   async getMessages(): Promise<MessageWithTimestamp[]> {
     await this.ensureHistoryLoaded()
 
-    return [...getActiveWindow(this.messages)]
+    return getActiveWindow(this.messages).map((message) => {
+      const sessionMessage = message as SessionMessageWithTimestamp
+      return {
+        ...sessionMessage,
+        region: sessionMessage.region ?? 'session',
+      } as SessionMessageWithTimestamp
+    })
   }
 
   async getTools(): Promise<Record<string, any>> {
@@ -640,10 +651,11 @@ export class IMDrivenSource {
   }
 
   addMessage(message: ModelMessage, timestamp?: number): MessageWithTimestamp {
-    const record: MessageWithTimestamp = {
+    const record: SessionMessageWithTimestamp = {
       role: message.role,
       content: message.content,
       timestamp: typeof timestamp === 'number' ? timestamp : this.now(),
+      region: 'session',
     }
 
     this.messages = mergeMessages(this.messages, [record])

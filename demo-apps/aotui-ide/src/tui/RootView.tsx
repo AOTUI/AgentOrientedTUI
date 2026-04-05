@@ -1452,55 +1452,48 @@ You call: refresh_workspace({})`,
           
           <h2>What it is</h2>
           <p>AOTUI IDE is a text-based Integrated Development Environment designed specifically for LLM Agents. It supports multi-folder workspaces (VS Code style) — you can add multiple project directories and work across them simultaneously.</p>
-          
-          <h2>When to use</h2>
-          <ul>
-            <li><strong>Exploring Repository Structure:</strong> Browse directory trees, view file lists, and understand project organization</li>
-            <li><strong>Searching Files:</strong> Find files by glob pattern (e.g., "**/*.ts") or search content using regex patterns</li>
-            <li><strong>File Operations:</strong> Read, write, edit (string replacement), create, delete, or rename files</li>
-            <li><strong>Code Analysis:</strong> Use LSP to inspect types, find definitions, trace references, view diagnostics, and analyze call hierarchies</li>
-            <li><strong>Batch Editing:</strong> Apply multiple edits across different files in a single operation</li>
-          </ul>
-          
+
           <h2>How to use</h2>
           <ol>
-            <li><strong>Add Workspace Folders:</strong> Use add_folder_to_workspace to add project directories (if none yet)</li>
-            <li><strong>Browse Workspace View:</strong> Browse directory trees and use search tools to locate files</li>
-            <li><strong>Open FileDetail Views:</strong> Use multi_open_file tool to open specific files for detailed LSP analysis</li>
-            <li><strong>Perform File Operations:</strong> Use write_file, edit_file, or batch_edit tools from Workspace View</li>
-            <li><strong>Analyze Code:</strong> In FileDetail views, use LSP tools (hover, goto_definition, find_references, etc.)</li>
-            <li><strong>Navigate Search Results:</strong> When search creates a SearchResult view, review matches and open relevant files</li>
+            <li><strong>Start in Workspace:</strong> Add one or more workspace folders, then browse directory trees and opened files from the Workspace view.</li>
+            <li><strong>Locate targets:</strong> Use pattern search or content search to find relevant files and directories before opening them.</li>
+            <li><strong>Open focused views:</strong> Use multi_open_file to open FileDetail views for files that need close reading or LSP analysis.</li>
+            <li><strong>Edit with absolute paths:</strong> Workspace file operations expect absolute paths and are intended for files that belong to the current workspace.</li>
+            <li><strong>Use SearchResult as a staging view:</strong> Review matches there, then open relevant files or close the SearchResult view when finished.</li>
           </ol>
-          
-          <h2>What happened (Current State)</h2>
+
+          <h2>Views</h2>
+
+          <h3>Workspace</h3>
+          <p><strong>What it shows:</strong> Workspace folders, directory trees, and the current opened-file list.</p>
+          <p><strong>How to use:</strong> Use Workspace to add/remove folders, search the codebase, open files, and perform file or directory operations with absolute paths.</p>
+          <h4>Tool Preconditions</h4>
           <ul>
-            <li><strong>Workspace Folders ({workspaceFolders.length}):</strong>
-              {workspaceFolders.length > 0 ? (
-                <ul>
-                  {workspaceFolders.map((folder, index) => (
-                    <li key={folder}>[{index}] {folder}</li>
-                  ))}
-                </ul>
-              ) : ' None — use add_folder_to_workspace to get started'}
-            </li>
-            <li><strong>Open Files:</strong> {activeFiles.length > 0 ? activeFiles.length : 'None'}</li>
-            {activeFiles.length > 0 && (
-              <li><strong>Active FileDetail Views:</strong>
-                <ul>
-                  {activeFiles.map((filePath, index) => (
-                    <li key={filePath}>fd_{index}: {filePath}</li>
-                  ))}
-                </ul>
-              </li>
-            )}
-            <li><strong>Search Results:</strong> {searchResultView ? `Active (${searchResultView.results.length} results for "${searchResultView.query}")` : 'None'}</li>
+            <li><strong>add_folder_to_workspace</strong>: requires an absolute folder path that is not already present in the workspace.</li>
+            <li><strong>remove_folder_from_workspace</strong>: requires a folder that already exists in the workspace.</li>
+            <li><strong>search_by_pattern</strong> / <strong>search_by_content</strong>: requires at least one workspace folder; optional cwd must stay inside the workspace.</li>
+            <li><strong>multi_open_file</strong>: requires absolute file paths inside the workspace.</li>
+            <li><strong>multi_close_file</strong>: requires one or more open FileDetail views for the target files.</li>
+            <li><strong>write_file</strong> / <strong>edit_file</strong> / <strong>create_file</strong> / <strong>delete_file</strong> / <strong>rename_file</strong> / <strong>batch_edit</strong>: require absolute paths inside the workspace.</li>
+            <li><strong>multi_open_dirs</strong> / <strong>multi_close_dirs</strong> / <strong>refresh_workspace</strong>: require at least one workspace folder.</li>
           </ul>
-          <h2>AOTUI IDE Application Views</h2>
-          <h3>1. WorkSpace View Instruction</h3>
-          <h4>What is WorkSpace</h4>
-          <p>Workspace shows directory trees for all workspace folders and currently opened files.</p>
-          <h4>How to use</h4>
-          <p>Use workspace tools to manage folders, search, read, edit, and manage files and directories. All file path parameters must use absolute paths.</p>
+
+          <h3>FileDetail</h3>
+          <p><strong>What it shows:</strong> The contents of an opened file together with LSP-derived analysis such as hover, definitions, references, diagnostics, symbols, and call hierarchy data.</p>
+          <p><strong>How to use:</strong> Open FileDetail views from Workspace or SearchResult first, then run the relevant LSP tools against the target file.</p>
+          <h4>Tool Preconditions</h4>
+          <ul>
+            <li><strong>lsp_hover</strong> / <strong>lsp_goto_definition</strong> / <strong>lsp_find_references</strong> / <strong>lsp_get_diagnostics</strong> / <strong>lsp_document_symbol</strong> / <strong>lsp_incoming_calls</strong> / <strong>lsp_outgoing_calls</strong>: require an open FileDetail view for the target file and an absolute <code>file_path</code>.</li>
+            <li><strong>close_file_detail</strong>: requires an open FileDetail view for the target file.</li>
+          </ul>
+
+          <h3>SearchResult</h3>
+          <p><strong>What it shows:</strong> The current file search or content search results for a single query.</p>
+          <p><strong>How to use:</strong> Review matches, use them to decide which files to open next, and close the SearchResult view when it is no longer needed.</p>
+          <h4>Tool Preconditions</h4>
+          <ul>
+            <li><strong>close_search_view</strong>: requires an active SearchResult view.</li>
+          </ul>
         </section>
       </div>
 

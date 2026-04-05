@@ -20,6 +20,7 @@ import type { ModelMessage, Tool } from 'ai';
  * - **executing**: LLM 返回 ToolCalls，正在执行工具
  */
 export type AgentState = 'idle' | 'thinking' | 'executing';
+export type ContextRegion = 'static' | 'session' | 'dynamic';
 
 /**
  * MessageWithTimestamp - 带时间戳的消息
@@ -39,6 +40,8 @@ export interface MessageWithTimestamp {
     content: ModelMessage['content'];
     /** Unix timestamp (ms) */
     timestamp: number;
+    /** Context layering hint for region-first assembly */
+    region?: ContextRegion;
 }
 
 /**

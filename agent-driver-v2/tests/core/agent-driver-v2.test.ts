@@ -113,6 +113,51 @@ describe('AgentDriverV2', () => {
         });
     });
 
+    it('应该按 region 优先级组装上下文，并把最新执行尾巴放到底部', async () => {
+        source1 = new MockDrivenSource(
+            'StaticSource',
+            [
+                { role: 'user', content: [{ type: 'text', text: 'dynamic-view' }], timestamp: 50, region: 'dynamic' as const },
+                { role: 'user', content: [{ type: 'text', text: 'static-msg' }], timestamp: 100, region: 'static' as const },
+            ],
+        );
+
+        source2 = new MockDrivenSource(
+            'SessionSource',
+            [
+                { role: 'user', content: [{ type: 'text', text: 'session-old' }], timestamp: 75, region: 'session' as const },
+                {
+                    role: 'assistant',
+                    content: [{ type: 'tool-call', toolCallId: 'tc_tail', toolName: 'tool_tail', input: {} }],
+                    timestamp: 120,
+                    region: 'session' as const,
+                } as any,
+                {
+                    role: 'tool',
+                    content: [{ type: 'tool-result', toolCallId: 'tc_tail', toolName: 'tool_tail', output: { type: 'json', value: { ok: true } } }],
+                    timestamp: 121,
+                    region: 'session' as const,
+                } as any,
+            ],
+        );
+
+        const localDriver = new AgentDriverV2({
+            sources: [source1, source2],
+            llm: { model: 'gpt-4' },
+            workLoop: { debounceMs: 10 },
+        });
+
+        const messages = await localDriver['collectMessages']();
+        localDriver.stop();
+        localDriver.dispose();
+
+        expect((messages[0].content as any)[0].text).toBe('static-msg');
+        expect((messages[1].content as any)[0].text).toBe('session-old');
+        expect((messages[2].content as any)[0].text).toBe('dynamic-view');
+        expect(((messages[3].content as any[])[0]).toolName).toBe('tool_tail');
+        expect(((messages[4].content as any[])[0]).toolName).toBe('tool_tail');
+    });
+
     it('应该丢弃没有前置 assistant tool-call 的孤儿 tool message', async () => {
         source1 = new MockDrivenSource(
             'Source1',

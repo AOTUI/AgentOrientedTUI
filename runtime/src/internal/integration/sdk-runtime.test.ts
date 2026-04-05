@@ -8,6 +8,7 @@
  * correctly interprets and transforms.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { parseHTML } from 'linkedom';
 import { Transformer } from '../../engine/view/transformer/index.js';
 
@@ -218,6 +219,25 @@ describe('SDK → Runtime Integration', () => {
     });
 
     describe('Edge Cases', () => {
+        it('demo app root views preserve the application instruction contract', () => {
+            const demoRootViews = [
+                '../../../../demo-apps/planning-app/src/tui/RootView.tsx',
+                '../../../../demo-apps/lite-browser-app/src/tui/RootView.tsx',
+                '../../../../demo-apps/token-monitor-app/src/tui/RootView.tsx',
+                '../../../../demo-apps/terminal-app/src/tui/RootView.tsx',
+            ];
+
+            for (const relativePath of demoRootViews) {
+                const source = readFileSync(new URL(relativePath, import.meta.url), 'utf-8');
+                expect(source).toContain('data-role="application-instruction"');
+                expect(source).toContain('What it is');
+                expect(source).toContain('How to use');
+                expect(source).toContain('Views');
+                expect(source).toContain('Tool Preconditions');
+                expect(source).not.toContain('Current State');
+            }
+        });
+
         it('Empty view-target should not create link', () => {
             document.body.innerHTML = `
                 <div id="view_0" view="Test">

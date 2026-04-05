@@ -43,15 +43,6 @@ export function RootView({
 }: RootViewProps) {
     const activePlan = plans.find(plan => plan.id === activePlanId) || null;
 
-    const activePhases = activePlan?.phases ?? [];
-
-    const activeTasks = activePhases.flatMap(phase => phase.tasks);
-
-    const totalPhases = activePhases.length;
-    const completedPhases = activePhases.filter(p => p.status === 'completed').length;
-    const totalTasks = activeTasks.length;
-    const completedTasks = activeTasks.filter(t => t.status === 'completed').length;
-
     const findPhaseIdByTaskId = (taskId: string): string | null => {
         if (!activePlan) {
             return null;
@@ -361,23 +352,37 @@ export function RootView({
                     <h2>What it is</h2>
                     <p>Planning App organizes work into Plans, Phases, and Tasks with progress tracking.</p>
 
-                    <h2>How to pass tool params</h2>
+                    <h2>How to use</h2>
                     <ul>
-                        <li>Use refs rendered in PlanList/PlanDetail views: (content)[Plan:ref_id], (content)[Phase:ref_id], (content)[Task:ref_id].</li>
-                        <li>In tool args, pass ref ids (for example: active_plan, completed_phases[0], pending_tasks[1]).</li>
+                        <li>Start in PlanList to create, update, open, close, or delete plans.</li>
+                        <li>Open a plan before using PlanDetail tools for phases and tasks.</li>
+                        <li>Use refs rendered in PlanList or PlanDetail views: <code>(content)[Plan:ref_id]</code>, <code>(content)[Phase:ref_id]</code>, and <code>(content)[Task:ref_id]</code>.</li>
+                        <li>In tool args, pass ref ids such as <code>active_plan</code>, <code>completed_phases[0]</code>, or <code>pending_tasks[1]</code>.</li>
                         <li>Runtime resolves these refs to real data automatically; do not manually construct ids.</li>
                     </ul>
 
-                    <h2>Current State</h2>
+                    <h2>Views</h2>
+
+                    <h3>PlanList</h3>
+                    <p><strong>What it shows:</strong> The full list of plans and the currently active plan, if one is open.</p>
+                    <p><strong>How to use:</strong> Use PlanList to create plans, open one for detailed work, or close/delete existing plans.</p>
+                    <h4>Tool Preconditions</h4>
                     <ul>
-                        <li><strong>Total Plans:</strong> {plans.length}</li>
-                        <li><strong>Active Plan:</strong> {activePlan?.title ?? 'None'}</li>
-                        {activePlan && (
-                            <>
-                                <li><strong>Phases Progress:</strong> {completedPhases}/{totalPhases} completed</li>
-                                <li><strong>Tasks Progress:</strong> {completedTasks}/{totalTasks} completed</li>
-                            </>
-                        )}
+                        <li><strong>create_plan</strong>: requires a title; optional phases and tasks can be supplied inline.</li>
+                        <li><strong>update_plan</strong> / <strong>delete_plan</strong>: require a Plan reference or an already open active plan.</li>
+                        <li><strong>open_plan</strong>: requires a Plan reference.</li>
+                        <li><strong>close_plan</strong>: requires an active plan.</li>
+                    </ul>
+
+                    <h3>PlanDetail</h3>
+                    <p><strong>What it shows:</strong> The phases and tasks for the currently active plan, including completion progress.</p>
+                    <p><strong>How to use:</strong> Use PlanDetail after opening a plan to add, update, complete, or delete phases and tasks by reference.</p>
+                    <h4>Tool Preconditions</h4>
+                    <ul>
+                        <li><strong>add_phase</strong>: requires an active plan.</li>
+                        <li><strong>delete_phase</strong> / <strong>complete_phase</strong>: require an active plan and a Phase reference from the current PlanDetail view.</li>
+                        <li><strong>add_task</strong>: requires an active plan and a Phase reference.</li>
+                        <li><strong>update_task</strong> / <strong>delete_task</strong> / <strong>complete_task</strong>: require an active plan and a Task reference that belongs to the current plan.</li>
                     </ul>
                 </section>
             </div>

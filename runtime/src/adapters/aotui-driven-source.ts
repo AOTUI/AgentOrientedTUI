@@ -61,6 +61,9 @@ import { readFileSync } from 'fs';
 import { DEFAULT_AOTUI_SYSTEM_INSTRUCTION } from './system-instruction.js';
 
 const AOTUI_SYSTEM_INSTRUCTION_PATH_ENV = 'AOTUI_SYSTEM_INSTRUCTION_PATH';
+type LayeredMessageWithTimestamp = MessageWithTimestamp & {
+    region?: 'static' | 'session' | 'dynamic';
+};
 
 /**
  * 懒加载 AOTUI System Instruction
@@ -262,7 +265,7 @@ export class AOTUIDrivenSource implements IDrivenSource {
             return [];
         }
 
-        const messages: MessageWithTimestamp[] = [];
+        const messages: LayeredMessageWithTimestamp[] = [];
         
         // 1. 注入 AOTUI System Instruction (仅一次)
         if (this.includeInstruction) {
@@ -270,7 +273,8 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 role: 'user',
                 content: this.systemInstruction,
                 timestamp: 1, // ✅ 在 SystemPrompt (0) 之后，在用户消息之前
-            });
+                region: 'static',
+            } as LayeredMessageWithTimestamp);
         }
         
         // 2. 获取 Desktop 的 Snapshot (Pull-Lease)
@@ -283,12 +287,34 @@ export class AOTUIDrivenSource implements IDrivenSource {
 
             // 3. 优先使用结构化 Snapshot (RFC-014)
             if (snapshot.structured?.appStates) {
+                const applicationInstructions = Array.isArray(snapshot.structured.applicationInstructions)
+                    ? snapshot.structured.applicationInstructions
+                    : [];
+
+                for (const instruction of applicationInstructions) {
+                    const instructionAppId = this.normalizeAppKey((instruction as any).appId);
+                    const instructionAppName = this.normalizeAppKey((instruction as any).appName)
+                        || this.normalizeAppKey(this.resolveAppName(instructionAppId));
+
+                    if (!this.isAppAllowed(instructionAppId, instructionAppName)) {
+                        continue;
+                    }
+
+                    messages.push({
+                        role: 'user',
+                        content: instruction.markup,
+                        timestamp: instruction.timestamp ?? baseTimestamp,
+                        region: 'static',
+                    } as LayeredMessageWithTimestamp);
+                }
+
                 if (snapshot.structured.desktopState && this.disabledApps.size === 0) {
                     messages.push({
                         role: 'user',
                         content: snapshot.structured.desktopState,
-                        timestamp: desktopTimestamp
-                    });
+                        timestamp: desktopTimestamp,
+                        region: 'dynamic',
+                    } as LayeredMessageWithTimestamp);
                 }
 
                 const hasViewStates = Array.isArray(snapshot.structured.viewStates)
@@ -317,7 +343,8 @@ export class AOTUIDrivenSource implements IDrivenSource {
                             role: 'user',
                             content: wrappedView,
                             timestamp: view.timestamp ?? baseTimestamp,
-                        });
+                            region: 'dynamic',
+                        } as LayeredMessageWithTimestamp);
                     }
 
                     return messages;
@@ -335,8 +362,9 @@ export class AOTUIDrivenSource implements IDrivenSource {
                     messages.push({
                         role: 'user',
                         content: `${fragment.markup}`,
-                        timestamp: fragment.timestamp ?? baseTimestamp
-                    });
+                        timestamp: fragment.timestamp ?? baseTimestamp,
+                        region: 'dynamic',
+                    } as LayeredMessageWithTimestamp);
                 }
             }
             // 4. 回退到旧的 markup 解析 (如果需要)
@@ -344,8 +372,9 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 messages.push({
                     role: 'user',
                     content: `# TUI Desktop State\n\n${snapshot.markup}`,
-                    timestamp: baseTimestamp
-                });
+                    timestamp: baseTimestamp,
+                    region: 'dynamic',
+                } as LayeredMessageWithTimestamp);
             }
 
             return messages;

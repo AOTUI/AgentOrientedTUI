@@ -13,6 +13,8 @@
 
 import type { ModelMessage } from 'ai';
 
+type ContextRegion = 'static' | 'session' | 'dynamic';
+
 // ============================================================================
 // Core Types - 直接使用 AI SDK v6
 // ============================================================================
@@ -31,6 +33,8 @@ export type Message = ModelMessage & {
     id: string;
     /** 时间戳 (用于排序) */
     timestamp: number;
+    /** Context layering hint for AgentDriver assembly */
+    region?: ContextRegion;
 };
 
 /**

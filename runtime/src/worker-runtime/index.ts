@@ -30,6 +30,7 @@ import type {
 
 // [RFC-001] Transformer for Worker-Side Transformation
 import { transformElement } from '../engine/view/transformer/pure.js';
+import { createViewFragmentExtractor } from './view-fragment-extractor.js';
 
 // Runtime SPI types
 import type { IAOTUIApp, AppContext, OperationContext, AppKernelConfig, SignalPolicy } from '../spi/index.js';
@@ -62,9 +63,7 @@ const DOM_UPDATE_THROTTLE_MS = 16;  // ~60fps 节流
 // Dirty 标记 - App 调用 markDirty() 后设为 true，DOM_UPDATE 后重置
 let isDirty = false;
 
-// View 级时间戳缓存：仅在 View markup 发生变化时更新时间
-const viewDigestCache = new Map<string, string>();
-const viewTimestampCache = new Map<string, number>();
+const extractViewFragments = createViewFragmentExtractor();
 
 // [RFC-012] Signal Policy - 控制何时触发 UpdateSignal
 let signalPolicy: SignalPolicy = 'auto';
@@ -196,6 +195,7 @@ async function handleReset(requestId: RequestID): Promise<void> {
     }
     // Re-initialize LinkedOM to get a fresh document/window
     initLinkedOM();
+    extractViewFragments.clear();
 
     // 4. 重置状态
     appId = createAppId('');
@@ -710,7 +710,7 @@ function pushSnapshotFragment(): void {
         }
     }
 
-    const viewFragments = extractViewFragments(appContainer, now);
+    const viewFragments = extractViewFragments(appContainer, appId, now);
 
     // [RFC-007] Get App View Tree if available
     let viewTree: string | undefined;
@@ -783,75 +783,6 @@ function pushSnapshotFragment(): void {
         suppressSignal: signalPolicy === 'never',
     } as WorkerToMainMessage);
     isDirty = false;
-}
-
-function computeViewDigest(markup: string): string {
-    let hash = 2166136261;
-    for (let i = 0; i < markup.length; i++) {
-        hash ^= markup.charCodeAt(i);
-        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
-    }
-    return `v_${(hash >>> 0).toString(16)}`;
-}
-
-function extractViewFragments(container: Element, now: number): Array<{
-    viewId: ViewID;
-    viewType: string;
-    viewName?: string;
-    markup: string;
-    timestamp: number;
-}> {
-    const result: Array<{
-        viewId: ViewID;
-        viewType: string;
-        viewName?: string;
-        markup: string;
-        timestamp: number;
-    }> = [];
-
-    const viewNodes = Array.from(container.querySelectorAll('[data-view-id]')) as Element[];
-    const aliveKeys = new Set<string>();
-
-    for (const node of viewNodes) {
-        const rawViewId = node.getAttribute('data-view-id') || node.getAttribute('id');
-        if (!rawViewId) continue;
-
-        const viewId = rawViewId as ViewID;
-        const viewType = node.getAttribute('data-view-type') || rawViewId;
-        const viewName = node.getAttribute('data-view-name') || undefined;
-
-        const transformed = transformElement(node, appId);
-        const viewMarkup = transformed.markup?.trim();
-        if (!viewMarkup) continue;
-
-        const key = `${appId}:${rawViewId}`;
-        aliveKeys.add(key);
-
-        const digest = computeViewDigest(viewMarkup);
-        const prevDigest = viewDigestCache.get(key);
-
-        if (prevDigest !== digest) {
-            viewDigestCache.set(key, digest);
-            viewTimestampCache.set(key, now);
-        }
-
-        result.push({
-            viewId,
-            viewType,
-            viewName,
-            markup: viewMarkup,
-            timestamp: viewTimestampCache.get(key) ?? now,
-        });
-    }
-
-    for (const key of Array.from(viewDigestCache.keys())) {
-        if (!aliveKeys.has(key)) {
-            viewDigestCache.delete(key);
-            viewTimestampCache.delete(key);
-        }
-    }
-
-    return result;
 }
 
 function sendResponse(

@@ -29,6 +29,12 @@ describe('IMDrivenSource', () => {
 
     expect(first).toHaveLength(1)
     expect(second).toHaveLength(1)
+    expect(first[0]).toMatchObject({
+      role: 'user',
+      content: 'old',
+      timestamp: 1_000,
+      region: 'session',
+    })
     expect(loadHistory).toHaveBeenCalledTimes(1)
   })
 
@@ -45,7 +51,7 @@ describe('IMDrivenSource', () => {
     source.addMessage({ role: 'user', content: 'hello' })
 
     await expect(source.getMessages()).resolves.toEqual([
-      { role: 'user', content: 'hello', timestamp: 2_000 },
+      { role: 'user', content: 'hello', timestamp: 2_000, region: 'session' },
     ])
   })
 
@@ -56,7 +62,7 @@ describe('IMDrivenSource', () => {
     source.addMessage(input)
 
     expect(await source.getMessages()).toEqual([
-      { role: 'user', content: 'hello', timestamp: 2_000 },
+      { role: 'user', content: 'hello', timestamp: 2_000, region: 'session' },
     ])
   })
 
@@ -66,7 +72,7 @@ describe('IMDrivenSource', () => {
     source.addMessage({ role: 'assistant', content: 'ok' }, 1_234)
 
     expect(await source.getMessages()).toEqual([
-      { role: 'assistant', content: 'ok', timestamp: 1_234 },
+      { role: 'assistant', content: 'ok', timestamp: 1_234, region: 'session' },
     ])
   })
 
@@ -132,6 +138,7 @@ describe('IMDrivenSource', () => {
           }),
         ],
         timestamp: 1_198,
+        region: 'session',
       },
       {
         role: 'tool',
@@ -149,9 +156,10 @@ describe('IMDrivenSource', () => {
           }),
         ],
         timestamp: 1_199,
+        region: 'session',
       },
-      { role: 'user', content: 'u2', timestamp: 1_200 },
-      { role: 'assistant', content: 'a2', timestamp: 1_300 },
+      { role: 'user', content: 'u2', timestamp: 1_200, region: 'session' },
+      { role: 'assistant', content: 'a2', timestamp: 1_300, region: 'session' },
     ])
 
     expect(replaceHistory).toHaveBeenCalledWith('s1', [
@@ -164,6 +172,7 @@ describe('IMDrivenSource', () => {
           }),
         ],
         timestamp: 1_198,
+        region: 'session',
       }),
       expect.objectContaining({
         role: 'tool',
@@ -174,6 +183,7 @@ describe('IMDrivenSource', () => {
           }),
         ],
         timestamp: 1_199,
+        region: 'session',
       }),
       { role: 'user', content: 'u2', timestamp: 1_200 },
       { role: 'assistant', content: 'a2', timestamp: 1_300 },
@@ -245,6 +255,7 @@ describe('IMDrivenSource', () => {
           { type: 'tool-call', toolCallId: 'call_1', toolName: 'search_files', input: { query: 'foo' } },
         ],
         timestamp: 1_100,
+        region: 'session',
       },
       {
         role: 'tool',
@@ -252,8 +263,9 @@ describe('IMDrivenSource', () => {
           { type: 'tool-result', toolCallId: 'call_1', toolName: 'search_files', result: { hits: 2 } },
         ],
         timestamp: 1_200,
+        region: 'session',
       },
-      { role: 'assistant', content: 'tool done', timestamp: 1_300 },
+      { role: 'assistant', content: 'tool done', timestamp: 1_300, region: 'session' },
     ])
   })
 
@@ -287,6 +299,7 @@ describe('IMDrivenSource', () => {
           { type: 'tool-call', toolCallId: 'compact_old', toolName: 'context_compact', input: { trigger: 'agent' } },
         ],
         timestamp: 998,
+        region: 'session',
       },
       {
         role: 'tool',
@@ -294,8 +307,9 @@ describe('IMDrivenSource', () => {
           { type: 'tool-result', toolCallId: 'compact_old', toolName: 'context_compact', result: { success: true, summary: 'old summary' } },
         ],
         timestamp: 999,
+        region: 'session',
       },
-      { role: 'user', content: 'new user', timestamp: 1_000 },
+      { role: 'user', content: 'new user', timestamp: 1_000, region: 'session' },
     ])
   })
 
@@ -323,6 +337,7 @@ describe('IMDrivenSource', () => {
       role: 'user',
       content: 'persist-me',
       timestamp: 9_999,
+      region: 'session',
     })
   })
 
@@ -376,8 +391,8 @@ describe('IMDrivenSource', () => {
     await expect(source.getMessages()).resolves.toEqual([
       expect.objectContaining({ role: 'assistant' }),
       expect.objectContaining({ role: 'tool' }),
-      { role: 'user', content: 'more context', timestamp: 1_200 },
-      { role: 'assistant', content: 'more work', timestamp: 1_300 },
+      { role: 'user', content: 'more context', timestamp: 1_200, region: 'session' },
+      { role: 'assistant', content: 'more work', timestamp: 1_300, region: 'session' },
     ])
   })
 
@@ -405,7 +420,7 @@ describe('IMDrivenSource', () => {
     await expect(source.getMessages()).resolves.toEqual([
       expect.objectContaining({ role: 'assistant' }),
       expect.objectContaining({ role: 'tool' }),
-      { role: 'user', content: 'z'.repeat(600), timestamp: 1_200 },
+      { role: 'user', content: 'z'.repeat(600), timestamp: 1_200, region: 'session' },
     ])
   })
 })

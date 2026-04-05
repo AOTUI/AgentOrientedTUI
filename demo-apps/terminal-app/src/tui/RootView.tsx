@@ -13,14 +13,12 @@ type RootViewProps = {
 type ToolTerminalArg = Partial<Pick<TerminalSession, 'id' | 'cwd' | 'status'>>;
 
 export function RootView({
-    projectPath,
     terminals,
     onCloseTerminal,
     onSendCommand,
     onSendCommandNewTerminal,
     onLoadMoreOutput
 }: RootViewProps) {
-    const terminalIds = terminals.map(terminal => terminal.id).join(', ') || 'None';
     const hasTerminals = terminals.length > 0;
     const [CloseTerminalsTool] = useViewTypeTool(
         'TerminalConsole',
@@ -131,48 +129,36 @@ HOW TO USE: Provide terminal reference and tail_lines.`,
         <>
             <div data-role="application-instruction">
                 <section>
-                    <h1>Terminal Application Instruction</h1>
-                    <h2>What Terminal is</h2>
+                    <h1>Terminal App - Application Instruction</h1>
+                    <h2>What it is</h2>
                     <p>Terminal App manages multiple shell sessions constrained to the project path and tracks command history, working directory, and output tails.</p>
-                    <h2>How to use Terminal</h2>
+                    <h2>How to use</h2>
                     <ul>
                         <li>Send commands to an existing terminal by passing terminal refs.</li>
                         <li>Create a new terminal and run a command in one step.</li>
                         <li>Adjust output tail to view more lines from the latest command.</li>
-                        <li>Use cd commands to change directories within projectPath only.</li>
-                    </ul>
-                    <h2>How to pass tool params</h2>
-                    <ul>
+                        <li>Use <code>cd</code> commands only within the configured project path.</li>
                         <li>Use refs rendered in Terminal Console/Terminal views: (content)[Terminal:ref_id].</li>
                         <li>In tool args, pass terminal ref ids (for example: terminals[0]).</li>
                         <li>Runtime resolves refs to real terminal data automatically; do not pass view ids.</li>
                     </ul>
-                    <h2>Views of Terminal</h2>
-                    <h3>Terminal Console View</h3>
-                    <h4>Terminal Console Instruction</h4>
+                    <h2>Views</h2>
+                    <h3>TerminalConsole</h3>
                     <p>Shows project path, terminal list, and console tools.</p>
-                    <h4>Terminal Console Available Tools</h4>
+                    <p><strong>How to use:</strong> Start here to open terminals, send commands, and close terminal sessions by Terminal reference.</p>
+                    <h4>Tool Preconditions</h4>
                     <ul>
-                        <li><SendCommandNewTerminalTool /></li>
-                        {hasTerminals && <li><CloseTerminalsTool /></li>}
-                        {hasTerminals && <li><SendCommandTool /></li>}
+                        <li><strong>new_terminal_and_send_command</strong>: requires a shell command.</li>
+                        <li><strong>close_terminals</strong>: requires one or more Terminal references.</li>
+                        <li><strong>send_command_to_exist_terminal</strong>: requires a Terminal reference and a shell command.</li>
                     </ul>
-                    {hasTerminals && (
-                        <>
-                            <h3>Terminal View</h3>
-                            <h4>Terminal View Instruction</h4>
-                            <p>Shows command history, current directory, current command status, and output tail.</p>
-                            <h4>Terminal View Available Tools</h4>
-                            <ul>
-                                <li><LoadMoreOutputTool /></li>
-                            </ul>
-                        </>
-                    )}
-                    <h2>Current State</h2>
+
+                    <h3>Terminal</h3>
+                    <p><strong>What it shows:</strong> Command history, current working directory, current command status, and the visible output tail for a terminal session.</p>
+                    <p><strong>How to use:</strong> Inspect a specific terminal after launching or reusing it, then expand the output tail if more context is needed.</p>
+                    <h4>Tool Preconditions</h4>
                     <ul>
-                        <li><strong>Project Path:</strong> {projectPath}</li>
-                        <li><strong>Open Terminals:</strong> {terminals.length}</li>
-                        <li><strong>Terminal IDs:</strong> {terminalIds}</li>
+                        <li><strong>load_more_output</strong>: requires a Terminal reference and a positive <code>tail_lines</code> value.</li>
                     </ul>
                 </section>
             </div>
