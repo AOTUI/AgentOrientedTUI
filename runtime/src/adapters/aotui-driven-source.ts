@@ -13,7 +13,7 @@
 
 import type { IDrivenSource, MessageWithTimestamp, ToolResult } from '@aotui/agent-driver-v2';
 import { jsonSchema } from 'ai';
-import type { IDesktop, IKernel, Operation, OperationID } from '../spi/index.js';
+import type { IDesktop, IKernel, Operation, OperationID, CachedSnapshot } from '../spi/index.js';
 
 // ============================================================================
 // Local Interfaces (解决 SPI 类型缺失问题)
@@ -51,6 +51,13 @@ interface IndexMapTypeToolEntry {
     appName?: string;
     viewType?: string;
     toolName?: string;
+}
+
+interface ResolvedToolContext {
+    appId: string;
+    viewId?: string;
+    operationName: string;
+    snapshotId: string;
 }
 
 // ============================================================================
@@ -478,70 +485,47 @@ export class AOTUIDrivenSource implements IDrivenSource {
         }
 
         const ownerId = 'agent-driver';
-        let appId = 'system';
-        let viewId: string | undefined;
-        let operationName = toolName;
+        const snapshot = await this.kernel.acquireSnapshot(this.desktop.id);
+        let lockAcquired = false;
 
-        if (toolName.startsWith('system-')) {
-            operationName = toolName.slice('system-'.length);
-        } else if (toolName.includes('.')) {
-            const parts = toolName.split('.');
-            if (parts.length >= 3) {
-                appId = parts[0] || 'system';
-                viewId = parts[1];
-                operationName = parts.slice(2).join('.');
-            } else if (parts.length === 2) {
-                appId = parts[0] || 'system';
-                operationName = parts[1];
-            }
-        } else {
-            // Preferred path: resolve from snapshot indexMap metadata
-            const typeToolContext = await this.resolveTypeToolContext(toolName);
-            if (typeToolContext) {
-                appId = typeToolContext.appId;
-                viewId = typeToolContext.viewType;
-                operationName = typeToolContext.toolName;
-            } else if (toolName.startsWith('app_') && toolName.includes('-')) {
-                // Backward compatibility: app_id-view_type-tool_name
-                const [appIdPart, viewTypePart, ...rest] = toolName.split('-');
-                if (appIdPart && viewTypePart && rest.length > 0) {
-                    appId = appIdPart;
-                    viewId = viewTypePart;
-                    operationName = rest.join('-');
-                }
-            }
-        }
-        // 1. 构建 Operation
-        const operation: Operation = {
-            context: {
-                appId: appId as any,
-                viewId: viewId as any,
-                snapshotId: 'latest' as any // 暂定
-            },
-            name: operationName as OperationID,
-            args: args as Record<string, unknown>
-        };
-
-        // TODO: 真正的实现需要从 IndexMap 中查找 Operation context
-        // 这里简化处理，假设 ToolName 就是 OperationID
-        // 实际上 IndexMap 中包含了 correct context (appId, etc.)
-
-        if (appId !== 'system' && !this.isAppAllowed(appId, this.resolveAppName(appId))) {
-            return {
-                toolCallId,
-                toolName,
-                error: {
-                    code: 'E_APP_DISABLED',
-                    message: `App "${this.resolveAppName(appId) || appId}" is disabled for this topic`,
-                },
-            };
-        }
-
-        // 3. 执行 Operation
         try {
-            // 注意：kernel.execute 签名可能不同，这里根据之前的 outline 调整
-            // Kernel.execute(desktopId, operation, ownerId)
+            const resolvedContext = this.resolveToolContext(snapshot, toolName);
+            if (!resolvedContext) {
+                return {
+                    toolCallId,
+                    toolName,
+                    error: {
+                        code: 'E_TOOL_CONTEXT_NOT_FOUND',
+                        message: `Tool "${toolName}" is not available in the current desktop snapshot`,
+                    },
+                };
+            }
+
+            const { appId, viewId, operationName, snapshotId } = resolvedContext;
+
+            const operation: Operation = {
+                context: {
+                    appId: appId as any,
+                    viewId: viewId as any,
+                    snapshotId: snapshotId as any,
+                },
+                name: operationName as OperationID,
+                args: args as Record<string, unknown>,
+            };
+
+            if (appId !== 'system' && !this.isAppAllowed(appId, this.resolveAppName(appId))) {
+                return {
+                    toolCallId,
+                    toolName,
+                    error: {
+                        code: 'E_APP_DISABLED',
+                        message: `App "${this.resolveAppName(appId) || appId}" is disabled for this topic`,
+                    },
+                };
+            }
+
             this.kernel.acquireLock(this.desktop.id, ownerId);
+            lockAcquired = true;
             const result = await this.kernel.execute(this.desktop.id, operation, ownerId);
 
             // 4. 转换为 ToolResult
@@ -571,22 +555,27 @@ export class AOTUIDrivenSource implements IDrivenSource {
                 }
             };
         } finally {
-            this.kernel.releaseLock(this.desktop.id, ownerId);
+            this.kernel.releaseSnapshot(snapshot.id);
+            if (lockAcquired) {
+                this.kernel.releaseLock(this.desktop.id, ownerId);
+            }
         }
     }
 
-    private async resolveTypeToolContext(toolName: string): Promise<{ appId: string; viewType: string; toolName: string } | null> {
-        const snapshot = await this.kernel.acquireSnapshot(this.desktop.id);
-        try {
-            const key = `tool:${toolName}`;
-            const entry = snapshot.indexMap?.[key];
-            if (!this.isTypeToolEntry(entry)) {
-                return null;
-            }
+    private resolveToolContext(snapshot: CachedSnapshot, toolName: string): ResolvedToolContext | null {
+        if (toolName.startsWith('system-')) {
+            return {
+                appId: 'system',
+                operationName: toolName.slice('system-'.length),
+                snapshotId: snapshot.id,
+            };
+        }
 
-            const appId = entry.appId;
-            const viewType = entry.viewType;
-            const resolvedToolName = entry.toolName;
+        const directToolEntry = snapshot.indexMap?.[`tool:${toolName}`];
+        if (this.isTypeToolEntry(directToolEntry)) {
+            const appId = directToolEntry.appId;
+            const viewType = directToolEntry.viewType;
+            const resolvedToolName = directToolEntry.toolName;
 
             if (
                 typeof appId === 'string' && appId.length > 0 &&
@@ -595,15 +584,76 @@ export class AOTUIDrivenSource implements IDrivenSource {
             ) {
                 return {
                     appId,
-                    viewType,
-                    toolName: resolvedToolName,
+                    viewId: viewType,
+                    operationName: resolvedToolName,
+                    snapshotId: snapshot.id,
                 };
             }
-
-            return null;
-        } finally {
-            this.kernel.releaseSnapshot(snapshot.id);
         }
+
+        const parsedDirectToolName = this.parseClassicToolName(toolName);
+        if (parsedDirectToolName && directToolEntry !== undefined) {
+            const directToolContext = this.resolveClassicToolContext(toolName, parsedDirectToolName, directToolEntry, snapshot.id);
+            if (directToolContext) {
+                return directToolContext;
+            }
+        }
+
+        for (const value of Object.values(snapshot.indexMap || {})) {
+            if (!this.isOperationEntry(value) || value.operation.id !== toolName) {
+                continue;
+            }
+
+            const parsedOperation = this.parseClassicToolName(value.operation.id);
+            if (!parsedOperation) {
+                continue;
+            }
+
+            return {
+                appId: value.appId,
+                viewId: parsedOperation.viewId,
+                operationName: parsedOperation.operationName,
+                snapshotId: snapshot.id,
+            };
+        }
+
+        return null;
+    }
+
+    private resolveClassicToolContext(
+        toolName: string,
+        parsed: { viewId?: string; operationName: string },
+        entry: unknown,
+        snapshotId: string
+    ): ResolvedToolContext | null {
+        if (this.isOperationEntry(entry)) {
+            return {
+                appId: entry.appId,
+                viewId: parsed.viewId,
+                operationName: parsed.operationName,
+                snapshotId,
+            };
+        }
+
+        return null;
+    }
+
+    private parseClassicToolName(toolName: string): { viewId?: string; operationName: string } | null {
+        const dotParts = toolName.split('.');
+        if (dotParts.length >= 3) {
+            return {
+                viewId: dotParts[1],
+                operationName: dotParts.slice(2).join('.'),
+            };
+        }
+
+        if (dotParts.length === 2) {
+            return {
+                operationName: dotParts[1],
+            };
+        }
+
+        return null;
     }
 
     /**

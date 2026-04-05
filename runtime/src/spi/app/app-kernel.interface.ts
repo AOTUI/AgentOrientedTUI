@@ -94,20 +94,20 @@ export interface AppKernelConfig {
     whenToUse?: string;
 
     /**
-     * 根 View 工厂 (传统模式)
-     * App 打开时自动挂载的第一个 View
-     * 
-     * 注意: 与component字段互斥,Runtime会优先使用component
+     * @deprecated Legacy root-view mode is no longer supported by the current runtime.
+     *
+     * This field remains only for source compatibility while downstream code
+     * migrates to component mode. `AppKernel` requires `component` and will
+     * reject configs that only provide `root`.
      */
     root?: IViewFactory;
 
     /**
      * [RFC-027] 根React组件 (新模式)
      * 
-     * 替代root字段,支持开发者完全控制View生命周期。
-     * 使用component时,开发者通过<View>组件声明式控制所有View。
-     * 
-     * 与root互斥: Runtime会优先使用component (如果提供)
+     * Current and only supported app authoring mode.
+     * Developers declare all Views through `<View>` components and the runtime
+     * discovers them from component rendering.
      */
     component?: any; // ComponentType, 使用any避免引入preact依赖
 

@@ -87,7 +87,7 @@ export interface TUIComponentAppFactory extends Factory<IAOTUIApp> {
     /** 传递给Runtime的Kernel配置 */
     kernelConfig: AppKernelConfig;
 
-    /** @deprecated Runtime会直接调用initializeComponent */
+    /** @deprecated Legacy app-instance creation is unsupported in component mode. */
     create: () => IAOTUIApp;
 
     // ComponentFactory核心方法 (手动实现)

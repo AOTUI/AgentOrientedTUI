@@ -237,6 +237,16 @@ describe('AppKernel - Component Mode Operation Routing', () => {
             ).toThrow(/appName/);
         });
 
+        it('rejects legacy root-mode configs and documents component mode as the only supported path', () => {
+            expect(() =>
+                new AppKernel({
+                    appName: 'legacy_app',
+                    name: 'legacy-app',
+                    root: {} as any,
+                } as any)
+            ).toThrow(/component is required|component mode/i);
+        });
+
         it('should pass launchConfig through runtime context during initialization', async () => {
             const initializeComponent = vi.fn().mockResolvedValue({});
             const appKernelWithLaunchConfig = new AppKernel({

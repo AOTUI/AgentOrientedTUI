@@ -3,6 +3,58 @@ import { describe, expect, it, vi } from 'vitest';
 import { AOTUIDrivenSource } from './aotui-driven-source.js';
 
 describe('AOTUIDrivenSource type tool routing', () => {
+    it('executes classic operation tools with the snapshot-scoped context from indexMap metadata', async () => {
+        const executeSpy = vi.fn().mockResolvedValue({ success: true, data: { ok: true } });
+
+        const kernel = {
+            acquireSnapshot: vi.fn().mockResolvedValue({
+                id: 'snap_operation_ctx',
+                indexMap: {
+                    op1: {
+                        type: 'operation',
+                        appId: 'app_3',
+                        operation: {
+                            id: 'system_ide.workspace.write_file',
+                            displayName: 'write file',
+                            params: [],
+                        },
+                    },
+                },
+            }),
+            releaseSnapshot: vi.fn(),
+            acquireLock: vi.fn(),
+            releaseLock: vi.fn(),
+            execute: executeSpy,
+            getSystemToolDefinitions: vi.fn().mockReturnValue([]),
+        } as any;
+
+        const desktop = {
+            id: 'desktop_operation_ctx',
+            output: {
+                subscribe: vi.fn(),
+                unsubscribe: vi.fn(),
+            },
+        } as any;
+
+        const source = new AOTUIDrivenSource(desktop, kernel);
+        const result = await source.executeTool(
+            'system_ide.workspace.write_file',
+            { filePath: '/tmp/demo.ts', content: 'export {}' },
+            'call_operation_ctx'
+        );
+
+        expect(result?.error).toBeUndefined();
+        expect(executeSpy).toHaveBeenCalledTimes(1);
+
+        const operation = executeSpy.mock.calls[0][1];
+        expect(operation.context).toEqual({
+            appId: 'app_3',
+            viewId: 'workspace',
+            snapshotId: 'snap_operation_ctx',
+        });
+        expect(operation.name).toBe('write_file');
+    });
+
     it('routes app_name based toolName via indexMap metadata (implicit app_id)', async () => {
         const executeSpy = vi.fn().mockResolvedValue({ success: true, data: { ok: true } });
 
@@ -44,6 +96,7 @@ describe('AOTUIDrivenSource type tool routing', () => {
         const operation = executeSpy.mock.calls[0][1];
         expect(operation.context.appId).toBe('app_7');
         expect(operation.context.viewId).toBe('FileDetail');
+        expect(operation.context.snapshotId).toBe('snap_1');
         expect(operation.name).toBe('lsp_hover');
     });
 
