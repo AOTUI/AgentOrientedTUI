@@ -69,60 +69,14 @@ AgentOrientedTUI/
 ### IM Integration
 ![IM](resource/image/IM.png)
 
-## Tech Stack
+## Architecture At A Glance
 
-### Product Layer (Host)
+The monorepo is split into a few core layers:
 
-| Technology | Purpose |
-|---|---|
-| [Electron](https://www.electronjs.org/) v40 | Desktop app shell, Node.js main process |
-| [React](https://react.dev/) 19 + [Vite](https://vitejs.dev/) 6 | GUI interface |
-| [Tailwind CSS](https://tailwindcss.com/) 4 + [HeroUI](https://www.heroui.com/) | UI component library and styling |
-| [tRPC](https://trpc.io/) + electron-trpc | Type-safe main/renderer process IPC |
-| [Framer Motion](https://www.framer.com/motion/) | Animations |
-| [Express](https://expressjs.com/) | Local HTTP server (for CLI mode) |
-| [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) | Local persistent database |
-| [Vercel AI SDK](https://sdk.vercel.ai/) (`ai`) | Streaming Chat UI (`@ai-sdk/react`) |
-| [@larksuiteoapi/node-sdk](https://github.com/larksuite/node-oapi-sdk) | Feishu / Lark IM integration |
-| [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) | MCP tool integration |
+- `host/` — Electron product shell, GUI, local persistence, IPC, HTTP surfaces, app installation
+- `agent-driver-v2/` — LLM calls, provider routing, multi-source aggregation, tool orchestration
+- `runtime/` — app lifecycle, worker isolation, runtime exposure, view / operation dispatch
+- `sdk/` — developer-facing app model for views, tools, refs, hooks, and state
+- `demo-apps/` — reference and system apps built on top of the SDK and runtime
 
-### Agent Driver (`@aotui/agent-driver-v2`)
-
-| Technology | Purpose |
-|---|---|
-| [Vercel AI SDK](https://sdk.vercel.ai/) (`ai`) | Unified LLM interface, streaming output, tool call orchestration |
-| `@ai-sdk/openai` | OpenAI / Azure OpenAI |
-| `@ai-sdk/anthropic` | Anthropic Claude |
-| `@ai-sdk/google` | Google Gemini |
-| `@ai-sdk/deepseek` | DeepSeek |
-| `@ai-sdk/xai` | xAI Grok |
-| `@openrouter/ai-sdk-provider` | OpenRouter (multi-model aggregator) |
-| [Zod](https://zod.dev/) | Tool parameter JSON Schema generation and validation |
-
-### Runtime (`@aotui/runtime`)
-
-| Technology | Purpose |
-|---|---|
-| Node.js [Worker Threads](https://nodejs.org/api/worker_threads.html) | One isolated Worker per app, sandboxed execution |
-| [linkedom](https://github.com/WebReflection/linkedom) | Virtual DOM inside Workers, simulates browser environment |
-| [happy-dom](https://github.com/capricorn86/happy-dom) | DOM simulation for tests |
-| [Zod](https://zod.dev/) | Runtime configuration validation |
-| TypeScript 5 (strict) | Type-safe SPI contract layer |
-
-### SDK (`@aotui/sdk`)
-
-| Technology | Purpose |
-|---|---|
-| [Preact](https://preactjs.com/) 10 | Lightweight UI framework, renders TUI component trees inside Workers |
-| [@preact/signals](https://preactjs.com/guide/v10/signals/) | Fine-grained reactive state management |
-| [linkedom](https://github.com/WebReflection/linkedom) | DOM manipulation support inside Workers |
-
-### Toolchain
-
-| Technology | Purpose |
-|---|---|
-| TypeScript 5 | Full-stack type safety |
-| [pnpm](https://pnpm.io/) + Workspaces | Monorepo package management |
-| [Vitest](https://vitest.dev/) | Unit and integration testing |
-| [esbuild](https://esbuild.github.io/) / `tsc` | Build and compilation |
-| [electron-builder](https://www.electron.build/) | Desktop app packaging (macOS / Windows / Linux) |
+For package responsibilities, entry points, build order, and contributor workflows, see [DEVELOPMENT.md](./DEVELOPMENT.md).

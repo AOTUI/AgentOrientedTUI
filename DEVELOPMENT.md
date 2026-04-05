@@ -1,95 +1,224 @@
 # AOTUI Development Guide
 
-Welcome to AOTUI! This guide will help you set up your development environment and start building TUI applications for AI agents.
+This guide is for contributors who want to work inside the AOTUI monorepo.
+
+It has two jobs:
+
+- explain how the system is split across packages
+- show where to start for common development tasks
+
+If you are looking for the product overview, start with [README.md](./README.md). If you want a deeper architecture walkthrough, also read [docs/runtime-sdk-driven-source-analysis.md](./docs/runtime-sdk-driven-source-analysis.md).
+
+## Development Overview
+
+### System Map
+
+AOTUI is easiest to understand as a layered system:
+
+```txt
+Host -> Agent Driver -> Runtime -> SDK -> Apps
+```
+
+- `host/` is the product shell: Electron desktop app, GUI, local services, app installation, and integration surfaces.
+- `agent-driver-v2/` is the agent execution layer: LLM calls, streaming, multi-source message aggregation, and tool orchestration.
+- `runtime/` is the work layer: app lifecycle, worker isolation, view exposure, operation dispatch, and runtime-to-agent adapters.
+- `sdk/` is the developer-facing app model: `createTUIApp`, views, tools, hooks, refs, and the component surface app authors use.
+- `demo-apps/` contains reference and system apps built on top of the SDK and runtime.
+
+### Package Relationships
+
+The dependency direction matters:
+
+- `sdk` depends on `runtime`
+- `runtime` depends on `agent-driver-v2`
+- `host` depends on all three
+- `demo-apps/*` depend on `sdk` and run inside `host`
+
+That means:
+
+- if you are changing app authoring APIs, start in `sdk`
+- if you are changing execution, isolation, or runtime exposure, start in `runtime`
+- if you are changing LLM orchestration or tool dispatch behavior, start in `agent-driver-v2`
+- if you are changing product UX, installation flow, or desktop integration, start in `host`
+
+## Core Packages
+
+### Agent Driver (`@aotui/agent-driver-v2`)
+
+**Role**
+
+The Agent Driver is the execution layer between model providers and the rest of the system. It owns multi-source message aggregation, LLM streaming, provider selection, and tool call orchestration.
+
+**When to touch it**
+
+- change the main agent loop
+- add or adjust model provider integrations
+- change tool dispatch or tool-result handling
+- change message aggregation behavior before prompts hit the model
+
+**Key dependencies**
+
+- `ai` / Vercel AI SDK for provider abstraction and streaming
+- provider packages such as `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`
+- `zod-to-json-schema` for tool schema generation
+
+**Key entry points**
+
+- [`agent-driver-v2/src/index.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/agent-driver-v2/src/index.ts)
+- [`agent-driver-v2/src/core/agent-driver-v2.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/agent-driver-v2/src/core/agent-driver-v2.ts)
+- [`agent-driver-v2/src/core/llm-client.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/agent-driver-v2/src/core/llm-client.ts)
+- [`agent-driver-v2/src/core/provider-factory.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/agent-driver-v2/src/core/provider-factory.ts)
+- [`agent-driver-v2/src/core/interfaces.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/agent-driver-v2/src/core/interfaces.ts)
+
+**Common commands**
+
+```bash
+pnpm --filter ./agent-driver-v2 build
+pnpm --filter ./agent-driver-v2 test
+pnpm --filter ./agent-driver-v2 dev
+```
+
+### Runtime (`@aotui/runtime`)
+
+**Role**
+
+The Runtime is the AOTUI execution core. It owns worker isolation, kernel creation, runtime facades, app lifecycle, CLI surfaces, and the adapter layer that exposes the runtime as an agent-usable work surface.
+
+**When to touch it**
+
+- change worker lifecycle or app sandboxing
+- change kernel behavior or operation dispatch
+- change how runtime state is exposed to agents
+- change CLI installation / app catalog behavior
+- change runtime SPI contracts or adapters
+
+**Key dependencies**
+
+- Node.js Worker Threads for app isolation
+- `linkedom` and `preact` for worker-side rendering and DOM-like execution
+- `happy-dom` for test-time DOM simulation
+- `zod` for runtime configuration validation
+
+**Key entry points**
+
+- [`runtime/src/index.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/index.ts)
+- [`runtime/src/factory/createKernel.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/factory/createKernel.ts)
+- [`runtime/src/kernel/index.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/kernel/index.ts)
+- [`runtime/src/worker-runtime/index.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/worker-runtime/index.ts)
+- [`runtime/src/adapters/aotui-driven-source.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/adapters/aotui-driven-source.ts)
+- [`runtime/src/cli.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/cli.ts)
+
+**Common commands**
+
+```bash
+pnpm --filter ./runtime build
+pnpm --filter ./runtime test
+pnpm --filter ./runtime dev
+```
+
+### SDK (`@aotui/sdk`)
+
+**Role**
+
+The SDK is the developer-facing programming model for AOTUI apps. It gives app authors the primitives for declaring views, tools, refs, hooks, and state with a component-driven API.
+
+**When to touch it**
+
+- change `createTUIApp()` behavior
+- add or refine developer-facing hooks
+- change view / operation declaration ergonomics
+- change ref resolution or argument validation at the app API layer
+- improve app authoring experience without changing runtime internals
+
+**Key dependencies**
+
+- `preact` for the component model
+- `@preact/signals` for fine-grained reactive state
+- `linkedom` for DOM support inside worker-rendered apps
+- `@aotui/runtime` as the execution substrate
+
+**Key entry points**
+
+- [`sdk/src/index.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/index.ts)
+- [`sdk/src/app-factory/createTUIApp.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/app-factory/createTUIApp.ts)
+- [`sdk/src/components/View.tsx`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/components/View.tsx)
+- [`sdk/src/hooks/index.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/hooks/index.ts)
+- [`sdk/src/operation/types.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/operation/types.ts)
+- [`sdk/src/ref-registry.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/ref-registry.ts)
+
+**Common commands**
+
+```bash
+pnpm --filter ./sdk build
+pnpm --filter ./sdk test
+pnpm --filter ./sdk lint
+```
+
+### Toolchain
+
+These tools support the workflow across all packages:
+
+- TypeScript 5 for the monorepo type system
+- `pnpm` workspaces for package management
+- `vitest` for unit and integration testing
+- `tsc` / `esbuild` / Vite for compilation and app builds
+- Electron + `electron-builder` for desktop packaging
+- `npm link` and the `agentina` CLI for local app installation and host integration
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
 
 - **Node.js**: v18 or higher
-- **pnpm**: Package manager (will be installed automatically if missing)
-- **Git**: For version control
+- **pnpm**: package manager
+- **Git**: version control
 
-## Quick Start
+## Development Workflows
 
-### Option 1: Automated Setup (Recommended)
+### Quick Start
 
-Run the setup script to install all dependencies and link TUI apps:
+#### Option 1: Automated setup
 
 ```bash
-# Make scripts executable
 chmod +x setup.sh run.sh
-
-# Run setup (installs dependencies, builds packages, links apps)
 ./setup.sh
-
-# Start Electron development app
 ./run.sh
 ```
 
-### Option 2: Manual Setup
+#### Option 2: Manual setup
 
-If you prefer to set up manually, follow these steps:
-
-#### 1. Install pnpm (if not already installed)
+1. Install dependencies:
 
 ```bash
-npm install -g pnpm
-```
-
-#### 2. Install Dependencies
-
-```bash
-# Install all workspace dependencies
 pnpm install
 ```
 
-#### 3. Build Packages in Order
-
-The build order is important due to dependencies:
+2. Build packages in dependency order:
 
 ```bash
-# Build runtime (required by SDK and apps)
 pnpm --filter ./runtime build
-
-# Build SDK (required by apps)
 pnpm --filter ./sdk build
-
-# Build agent-driver (required by host)
 pnpm --filter ./agent-driver-v2 build
-
-# Build host
 pnpm --filter ./host build
-
-# Build individual apps (optional, built on-demand)
-pnpm -C demo-apps/aotui-ide build
-pnpm -C demo-apps/planning-app build
-pnpm -C demo-apps/terminal-app build
-pnpm -C demo-apps/token-monitor-app build
 ```
 
-#### 4. Install agentina CLI
+3. Link the host CLI:
 
 ```bash
-# Link host as global 'agentina' command
 cd host
 npm link
 cd ..
-
-# Verify installation
 agentina --version
 ```
 
-#### 5. Link TUI Applications
+4. Link local apps:
 
 ```bash
-# Link each app
 cd demo-apps/aotui-ide && npm link && cd ../..
 cd demo-apps/planning-app && npm link && cd ../..
 cd demo-apps/terminal-app && npm link && cd ../..
 cd demo-apps/token-monitor-app && npm link && cd ../..
 
-# Install linked apps to host
 cd host
 npm link aotui-ide
 npm link planning-app
@@ -98,138 +227,133 @@ npm link token-monitor-app
 cd ..
 ```
 
-#### 6. Start Electron Development App
+5. Start the Electron app:
 
 ```bash
 cd host
 pnpm electron:dev
 ```
 
-## Project Structure
-
-```
-aotui_v6/
-├── runtime/              # Core runtime system (microkernel + worker isolation)
-├── sdk/                  # SDK for building TUI apps (Preact components)
-├── host/                 # Host application (runs the runtime)
-├── agent-driver-v2/      # Agent driver for LLM integration
-├── demo-apps/            # System and demo TUI apps
-│   ├── aotui-ide/        # System IDE TUI app
-│   ├── planning-app/     # Planning/project management TUI app
-│   ├── terminal-app/     # Terminal TUI app
-│   └── token-monitor-app/ # Token monitoring TUI app
-├── setup.sh              # Automated setup script
-├── run.sh                # Electron development app runner
-└── package.json          # Workspace configuration
-```
-
-## Development Workflow
-
-### Building Individual Packages
+### Build Commands
 
 ```bash
-# Build specific package
 pnpm --filter ./runtime build
 pnpm --filter ./sdk build
-pnpm -C demo-apps/aotui-ide build
-
-# Build all packages
+pnpm --filter ./agent-driver-v2 build
+pnpm --filter ./host build
 pnpm -r build
 ```
 
-### Running Tests
+### Test Commands
 
 ```bash
-# Run tests for specific package
 pnpm --filter ./runtime test
 pnpm --filter ./sdk test
-
-# Run all tests
+pnpm --filter ./agent-driver-v2 test
+pnpm --filter ./host test
 pnpm -r test
 ```
 
-### Watch Mode (for active development)
+### Watch / Iteration Loop
+
+For active development across the core stack:
 
 ```bash
-# Watch runtime changes
+# Terminal 1
 pnpm --filter ./runtime dev
 
-# Watch SDK changes
-pnpm --filter ./sdk dev
+# Terminal 2
+pnpm --filter ./agent-driver-v2 dev
 
-# Run host Electron app with hot-reload
+# Terminal 3
 cd host && pnpm electron:dev
 ```
 
-### Adding a New TUI App
+If you are also changing app code, run the app-specific watcher in another terminal.
 
-1. **Create app directory** with required structure:
-   ```
-   demo-apps/my-app/
-   ├── package.json
-   ├── tsconfig.json
-   ├── src/
-   │   ├── index.ts        # Export createTUIApp factory
-   │   ├── tui/           # TUI components
-   │   └── core/          # Business logic
-   └── test/
-   ```
+## Common Tasks
 
-2. **Define the canonical `app_name` in `createTUIApp()`**:
-   ```ts
-   export default createTUIApp({
-     app_name: "my_app",
-     component: MyApp,
-     whatItIs: "Describe what the app is",
-     whenToUse: "Describe when the agent should use it",
-   });
-   ```
+### I want to change agent orchestration
 
-3. **Generate `aoapp.json` as a build artifact**:
-   ```json
-   {
-     "scripts": {
-       "build": "tsc && node ../../scripts/generate-aoapp.mjs ."
-     }
-   }
-   ```
+Start in [`agent-driver-v2/src/core/agent-driver-v2.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/agent-driver-v2/src/core/agent-driver-v2.ts) and [`agent-driver-v2/src/core/llm-client.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/agent-driver-v2/src/core/llm-client.ts). This is the right layer for prompt assembly, provider routing, streaming, and tool-call execution behavior.
 
-4. **Build and link**:
-   ```bash
-   cd demo-apps/my-app
-   pnpm build
-   npm link
-   cd ../../host
-   npm link my-app
-   ```
+### I want to change runtime / view exposure behavior
 
-5. **Use in host**:
-   ```typescript
-   // host/src/examples/my-app-example.ts
-   import myApp from 'my-app';
-   
-   await desktop.installApp('my-app', myApp);
-   await desktop.openApp('my-app', { /* config */ });
-   ```
+Start in [`runtime/src/adapters/aotui-driven-source.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/adapters/aotui-driven-source.ts), [`runtime/src/factory/createKernel.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/runtime/src/factory/createKernel.ts), and the `runtime/src/kernel/` subtree. This is the right layer for app lifecycle, state exposure, operation routing, and runtime-to-agent integration.
+
+### I want to change SDK developer APIs
+
+Start in [`sdk/src/app-factory/createTUIApp.ts`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/app-factory/createTUIApp.ts), [`sdk/src/components/View.tsx`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/components/View.tsx), and [`sdk/src/hooks/`](/Users/zhangwei/JSWorkSpace/learning_code/AgentOrientedTUI/sdk/src/hooks/index.ts). This is the right layer for app authoring ergonomics and view/tool declaration APIs.
+
+### I want to add a new app
+
+Create a new folder under `demo-apps/`, export a `createTUIApp()` app factory from `src/index.ts`, generate `aoapp.json` during build, then link the package into `host`.
+
+Minimal structure:
+
+```txt
+demo-apps/my-app/
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── index.ts
+│   ├── tui/
+│   └── core/
+└── test/
+```
+
+Example app definition:
+
+```ts
+export default createTUIApp({
+  app_name: "my_app",
+  component: MyApp,
+  whatItIs: "Describe what the app is",
+  whenToUse: "Describe when the agent should use it",
+});
+```
+
+Build script example:
+
+```json
+{
+  "scripts": {
+    "build": "tsc && node ../../scripts/generate-aoapp.mjs ."
+  }
+}
+```
+
+Link flow:
+
+```bash
+cd demo-apps/my-app
+pnpm build
+npm link
+
+cd ../../host
+npm link my-app
+```
+
+### I want to debug host integration
+
+Start in `host/src/` and run:
+
+```bash
+cd host
+pnpm electron:dev
+```
+
+Use this layer when you are changing desktop UX, app installation flow, local persistence, IPC, HTTP surfaces, or app lifecycle wiring in the product shell.
 
 ## agentina CLI Commands
 
-Once the `agentina` CLI is installed, you can use these commands:
+Once the `agentina` CLI is installed, these are the most useful commands:
 
 ```bash
-# List all available TUI apps
 agentina list
-
-# Link a new app to the host
 agentina link <app-name>
-
-# Show app information
 agentina info <app-name>
-
-# Unlink an app
 agentina unlink <app-name>
-
-# Show version
 agentina --version
 ```
 
@@ -241,27 +365,21 @@ agentina --version
 npm install -g pnpm
 ```
 
-### tui command not found after installation
+### agentina command not found after installation
 
-Try sourcing your shell configuration:
+Reload your shell:
 
 ```bash
-# For bash
-source ~/.bashrc
-
-# For zsh
 source ~/.zshrc
-
-# Or restart your terminal
 ```
+
+Or restart your terminal.
 
 ### Build errors
 
-Make sure you build packages in the correct order:
+Rebuild in dependency order:
 
 ```bash
-# Clean and rebuild
-pnpm -r clean
 pnpm --filter ./runtime build
 pnpm --filter ./sdk build
 pnpm --filter ./agent-driver-v2 build
@@ -270,84 +388,11 @@ pnpm --filter ./host build
 
 ### App not appearing in host
 
-Verify the app is linked:
+Verify the package is linked into `host`:
 
 ```bash
 cd host
 npm list --depth=0 | grep <app-name>
-
-# If not found, link again
-npm link <app-name>
 ```
 
-### Worker thread errors
-
-If you see errors related to worker threads, ensure:
-- Node.js v18+ is installed
-- The runtime is built correctly: `pnpm --filter ./runtime build`
-
-## Development Tips
-
-### Fast Iteration
-
-For rapid development on a single app:
-
-```bash
-# Terminal 1: Watch runtime/SDK
-pnpm --filter ./runtime dev &
-pnpm --filter ./sdk dev
-
-# Terminal 2: Watch your app
-pnpm --filter ./my-app dev
-
-# Terminal 3: Run host Electron app
-cd host && pnpm electron:dev
-```
-
-### Debugging
-
-```bash
-# Run host with inspector
-cd host
-node --inspect node_modules/.bin/vite
-
-# Or use VS Code debugger with launch.json
-```
-
-### Type Checking
-
-```bash
-# Check types without building
-pnpm --filter ./runtime typecheck
-pnpm --filter ./sdk typecheck
-```
-
-## Next Steps
-
-- Read the [AOTUI Spec](./AOTUI%20Spec.md) to understand the system architecture
-- Review [Building TUI Applications for AI Agents](./Building%20TUI%20Application%20for%20AI%20Agent.md)
-- Check [Runtime Developer Guide](./runtime/RUNTIME_DEVELOPER_GUIDE.md)
-- Explore [SDK Developer Guide](./sdk/SDK_DEVELOPER_GUIDE.md)
-- Study example apps: `demo-apps/aotui-ide`, `demo-apps/planning-app`, `demo-apps/terminal-app`
-
-## Contributing
-
-Before submitting a PR:
-
-1. Ensure all tests pass: `pnpm -r test`
-2. Build successfully: `pnpm -r build`
-3. Follow the coding conventions in existing packages
-4. Update documentation for new features
-
-## Support
-
-If you encounter issues:
-
-1. Check this guide's Troubleshooting section
-2. Review existing documentation in `runtime/` and `sdk/`
-3. Check package-specific README files
-4. Open an issue with detailed reproduction steps
-
----
-
-Happy building! 🚀
+If it is missing, link it again with `npm link <app-name>`.
