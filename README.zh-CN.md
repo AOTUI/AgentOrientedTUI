@@ -1,81 +1,317 @@
-# Agentina
+# 当软件的用户不止是人类 —— 为 AI Agent 设计软件
 
-一站式 Agent 搭建和管理平台。核心理念是通过 **[Agent Apps](https://agentina-agent-apps.vercel.app/en)** 构建智能体——用应用来释放 AI Agent 的生产力，同时将其安全地关在笼子里。
+> 实验性项目。这个仓库用于研究、原型验证和内部探索，尚未达到生产可用状态，不应直接用于生产环境。
 
+过去几十年，主流的交互式软件大多默认了一件事：用户是人。
 
-## Feature
+这个前提塑造了现代 GUI：一种围绕视觉注意力、指针输入和持续局部反馈而优化的界面。
 
-- **Model Provider** — 可接入主流大模型提供商（OpenAI、Claude、Gemini、DeepSeek、Grok、OpenRouter）
-- **Agent Apps** — 系统预装应用，Agent 通过 TUI 快照感知和操作应用
-  - `terminal` — 终端，执行命令
-  - `lite-browser` — 精简浏览器，网页内容提取
-  - `aotui-ide` — 代码 IDE，文件阅读与编辑
-  - `planning` — 规划与任务管理
-  - `token-monitor` — Token 用量监控
-- **Skills** — 可拓展的 Agent 技能插件
-- **MCP** — Model Context Protocol 集成，对接外部工具
-- **IM 接入**
-  - 单智能体聊天
-  - 已接入渠道：飞书/Lark
+一旦主要执行者从人变成 LLM 驱动的 Agent，问题就不再只是“模型会不会调用工具”，而变成了：**什么样的界面，才能让 Agent 读懂当前状态、操作真实对象，并在状态变化时始终跟得上？**
 
-## Upcoming
+`AgentOrientedTUI` 是对这个问题的一种回答。
 
-- Agent Teams（多智能体协作）
-- IM 多渠道接入：Telegram、Discord
-- 多智能体群聊
-- Agent 记忆管理
-- SDK / Runtime / AgentDriver 持续优化
+## 核心想法
 
-## 项目结构
+`AgentOrientedTUI` 是一种面向 Agent 的界面和运行时模型。
 
+它不是为了暴露更多命令，而是想让 Agent 直接工作在 runtime 维护的当前状态上：持续存在的 `View`、可稳定解析的对象引用，还有始终和当前状态对齐的动作集合。
+
+一句话说：
+
+> **AgentOrientedTUI 想做的，是让 Agent 不用再根据历史输出来猜当前世界，而是直接在当前状态上工作。**
+
+这篇文章想说明四件事。
+
+第一，追加式 transcript 不是维护当前工作状态的好办法。
+第二，面向 Agent 的软件需要显式的 `View`、引用和与状态对齐的动作。
+第三，这会把交互从“累积结果”改造成“维护当前世界”。
+第四，这个模型很有前景，但会立刻碰到失效、并发和上下文管理这些工程约束。
+
+## 为什么追加式结果流会失效
+
+如果把问题粗暴地理解成“CLI 对 GUI”或者“Tool Call 对非 Tool Call”，很容易看偏。这个框架太粗。
+
+更深的限制其实出现在一种很具体的执行模式里：**工具结果不断被追加进上下文，变成历史观测；而这份 transcript 又被拿来临时充当当前状态，但系统本身并没有为 Agent 维护一个持续存在的工作对象。**
+
+文件是最简单的例子。
+
+假设一个 Agent 正在处理 `file.txt`。
+
+在 `t1`，它执行：
+
+```bash
+cat file.txt
 ```
-AgentOrientedTUI/
-├── host/              # 产品层：Electron 桌面应用 + GUI + HTTP 服务
-├── agent-driver-v2/   # Agent 驱动：LLM 调用、工具编排、多消息源聚合
-├── runtime/           # 核心运行时：Worker 隔离、TUI 快照引擎、Operation 调度
-├── sdk/               # 开发者 SDK：基于 Preact 构建 TUI App 的组件库
-└── demo-apps/         # 系统 / demo App 目录，和核心包分开
-    ├── aotui-ide/         # 系统 App：代码 IDE
-    ├── terminal-app/      # 系统 App：终端
-    ├── lite-browser-app/  # 系统 App：精简浏览器
-    ├── planning-app/      # 系统 App：规划管理
-    └── token-monitor-app/ # 系统 App：Token 监控
+
+这时，上下文里多了一份文件内容。
+
+在 `t2`，这个文件被编辑了。
+
+世界已经变了，但之前的结果没有变。`t1` 的输出还留在上下文里，是一段“历史上没错、但现在已经过时”的观测。
+
+到了 `t3`，Agent 再次读取文件：
+
+```bash
+cat file.txt
 ```
 
-## Agentina 预览
+这时，上下文里有了同一个文件的两份快照：一份是历史的，一份是当前的。
 
-### 聊天
-![chat](resource/image/preview.gif)
+问题不在于哪一份是错的，而在于 runtime 仍然没有明确维护“哪一份才是当前工作状态”。
 
-### 智能体管理
-![agent](resource/image/agent-management.png)
+在受控场景里，runtime 有时可以只根据 Tool Call 本身去更新它维护的状态。但一旦出现外部修改、formatter 改写、partial failure 或异步 side effect，这个前提就会变得不可靠。
 
-### 大模型提供商管理
-![provider](resource/image/model-provider.png)
+真正的问题是：下一步行动只能有一份快照作为依据，但系统并没有显式维护这个事实。它只是又追加了一次观测。于是 Agent 得自己推断：
 
-### 提示词管理
-![prompt](resource/image/prompt.png)
+- 哪份已经过时
+- 哪份才是当前版本
+- 下一步该以哪份为依据继续行动
 
-### Agent Apps
-![agent-apps](resource/image/apps.png)
+问题不在于这些工具做不了事。它们当然能做事。问题在于，动作执行和状态维护被混成了一件事，但它们其实不是一回事。
 
-### Skills
-![skills](resource/image/skills.png)
+短任务里，这种设计或许还能撑住。任务一长，它就会变成结构性问题：
 
-### MCP
-![MCP](resource/image/mcp.png)
+- 上下文不断堆积陈旧观测
+- 模型越来越多地把 token 和注意力花在状态对齐上
+- “当前状态”不再是系统维护的对象，而变成模型脑内的一种推断
 
-### IM 接入
-![IM](resource/image/IM.png)
+所以真正的问题，不是“模型能不能发命令”。
 
-## 架构一览
+真正的问题是：
 
-这个 monorepo 主要分成几层：
+> **工作继续往前走时，到底谁来维护当前状态。**
 
-- `host/` — Electron 产品壳、GUI、本地持久化、IPC、HTTP 能力、应用安装
-- `agent-driver-v2/` — LLM 调用、Provider 路由、多消息源聚合、Tool 编排
-- `runtime/` — 应用生命周期、Worker 隔离、运行时暴露、View / Operation 调度
-- `sdk/` — 面向开发者的 app 编程模型，负责 View、Tool、Ref、Hook 和状态
-- `demo-apps/` — 基于 SDK 和 Runtime 构建的系统应用与参考应用
+## 一个更小但关键的转向：File View
 
-如果你想看包职责、代码入口、构建顺序和贡献者工作流，请直接看 [DEVELOPMENT.md](./DEVELOPMENT.md)。
+如果问题不在命令，而在状态连贯性，一个自然的转向就是：别把每次读取都当成一份新结果，而是把它看成对一个活着的当前对象的访问。
+
+`File View` 的意义就在这里。
+
+在典型的结果导向流程里，`Read File` 往往意味着：
+
+- 读一次文件
+- 返回文件内容
+- 把这份结果追加进上下文
+
+而在 `AgentOrientedTUI` 里，`Read File` 可以是另一件事：
+
+- 打开一个 `File View`
+- 让这个 `File View` 成为上下文里的当前文件对象
+- 后续动作围绕这个对象展开、更新或关闭
+
+例如，在 `t1`，runtime 可以插入这样一个视图：
+
+```xml
+<view id="file:src/index.ts" type="FileView" title="src/index.ts">
+  path: src/index.ts
+  language: typescript
+  dirty: false
+  visible_range: 120-180
+  content: ...
+  diff_against: HEAD
+
+  available_actions:
+  - edit_file
+  - save_file
+  - close_view
+</view>
+```
+
+重点不在标记长什么样，而在它背后的语义契约：`File View` 不是一段文本，而是一个由 runtime 管理、被渲染进上下文的文件工作对象句柄。
+
+这也意味着，它不需要每次都暴露整份文件快照。按任务不同，一个文件视图可以按行寻址、按片段暴露、带 diff 语义，也可以天然支持 partial edits，而不是默认整文件替换。
+
+在 `t2`，Agent 调用 `Edit File`。runtime 不需要再把整份文件重新 dump 一次，只要原地更新这个已有句柄：
+
+- `content` 变化
+- `dirty` 变化
+- `visible_range` 可以移动
+- `diff_against` 可以更新
+- 可用动作跟着变化
+
+到了 `t3`，如果这个文件已经不再相关，Agent 关闭视图，这个对象就可以直接退出上下文。
+
+这当然解决不了所有问题。真实文件工作会遇到大文件、分页、diff、局部编辑、formatter 改写、并发修改，这些都会让模型复杂得多。实际系统里，一个文件视图很可能要暴露行区间、git 驱动的 diff，或者只暴露和当前任务相关的局部片段，而不是默认整文件快照。但这并不会削弱这个模型，反而说明被维护的对象本来就比“返回一坨结果”丰富得多。
+
+> **面向 Agent 的界面原语，不一定非得是“返回结果”，也可以是一个指向当前对象的活视图。**
+
+## 这不是什么
+
+这不是在反对 Tool Call。
+这也不是想把 GUI 的每个像素都序列化成文本。
+它更不要求 runtime 在任意时刻完整镜像整个应用状态。
+
+更窄也更关键的主张是：Agent 应该工作在被维护、可执行、与当前世界对齐的视图上，而不是从不断累积的历史输出里反推当前世界。
+
+## 一个完整的交互模型：微信与 `JY Chen`
+
+文件只是最小例子。真实应用里的交互更复杂，因为它不只是读取状态，还涉及对象选择、对象身份、动作可用性，以及跨视图的状态转移。
+
+这时，用消息应用来举例会更清楚。
+
+假设用户说：
+
+> 给 `JY Chen` 发一句“你好”。
+
+对人来说，这件事几乎没有困难：
+
+- 看联系人列表
+- 找到 `JY Chen`
+- 打开对话
+- 输入“你好”
+- 点击发送
+
+人表面上是在点头像和名字，底层其实是在选中一个联系人对象、进入正确的会话上下文、带上消息路由信息，再暴露出当前状态下允许的动作。
+
+对于 text-first 的 LLM Agent，尤其是缺少稳定 GUI 抽象的那类系统，这座桥往往并不存在。它也许能调用工具，甚至能看到像素，但这并不会自动给它一个稳定、显式的对象身份、状态迁移和动作可用性模型。所以，如果软件真的要面向这类 Agent，可用的前提就是把 GUI 里原本隐式存在的机制重新显式化。
+
+通常至少要有 4 个原语。
+
+### 1. View
+
+先看 `View`。系统要先给 Agent 一个当前状态的 `View`：
+
+```xml
+<view id="contacts" type="ContactList" name="联系人列表" app_id="wechat">
+  ## 联系人
+
+  - [Wills Guo](Contact:contacts[0]) — 在线
+  - [Emma Chen](Contact:contacts[1]) — 离开
+  - [JY Chen](Contact:contacts[2]) — 在线
+
+  available_actions:
+  - open_chat(contact: Contact)
+</view>
+```
+
+这个视图暴露的不是像素，而是当前有哪些对象，以及这个状态下允许哪些动作。
+
+### 2. Reference
+
+关键不只是名字，而是这种类型化引用：
+
+```md
+[JY Chen](Contact:contacts[2])
+```
+
+`JY Chen` 是可读标签。
+
+`Contact:contacts[2]` 是可解析引用。
+
+这一步把“看见一个名字”变成了“绑定到一个真实对象”。
+
+如果没有引用，Agent 即使知道应用里有什么，也很难稳定判断某个动作到底该作用在谁身上。
+
+### 3. Tool
+
+在联系人列表这个状态里，正确的下一步不是立刻发消息，而是先进入聊天上下文：
+
+```json
+{
+  "tool": "open_chat",
+  "arguments": {
+    "contact": "Contact:contacts[2]"
+  }
+}
+```
+
+这里的工具不是一个返回文本的 helper，而是一次状态转移请求。runtime 会把引用解析成真实联系人对象，再把应用推进到对应会话。
+
+### 4. State Update
+
+这次转移之后，runtime 再暴露一个新的当前视图：
+
+```xml
+<view id="chat_jy" type="ChatDetail" name="与 JY Chen 的对话">
+  ## 与 [JY Chen](Contact:contacts[2]) 的对话
+
+  available_actions:
+  - send_message(message: string)
+  - close_view()
+</view>
+```
+
+这时，Agent 才调用：
+
+```json
+{
+  "tool": "send_message",
+  "arguments": {
+    "message": "你好！"
+  }
+}
+```
+
+重点不在于界面是文本的。
+
+重点在于：对象选择、状态转移和动作可用性都被显式表达出来，而且始终和当前视图保持对齐。
+
+这也是 Agent-Oriented Interface 真正有意思的地方。
+
+在 GUI 里，指针隐藏了对象选择，按钮隐藏了动作入口，界面刷新隐藏了状态迁移。
+
+而在面向 Agent 的界面里，这些职责都必须被明确表达：
+
+- `View` 暴露当前世界
+- `Reference` 绑定目标对象
+- `Tool` 请求状态转移或执行动作
+- runtime 把当前世界更新成下一个视图
+
+这不是给 Tool Call 再套一层壳。
+
+它是在用“被维护的当前状态”，而不是“不断累积的历史结果”来重新组织交互。
+
+## 最低运行时契约
+
+如果这套模型要可靠工作，runtime 至少要保证四件事：
+
+- 引用在跨视图切换时仍然稳定且可解析
+- 动作要声明自己接受什么对象类型
+- 当前视图的更新或失效由 runtime 负责，而不是交给模型自己猜
+- 外部修改或并发修改必须有明确的冲突语义
+
+## 这套模型改变了什么
+
+如果应用按这种方式组织，变化就不只是“交互更干净一点”，而是整个工作模型都会跟着变。
+
+### 1. 充血模型
+
+文件、联系人、会话、任务、搜索结果都不再只是短暂经过上下文的数据 payload，而更像带状态、带行为、带生命周期的工作对象。
+
+### 2. 状态驱动的推进方式
+
+系统推进的基本单位不再是“再追加一条结果”，而是“当前状态被更新”。这会自然减少歧义、重复和 stale context。
+
+### 3. 次级影响
+
+状态驱动的界面还会自然带出两个实践后果。
+
+第一，Agent 的下一步不必只由下一句用户输入触发。文件变化、诊断信息、任务迁移和外部事件，都可以成为有意义的输入。
+
+第二，这个模型并不要求放弃 Web 技术栈。HTML、JS、JSX、组件状态和事件系统仍然可以留在开发者这一侧，而面向 Agent 的视图则成为这层表示的运行时投影。
+
+## 一个最直接的约束
+
+但这套模型也有一个躲不过去的现实约束。它不是边角问题，而是这套模型“概念上成立”和“工程上可落地”之间最直接的张力之一。
+
+### KV Cache 失效
+
+这种界面希望上下文里的工作状态始终保持最新。那就意味着：视图会更新，旧状态会被移除，某些上下文块会被替换，甚至被重排。
+
+而现代模型服务基础设施往往偏好相反的东西：稳定的前缀，以及尽可能高的 KV Cache 复用率。
+
+这种张力不会直接否定这套界面模型，但它确实构成了一个非常现实的系统约束。
+
+### 并发与外部修改
+
+一个被维护的视图，只有在它仍然可信时才有价值。一旦文件、任务或应用对象可能在 Agent 的直接动作回路之外发生变化，runtime 就必须明确处理刷新、冲突检测和恢复策略。
+
+### 视图预算与上下文压力
+
+状态化界面并不会消除上下文上限，它只是改变了上限是怎么被花掉的。如果多个视图同时保持打开，runtime 就必须决定哪些视图常驻、哪些被摘要、哪些被驱逐，同时又不能打断 Agent 的工作连续性。
+
+如果 Agent-Oriented Interface 最终要从一种设计想法走向基础设施，它就必须正面面对这些约束。
+
+## 仓库导览
+
+这份 README 主要聚焦于界面模型本身。如果你想进一步了解仓库结构、架构分层、技术栈和本地开发流程，可以继续阅读 [GUIDE.md](./GUIDE.md)。
