@@ -116,6 +116,35 @@ Core stack:
 | `agent-driver-v2/` | Vercel AI SDK (`ai`), OpenAI / Anthropic / Google / xAI / OpenRouter provider packages |
 | `demo-apps/` | TypeScript + SDK-based app packages; mostly Preact-powered app definitions |
 
+### Why This Stack Looks Like This
+
+This stack is opinionated. It is optimized for an agent-facing desktop runtime, not for a conventional web SaaS app.
+
+- **Electron in `host/`** keeps the product local-first. The host needs desktop integration, local persistence, app installation, and process-level control that a browser-only shell would make harder.
+- **Node.js + Worker Threads in `runtime/`** separate app execution from the host shell. That matters because apps are not just UI fragments here; they are active runtime participants that expose views, refs, and operations to the agent.
+- **Preact in `sdk/` and runtime-facing app code** keeps the app model component-based without paying the full weight of a larger client framework inside worker-rendered app execution.
+- **React in `host/`** is a separate choice from Preact in the app layer. The host is a conventional GUI product surface, while the SDK is an embedded app-authoring surface. They solve different problems, so the stack intentionally splits here.
+- **Vercel AI SDK and provider adapters in `agent-driver-v2/`** give the project one abstraction point for multi-model support, streaming, and tool-call execution. That keeps provider churn out of the rest of the runtime.
+- **`zod` and JSON-schema tooling** matter because the system has to expose typed tool surfaces and runtime contracts reliably across host, runtime, apps, and model-facing execution.
+
+### Trade-Offs
+
+This stack also carries real trade-offs:
+
+- **Two UI stacks** means some conceptual overhead. React in the host and Preact in the SDK is deliberate, but it increases mental context for contributors.
+- **Worker-based isolation** improves boundaries and safety, but it makes debugging, dependency wiring, and snapshot consistency harder than a single-process app model.
+- **Desktop-first architecture** makes local tooling and stateful workflows easier, but it also means the system is not optimized for straightforward web deployment.
+- **Provider abstraction** speeds up model experimentation, but it can hide provider-specific behavior until you are deep in debugging or tool-call edge cases.
+
+In practice, the stack is trying to balance four goals at once:
+
+- desktop product ergonomics
+- isolated app execution
+- declarative app authoring
+- model/provider flexibility
+
+That balance is why the repository looks layered rather than minimal.
+
 ## Prerequisites
 
 You need:
