@@ -1,2 +1,4 @@
 packages:
+  - "mobile-ai-native"
   - "packages/*"
+  - "examples/*"
