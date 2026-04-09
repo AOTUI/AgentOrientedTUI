@@ -1,0 +1,51 @@
+{
+  "name": "@aotui/mobile-ai-native-react-native",
+  "version": "0.1.0-alpha.2",
+  "description": "React Native / Expo host adapter for the mobile AI-native runtime.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && tsc -p tsconfig.json && node ../../scripts/fix-relative-import-extensions.mjs ./dist",
+    "test": "vitest --config vitest.config.ts",
+    "test:run": "vitest --config vitest.config.ts --run",
+    "prepublishOnly": "pnpm build"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-native": ">=0.83.0"
+  },
+  "dependencies": {
+    "@aotui/mobile-ai-native": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "aotui",
+    "mobile",
+    "react-native",
+    "expo",
+    "agent-native"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
